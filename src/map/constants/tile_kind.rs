@@ -1,3 +1,6 @@
+/// Terrain kinds. Walkability lives here (not in the tileset): only floor
+/// can be stepped on; walls and the water pool block movement and
+/// pathfinding alike.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TileKind {
     Floor,

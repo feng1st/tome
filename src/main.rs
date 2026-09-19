@@ -7,6 +7,9 @@ mod map;
 mod movement;
 
 fn main() {
+    // Assembly only: engine plugins, domain registers, and the cross-domain
+    // system chain (click -> movement -> animation -> camera). Everything
+    // else is registered by the domains themselves.
     App::new()
         .add_plugins(
             DefaultPlugins

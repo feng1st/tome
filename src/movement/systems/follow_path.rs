@@ -6,6 +6,11 @@ use crate::movement::utils::step_duration::step_duration;
 
 /// Advance every entity with a `Path` along its steps, preserving its z.
 /// Knows nothing about heroes or mobs.
+///
+/// Movement model: tile-by-tile tween. `step_t` accumulates frame time;
+/// when it reaches `step_dur` (TILE_TIME x step length) the entity snaps to
+/// the target tile center and the next step begins. Overshoot time carries
+/// over, so a long frame never eats a step.
 pub fn follow_path(
     mut commands: Commands,
     time: Res<Time>,
@@ -15,12 +20,14 @@ pub fn follow_path(
         path.step_t += time.delta_secs();
         let z = transform.translation.z;
         loop {
+            // Path exhausted: the entity stands still until a new Path arrives.
             let Some(&target) = path.cells.front() else {
                 commands.entity(entity).remove::<Path>();
                 break;
             };
             let target_center = GridMap::cell_center(target);
             if path.step_t < path.step_dur {
+                // Mid-step: interpolate between tile centers.
                 let t = path.step_t / path.step_dur;
                 transform.translation = path.step_from.lerp(target_center, t).extend(z);
                 break;

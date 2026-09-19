@@ -4,6 +4,9 @@ use crate::map::constants::tile_kind::TileKind;
 /// One animated terrain type: which tile kind it renders, where its texture
 /// comes from, and how it animates. Adding lava, poison gas, etc. means
 /// adding an entry here plus its texture — no structural change.
+///
+/// The animation is a flipbook of offset windows into the source texture,
+/// plus a global alpha pulse (see `systems/terrain_anim.rs`).
 pub struct TerrainAnimSpec {
     pub kind: TileKind,
     pub texture: &'static str,

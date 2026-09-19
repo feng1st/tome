@@ -7,6 +7,9 @@ use crate::map::utils::pathfinding::find_path;
 use crate::movement::components::path::Path;
 
 /// Left click: pick the clicked walkable cell as the movement goal.
+///
+/// Unwalkable clicks (wall, water, outside) are ignored entirely; a click
+/// mid-walk replaces the current path from the cell the hero is in.
 pub fn handle_click(
     mut commands: Commands,
     buttons: Res<ButtonInput<MouseButton>>,
@@ -28,6 +31,8 @@ pub fn handle_click(
     let Ok(world) = camera.viewport_to_world_2d(camera_transform, cursor) else {
         return;
     };
+    // Screen -> world -> cell. The GridMap is the single source of truth for
+    // walkability; the click never touches the rendered chunks.
     let goal = GridMap::world_to_cell(world);
     if !grid_map.walkable(goal) {
         return;

@@ -1,8 +1,12 @@
 /// Map dimensions and z layers (see design Decision 3).
+/// Tile size in world pixels; every grid constant derives from this.
 pub const TILE_SIZE: i32 = 16;
 pub const MAP_W: usize = 64;
 pub const MAP_H: usize = 48;
 
+// Fixed z layers (see design Decision 3). The gap between water and wall
+// leaves room for actors; sprites fit inside their tiles, so no per-row
+// sorting is needed.
 pub const LAYER_FLOOR: f32 = 0.0;
 pub const LAYER_WATER: f32 = 1.0;
 /// Actors (hero, and later mobs) render between water and walls.

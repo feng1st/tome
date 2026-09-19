@@ -8,6 +8,8 @@ use crate::map::resources::pending_chunks::PendingChunks;
 use crate::map::utils::array_texture::{array_image, grid_to_array, offset_frames};
 
 pub fn begin_load(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // Handles are cheap; pixel data arrives asynchronously over the next
+    // frames and is picked up by `finish_chunks`.
     commands.insert_resource(PendingChunks {
         tiles: asset_server.load("tiles0.png"),
         anims: TERRAIN_ANIMS

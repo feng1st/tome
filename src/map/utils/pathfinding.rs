@@ -7,6 +7,8 @@ use crate::map::resources::grid_map::GridMap;
 /// A* over the walkable grid, 8 directions, cost 10 straight / 14 diagonal,
 /// octile-distance heuristic. Diagonal steps only require the target cell to
 /// be walkable (corner cutting allowed, matching the original game).
+///
+/// Costs are integers scaled by 10 so the heap can stay `i32`.
 pub fn find_path(map: &GridMap, start: IVec2, goal: IVec2) -> Option<VecDeque<IVec2>> {
     if !map.walkable(start) || !map.walkable(goal) {
         return None;
@@ -27,6 +29,7 @@ pub fn find_path(map: &GridMap, start: IVec2, goal: IVec2) -> Option<VecDeque<IV
         f: i32,
         cell: IVec2,
     }
+    // BinaryHeap is a max-heap; invert the comparison for lowest-f-first.
     impl Ord for Node {
         fn cmp(&self, other: &Self) -> std::cmp::Ordering {
             other.f.cmp(&self.f) // min-heap

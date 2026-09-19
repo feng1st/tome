@@ -58,6 +58,8 @@ pub fn spawn_chunks(
     ));
 
     for (spec, tileset) in TERRAIN_ANIMS.iter().zip(anim_tilesets) {
+        // One overlay chunk per animated terrain: only its own cells are
+        // visible, the rest of the chunk stays empty (None).
         let mut data = vec![None; w * h];
         for y in 0..h {
             for x in 0..w {

@@ -7,6 +7,8 @@ pub struct AnimTimer {
 }
 
 impl AnimTimer {
+    /// `fps` is per-animation-clip; `set_fps` is called on every state switch
+    /// so a slow idle and a fast run share one timer.
     pub fn new(fps: f32) -> Self {
         AnimTimer {
             timer: Timer::from_seconds(1.0 / fps, TimerMode::Repeating),

@@ -38,6 +38,8 @@ impl GridMap {
         }
     }
 
+    /// Map row 0 is the top row; world Y points up, so world y is negative.
+    /// Anything outside the map counts as a wall (None).
     pub fn get(&self, cell: IVec2) -> Option<TileKind> {
         if cell.x < 0 || cell.y < 0 || cell.x >= self.width as i32 || cell.y >= self.height as i32 {
             return None;
@@ -57,6 +59,7 @@ impl GridMap {
         )
     }
 
+    /// Center of a cell in world coordinates; entities stand on centers.
     pub fn cell_center(cell: IVec2) -> Vec2 {
         Vec2::new(
             cell.x as f32 * TILE_SIZE as f32 + TILE_SIZE as f32 / 2.0,
