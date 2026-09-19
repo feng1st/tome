@@ -1,0 +1,108 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  项目: new-tome2 — 用 Bevy (Rust) 重实现 Pixel Dungeon 类 roguelike，PC 桌面平台，鼠标为主、键盘为辅。
+  Tech stack: Rust, Bevy 0.19 (钉住 0.19.x；升级引擎须走独立 change)。
+
+  参考项目（本工作区内的参考仓库，只读参考，不在其中改代码）:
+  - ../pixel-dungeon/ — 原版 Pixel Dungeon v1.9.1 Java/Android 源码 (GPLv3)。
+    用途: 游戏机制与数值的权威参考（地形、动画帧定义、移动/寻路手感）；
+    assets/ 下的素材可复制进本工程（GPLv3，项目发布须兼容）。
+  - ../PD-classes/ — PD 引擎层 (noosa) 反编译类，渲染/动画底层机制参考。
+  - ../bevy/ — Bevy 官方仓库本地 checkout (v0.19.1 tag)，重点参考 examples/
+    (2d/sprite_animation.rs, 2d/2d_viewport_to_world.rs, 2d/pixel_grid_snap.rs 等)。
+    注意: 工程依赖用 crates.io 的 bevy，本地 checkout 仅供读代码。
+  - /home/feng/Projects/bevy-website/content/learn/quick-start/getting-started/ —
+    Bevy 官方入门文档 (apps/ecs/plugins/resources/setup)，核心概念的权威参考。
+    写 design 时须体现这些概念的运用。摘要:
+
+    App: 每个 Bevy 程序是一个 App，内含 World（全部游戏数据）和 Schedule（系统调度表）。
+    main() 里用 builder 链式装配：init_resource 加全局数据、add_systems 加系统、
+    add_plugins 加插件，最后 run()。
+
+    ECS: 全部游戏逻辑的组织方式。
+    - Entity: 游戏对象的唯一 ID，本身无数据。
+    - Component: 普通 Rust struct（derive Component），拆小拆碎以便复用
+      （如 Position、Name 各自独立），挂在 entity 上组合出对象。
+    - System: 普通 Rust 函数，靠参数声明数据依赖（Query<&A, &mut B>、Res<T>、
+      ResMut<T>、Commands 等），Bevy 按依赖自动调度。系统默认并行执行；
+      有先后要求的必须显式 .chain() 或排序，否则顺序不保证。
+    - Startup schedule 里的系统只跑一次（生成初始对象用 Commands::spawn），
+      Update schedule 每帧循环。
+
+    Plugin: 模块化手段，引擎功能和游戏功能都是插件。插件实现 Plugin trait 的
+    build(&self, app) 方法，在里面注册自己的资源/系统；游戏按功能域拆成多个插件，
+    main() 只负责装配（DefaultPlugins 提供渲染/窗口/输入等引擎功能）。
+
+    Resource: 全局唯一的数据（时间、素材集合、地图数据等），derive Resource，
+    系统里用 Res<T>/ResMut<T> 访问。Entity+Component 表达可查询的对象群体，
+    Resource 表达独一份的数据，二者分工明确。
+    常用内置资源: Time（帧间隔 delta，配 Timer 做周期/补间计时）。
+
+  工作区结构: 工作区根是屏蔽 home git 的伪仓库；真正的工作仓库是 new-tome2/ 子目录，
+  所有代码与 openspec/ 都在其中。
+
+  语言与表达原则:
+  - 沟通与所有文档（proposal/spec/design/tasks）用地道中文：禁止翻译腔、禁止自造词，
+    拿不准的词就用平实说法或保留英文原词。
+  - 代码、标识符、代码注释一律用英文。
+  - SDD 产物与代码一律写成最终状态，不带补丁感：只描述现在是什么，
+    不写“改为 A 而非 B”“不再是 B”这类与本文档旧版本的对比；
+    与参考对象（如原版 PD）的差异说明是设计依据，可以保留。
+
+  架构原则（经讨论确立）:
+
+  插件三层分类：
+  - 游戏内核不定义 Plugin 结构体：地图、主角、相机等核心域是普通 Rust 模块，
+    模块间自由引用，不为内核设计插件接口。
+  - 可整体替换的实现抽成插件：内核持有协议（trait + 数据类型），插件单向依赖
+    内核、注册实现。可替换性来自 trait 抽象，不来自 Plugin 机制。
+  - 可选功能（DLC 式子系统）做成插件：现阶段用 cargo feature + 显式注册；
+    未来出现第二个此类需求时再评估 inventory/linkme 式自注册。
+  - 依据：Bevy 的 Plugin 是编译期装配单元（`fn(&mut App)` 天然实现 Plugin），
+    不是运行时可热插拔组件；插件间没有依赖声明机制，耦合全部落在共享类型上。
+    真正可拔插的是自包含的第三方 crate 插件。不为假想的可拔性做设计。
+  - “插件”一词在 Bevy 里有两个含义：可拔插部件（第三方 crate、DLC）与
+    注册入口（组织手段）。内核域的 register 属于后者。
+
+  域组织规范：
+  - 按域分目录（map/ hero/ camera/ movement/ animation/ 等），域持有自己的 ECS 要素。
+  - 域内按 ECS 侧面分子目录（不是 .rs 单文件）：components/（组件）、
+    resources/（资源）、entities/（entity 生成）、systems/（系统）、
+    utils/（纯函数）、constants/（跨文件复用的枚举与常量）。文件再小也按此落位；
+    侧面目录内部按主题再分具名文件（如 systems/click.rs）。
+  - 枚举、常量不归 resources/：跨文件复用的放 constants/；只被一处使用的，
+    放在归属类型（resource/entity/component）的同一个文件里。
+  - mod.rs 只写 mod 声明和 register 函数，不放其他内容；内容一律在具名 .rs
+    文件里。统一标准，避免日后“从 mod.rs 抽取内容”的返工。
+  - 文件单一职责：一个文件只放同一侧面的同一主题；跨侧面的内容必须拆文件。
+  - 开闭原则：新增同类对象（怪物、地形、动画）只允许新增文件/域，
+    不允许改动现有结构。会被多类对象使用的通用能力及时下沉为独立域
+    （如 movement、animation）。
+  - register：域的 mod.rs 里定义 pub fn register(app: &mut App)（裸函数即 Plugin），
+    只注册域内自治的系统；参与跨域顺序编排（.chain() 等）的系统属装配级，
+    由 main.rs 注册。若将来出现子域，其 register 由父域的 register 调用。
+  - 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
+    归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+
+# Per-artifact rules (optional)
+rules:
+  proposal:
+    - "保存 proposal 前必须用 grilling 方法向用户做问题澄清（design tree 分轮提问，每题给推荐答案），澄清结论须反映到 proposal 中"
+    - "proposal 的 Impact 中注明素材来源与许可影响（GPLv3）"
+  design:
+    - "保存 design 前必须用 grilling 方法向用户做问题澄清，澄清结论须反映到 design 中"
+    - "重要概念、结构、流程必须用 mermaid（首选）或 plantuml 画图，不得以纯文字描述代替"
+    - "关键设计须注明参考来源（例如 pixel-dungeon HeroSprite.java、bevy examples/2d/sprite_animation.rs）"
+    - "用词遵守语言与表达原则（见 context）"
+  tasks:
+    - "每个任务须带可验证的 verify 条件（测试、命令或可观察行为）"
+
+# Per-operation guidance (optional)
+operations:
+  apply:
+    guidance:
+      - "未经用户明确指示不得修改代码；修改须先改 SDD 产物，再改代码"
+      - "严格按域组织规范落位文件，不图一时方便把内容塞进错误的侧面"
