@@ -21,3 +21,9 @@
 - [x] 4.1 `main.rs` 装配与执行链（click → resolve_goal → follow_path → sync_position → animate → follow_target）— verify: `cargo check` 通过
 - [x] 4.2 注释规范收尾：新/移文件 `//!` 与公开类型 `///` 齐全 — verify: 逐文件检查
 - [ ] 4.3 全量回归 — verify: `cargo test` 全绿 + 运行游戏人工确认点击移动、动画、相机、水面与现状一致
+
+## 5. 协议与装配修订
+
+- [x] 5.1 spec/design 修订（`PrimaryAction` 两层协议、SystemSet 标签归 core）— verify: `openspec validate` 通过
+- [x] 5.2 `core::sets` 三个标签；core/graphic 内部链各自入集合；input 真插件化（`click.rs` → `mouse.rs`，`MoveTo` → `PrimaryAction`）；main.rs 只剩 `configure_sets` — verify: `cargo check` 通过
+- [x] 5.3 回归 — verify: `cargo test` 全绿 + `cargo clippy` 零警告

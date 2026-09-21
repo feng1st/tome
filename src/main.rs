@@ -1,16 +1,18 @@
 //! new-tome2: a Pixel Dungeon-like roguelike in Bevy. This binary only
-//! assembles plugins and the cross-domain system chain.
+//! assembles plugins and the cross-side ordering of their set labels.
 
 use bevy::prelude::*;
+
+use core::sets::{CoreSet, GraphicSet, InputSet};
 
 mod core;
 mod graphic;
 mod input;
 
 fn main() {
-    // Assembly only: engine plugins, core domains, the graphic plugin, and
-    // the cross-domain per-frame chain. Everything else is registered by
-    // the domains and plugins themselves.
+    // Assembly only: engine plugins, the three sides, and the cross-side
+    // ordering by abstract set labels. Concrete systems are owned and
+    // ordered inside each side's register.
     App::new()
         .add_plugins(
             DefaultPlugins
@@ -24,21 +26,7 @@ fn main() {
                     ..default()
                 }),
         )
-        .add_plugins((core::register, graphic::register))
-        // Assembly-level: cross-domain system ordering lives here. Input
-        // intents are resolved by the core, the core moves positions, and
-        // the graphic plugin derives all render state from them.
-        .add_systems(
-            Update,
-            (
-                input::systems::click::handle_click,
-                core::hero::systems::resolve_goal::resolve_goal,
-                core::movement::systems::follow_path::follow_path,
-                graphic::sync::systems::sync_position::sync_position,
-                graphic::animation::systems::animate::animate,
-                graphic::camera::systems::follow_target::follow_target,
-            )
-                .chain(),
-        )
+        .add_plugins((core::register, graphic::register, input::register))
+        .configure_sets(Update, (InputSet, CoreSet, GraphicSet).chain())
         .run();
 }

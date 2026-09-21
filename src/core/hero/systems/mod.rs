@@ -1,3 +1,1 @@
-//! Hero game-logic systems.
-
-pub mod resolve_goal;
+pub mod resolve_primary_action;

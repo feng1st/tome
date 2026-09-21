@@ -1,3 +1,1 @@
-//! Input systems.
-
-pub mod click;
+pub mod mouse;

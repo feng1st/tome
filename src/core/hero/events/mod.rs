@@ -1,3 +1,1 @@
-//! Hero intent events.
-
-pub mod move_to;
+pub mod primary_action;

@@ -5,12 +5,24 @@
 pub mod hero;
 pub mod map;
 pub mod movement;
+pub mod sets;
 
 use bevy::prelude::*;
 
-/// Register all core domains. Cross-domain system ordering is assembled in
-/// main.rs, not here.
+use sets::CoreSet;
+
+/// Register all core domains plus the core-side frame logic, ordered inside
+/// `CoreSet`: gestures are resolved into paths before movement advances.
 pub fn register(app: &mut App) {
     map::register(app);
     hero::register(app);
+    app.add_systems(
+        Update,
+        (
+            hero::systems::resolve_primary_action::resolve_primary_action,
+            movement::systems::follow_path::follow_path,
+        )
+            .chain()
+            .in_set(CoreSet),
+    );
 }

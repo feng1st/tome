@@ -43,7 +43,7 @@ src/
 │   ├── camera/     MainCamera、CameraTarget、follow_target
 │   └── sync/       Position → Transform 同步
 └── input/
-    └── click/      鼠标点击 → MoveTo 事件
+    └── systems/    mouse.rs：鼠标主操作 → PrimaryAction 手势
 ```
 
 `map`、`hero` 横跨两侧，同名共存，靠顶层目录区分。`input` 依赖 `graphic`（相机投影与像素换算，见 Decision 4 的取舍说明）。内核各域沿用裸函数 `register` 约定；graphic、input 各有一个总 register 调用子域 register。
@@ -57,12 +57,14 @@ src/
 - `graphic/sync/systems/sync_position.rs` 每帧把 `Position` 写入 `Transform`：`x = pos.x × TILE_SIZE`，`y = -pos.y × TILE_SIZE`，保留既有 z。不额外取整——连续像素补间与现状逐帧一致（原版 PD 的移动同样是连续像素而非格跳）。
 - `animate` 的朝向判断改用格坐标：`Path.step_target` 与 `Position` 的差值符号决定 `flip_x`（参考 bevy `examples/2d/sprite_animation.rs` 的帧动画组织，翻转逻辑现状已有）。
 
-### Decision 3: 输入意图为事件，校验回归内核
+### Decision 3: 两层输入协议——手势跨侧，分发在内核
+
+同一个指向输入按游戏状态可能意味着不同动作（空格=移动、物品格=拾取、怪物格=攻击）。解析需要游戏状态，天然属于内核；输入插件若做解析，就得查询物品/怪物等游戏状态，协议面随可交互对象种类膨胀。因此协议分两层：
 
 ```mermaid
 flowchart LR
-    click[input/click: 鼠标左键] -->|MoveTo cell 事件| resolve[core/hero: resolve_goal]
-    resolve -->|校验 walkable + find_path| path[挂 Path]
+    mouse[input/systems/mouse: 左键] -->|PrimaryAction cell 手势| dispatch[core/hero: resolve_primary_action]
+    dispatch -->|可通行格| path[挂 Path]
     path --> follow[core/movement: follow_path]
     follow --> pos[Position 推进]
     pos --> sync[graphic/sync: sync_position]
@@ -71,9 +73,10 @@ flowchart LR
     trans --> cam[graphic/camera: follow_target]
 ```
 
-- 新增事件 `MoveTo(IVec2)`（目标格）。事件是跨侧协议数据类型，由内核持有；域组织规范没有 events 侧面，本次扩展一个 `events/` 侧面，落 `core/hero/events/move_to.rs`。
-- `input/click`：左键 → `viewport_to_world`（查询 graphic/camera 的 `MainCamera`，参考 bevy `examples/2d/2d_viewport_to_world.rs`）→ 像素换算为格 → 发 `MoveTo`。
-- `core/hero/systems/resolve_goal.rs`：读 `MoveTo` → `walkable` 校验 → `find_path` → 挂 `Path`。可通行校验从输入侧回归内核，"点击不可通行格不产生移动"的行为不变。
+- **手势层（跨侧协议）**：`PrimaryAction(IVec2)`，表达"主操作落在此格"。鼠标点击、键盘光标+确认键、触摸点按都映射到它；模态状态（键盘光标位置、按键映射）留在 input 插件内部，不进协议。消息落在 `core/hero/events/primary_action.rs`——域组织规范没有 events 侧面，本次扩展一个 `events/` 侧面。
+- **意图分发（内核）**：`resolve_primary_action` 读手势 + 游戏状态，决定具体动作；当前只有"可通行则挂 Path"。未来第一种"一点多义"出现时，分发逻辑在这里生长，input 侧零改动。
+- 屏幕 → 世界 → 格的换算仍在 input（查询 graphic 相机，参考 bevy `examples/2d/2d_viewport_to_world.rs`）；可通行校验与寻路在内核。
+- 与原版 PD 的差异：PD 在输入侧直接产出具体意图（`HeroAction.Move/Attack/PickUp`，见 GameScene 的点击分发）；本设计把上下文解析移入内核，换取输入插件的可替换性——跨侧协议只说"主操作落在哪格"，具体意图词汇表是内核内部分发结果。
 
 ### Decision 4: input 直接依赖 graphic（经确认的取舍）
 
@@ -85,22 +88,19 @@ flowchart LR
 - `graphic/hero`：系统查询 `Added<Hero>`，补挂 `Sprite`、`TextureAtlas`、`AnimClips`、`AnimTimer`、`AnimState`、`CameraTarget` 与初始 `Transform`（z = `LAYER_ACTOR`）。显示数据（warrior 12×15 精灵表、tier 0 帧表、IDLE/RUN 帧序列）留在 `graphic/hero/constants/`，帧表还原原版（参考 pixel-dungeon `HeroSprite.java`：idle 在 0/1 间呼吸，run 循环 2–7）。
 - 该模式即"内核生成游戏实体、显示插件注册外观"的协议实例，未来怪物等实体沿用。
 
-### Decision 6: 装配与执行顺序
+### Decision 6: 集合化装配，集合标签归内核持有
 
-`main.rs` 装配：DefaultPlugins → core 各域 register → graphic register → input register，以及跨域执行链：
+装配层若引用具体系统函数，替换任一实现（input 不再是鼠标、graphic 没有动画）都要改 main.rs。Bevy 的 `SystemSet` 正是为此设计（官方 `examples/ecs/ecs_guide.rs`）：各侧把系统注册进抽象集合标签，装配层只编排标签。
 
-```
-input::click → core::resolve_goal → core::follow_path
-→ graphic::sync_position → graphic::animate → graphic::follow_target
-```
-
-`resolve_goal` 消费本帧的 `MoveTo` 事件，`sync_position` 在 `follow_path` 之后、`animate`/相机之前，保证显示侧每帧读到最新位置。
+- 三个标签 `InputSet` / `CoreSet` / `GraphicSet` 定义在 `core::sets`。它们是跨侧顺序编排的协议，按"内核持有协议"原则归内核；放在装配层会形成双向依赖（装配层引用插件的 register，插件反向引用装配层的标签）。
+- 各侧 register 自行展开内部顺序：core 内 `(resolve_primary_action, follow_path).chain().in_set(CoreSet)`；graphic 内 `(attach_appearance, sync_position, animate, follow_target).chain().in_set(GraphicSet)`；input 内 `mouse_primary_action.in_set(InputSet)`。
+- main.rs 只剩一句编排：`configure_sets(Update, (InputSet, CoreSet, GraphicSet).chain())`。
 
 ## Risks / Trade-offs
 
 - [input 依赖 graphic：换成无相机的显示实现时 input 需配套替换] → 取舍已经确认（Decision 4）；input 对 graphic 的依赖收敛为相机组件与一个换算函数两个接触点。
 - [`Position` 与 `Transform` 两份位置可能不一致] → `Transform` 的 x/y 每帧被 `sync_position` 从 `Position` 重写，不再是位置真相来源；z 由显示侧生成时设定并保持。
-- [`Added<Hero>` 补挂若排在渲染之后会出现首帧裸实体] → Startup 生成与首帧 Update 之间不发生渲染，且执行链显式编排，无可见问题。
+- [集合内顺序由单侧自治，跨侧只有标签级先后] → 跨侧顺序需求只有"输入→内核→显示"一层；未来出现更细粒度跨侧约束时，在 core::sets 增设子标签。
 - [目录大规模移动期间编译断点较多] → 一次性迁移，以 `cargo check` 收敛；现有 `grid_map`、`pathfinding` 单元测试保持不变作为回归网。
 
 ## Migration Plan
