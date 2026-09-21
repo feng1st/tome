@@ -1,15 +1,16 @@
+//! new-tome2: a Pixel Dungeon-like roguelike in Bevy. This binary only
+//! assembles plugins and the cross-domain system chain.
+
 use bevy::prelude::*;
 
-mod animation;
-mod camera;
-mod hero;
-mod map;
-mod movement;
+mod core;
+mod graphic;
+mod input;
 
 fn main() {
-    // Assembly only: engine plugins, domain registers, and the cross-domain
-    // system chain (click -> movement -> animation -> camera). Everything
-    // else is registered by the domains themselves.
+    // Assembly only: engine plugins, core domains, the graphic plugin, and
+    // the cross-domain per-frame chain. Everything else is registered by
+    // the domains and plugins themselves.
     App::new()
         .add_plugins(
             DefaultPlugins
@@ -23,15 +24,19 @@ fn main() {
                     ..default()
                 }),
         )
-        .add_plugins((map::register, hero::register, camera::register))
-        // Assembly-level: cross-domain system ordering lives here.
+        .add_plugins((core::register, graphic::register))
+        // Assembly-level: cross-domain system ordering lives here. Input
+        // intents are resolved by the core, the core moves positions, and
+        // the graphic plugin derives all render state from them.
         .add_systems(
             Update,
             (
-                hero::systems::click::handle_click,
-                movement::systems::follow_path::follow_path,
-                animation::systems::animate::animate,
-                camera::systems::follow_target::follow_target,
+                input::systems::click::handle_click,
+                core::hero::systems::resolve_goal::resolve_goal,
+                core::movement::systems::follow_path::follow_path,
+                graphic::sync::systems::sync_position::sync_position,
+                graphic::animation::systems::animate::animate,
+                graphic::camera::systems::follow_target::follow_target,
             )
                 .chain(),
         )
