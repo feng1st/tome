@@ -1,0 +1,19 @@
+[[layers]]
+name = "core"
+path = "src/core/"
+allow = ["core"]
+
+[[layers]]
+name = "graphic"
+path = "src/graphic/"
+allow = ["graphic", "core"]
+
+[[layers]]
+name = "input"
+path = "src/input/"
+allow = ["input", "core", "graphic"]
+
+[[layers]]
+name = "main"
+path = "src/main.rs"
+allow = ["main", "core", "input", "graphic"]
