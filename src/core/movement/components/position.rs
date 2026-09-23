@@ -2,6 +2,8 @@
 
 use bevy::prelude::*;
 
+use crate::core::map::cell_pos::CellPos;
+
 /// Authoritative position of an entity in continuous cell coordinates
 /// (1 unit = 1 cell; x = column, y = row, row increases downward, matching
 /// the map array). Integer coordinates are cell centers: a standing entity
@@ -16,7 +18,7 @@ pub struct Position(pub Vec2);
 impl Position {
     /// Cell the entity currently stands in (integer coordinates are cell
     /// centers, so rounding identifies the standing cell).
-    pub fn cell(&self) -> IVec2 {
-        self.0.round().as_ivec2()
+    pub fn cell(&self) -> CellPos {
+        CellPos(self.0.round().as_ivec2())
     }
 }

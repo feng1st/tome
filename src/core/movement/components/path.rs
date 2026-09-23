@@ -5,6 +5,8 @@ use std::collections::VecDeque;
 
 use bevy::prelude::*;
 
+use crate::core::map::cell_pos::CellPos;
+use crate::core::movement::components::position::Position;
 use crate::core::movement::utils::step_duration::step_duration;
 
 /// Invariants: `cells.front()` is the current step's target cell;
@@ -13,7 +15,7 @@ use crate::core::movement::utils::step_duration::step_duration;
 /// `step_t >= step_dur`.
 #[derive(Component)]
 pub struct Path {
-    pub cells: VecDeque<IVec2>,
+    pub cells: VecDeque<CellPos>,
     /// Cell-space position the current step started from.
     pub step_from: Vec2,
     /// Cell-space center of the current step's target cell.
@@ -25,14 +27,14 @@ pub struct Path {
 impl Path {
     /// `cells` excludes the start cell (the entity is already there);
     /// `from` is the entity's current cell-space position.
-    pub fn new(cells: VecDeque<IVec2>, from: Vec2) -> Self {
+    pub fn new(cells: VecDeque<CellPos>, from: Vec2) -> Self {
         let next = *cells.front().expect("non-empty path");
         Path {
             cells,
             step_from: from,
             step_target: next.as_vec2(),
             step_t: 0.0,
-            step_dur: step_duration(from.round().as_ivec2(), next),
+            step_dur: step_duration(Position(from).cell(), next),
         }
     }
 }

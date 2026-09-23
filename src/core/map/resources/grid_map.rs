@@ -6,6 +6,7 @@
 
 use bevy::prelude::*;
 
+use crate::core::map::cell_pos::CellPos;
 use crate::core::map::constants::layout::{MAP_H, MAP_W};
 use crate::core::map::constants::tile_kind::TileKind;
 
@@ -48,14 +49,15 @@ impl GridMap {
     }
 
     /// Anything outside the map counts as a wall (None).
-    pub fn get(&self, cell: IVec2) -> Option<TileKind> {
+    pub fn get(&self, cell: CellPos) -> Option<TileKind> {
+        let cell = cell.0;
         if cell.x < 0 || cell.y < 0 || cell.x >= self.width as i32 || cell.y >= self.height as i32 {
             return None;
         }
         Some(self.tiles[cell.x as usize + cell.y as usize * self.width])
     }
 
-    pub fn walkable(&self, cell: IVec2) -> bool {
+    pub fn walkable(&self, cell: CellPos) -> bool {
         self.get(cell).is_some_and(TileKind::walkable)
     }
 }
@@ -67,10 +69,10 @@ mod tests {
     #[test]
     fn walkability() {
         let map = GridMap::demo_room();
-        assert!(map.walkable(IVec2::new(10, 10)));
-        assert!(!map.walkable(IVec2::new(0, 0))); // wall corner
-        assert!(!map.walkable(IVec2::new(30, 30))); // water pool
-        assert!(!map.walkable(IVec2::new(-1, 10))); // out of bounds
-        assert!(!map.walkable(IVec2::new(MAP_W as i32, 10))); // out of bounds
+        assert!(map.walkable(CellPos::new(10, 10)));
+        assert!(!map.walkable(CellPos::new(0, 0))); // wall corner
+        assert!(!map.walkable(CellPos::new(30, 30))); // water pool
+        assert!(!map.walkable(CellPos::new(-1, 10))); // out of bounds
+        assert!(!map.walkable(CellPos::new(MAP_W as i32, 10))); // out of bounds
     }
 }

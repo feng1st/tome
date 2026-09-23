@@ -1,32 +1,36 @@
-//! new-tome2: a Pixel Dungeon-like roguelike in Bevy. This binary only
+//! tome: a Pixel Dungeon-like roguelike in Bevy. This binary only
 //! assembles plugins and the cross-side ordering of their set labels.
 
+use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 
-use core::sets::{CoreSet, GraphicSet, InputSet};
+use core::system_sets::{GameSet, InputSet, RenderSet};
 
 mod core;
-mod graphic;
-mod input;
+mod frontend;
 
 fn main() {
-    // Assembly only: engine plugins, the three sides, and the cross-side
+    // Assembly only: engine plugins, the two sides, and the frame-phase
     // ordering by abstract set labels. Concrete systems are owned and
     // ordered inside each side's register.
     App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(ImagePlugin::default_nearest())
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "new-tome2".into(),
-                        resolution: (1280, 720).into(),
-                        ..default()
-                    }),
-                    ..default()
-                }),
-        )
-        .add_plugins((core::register, graphic::register, input::register))
-        .configure_sets(Update, (InputSet, CoreSet, GraphicSet).chain())
+        .add_plugins(engine_plugins())
+        .add_plugins((core::register, frontend::register))
+        .configure_sets(Update, (InputSet, GameSet, RenderSet).chain())
         .run();
+}
+
+/// Engine plugins with pixel-art settings: nearest-neighbor sampling and a
+/// fixed 1280x720 window.
+fn engine_plugins() -> PluginGroupBuilder {
+    DefaultPlugins
+        .set(ImagePlugin::default_nearest())
+        .set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "tome".into(),
+                resolution: (1280, 720).into(),
+                ..default()
+            }),
+            ..default()
+        })
 }

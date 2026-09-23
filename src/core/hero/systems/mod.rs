@@ -1,1 +1,3 @@
-pub mod resolve_primary_action;
+//! Hero game-logic systems.
+
+pub mod commands;

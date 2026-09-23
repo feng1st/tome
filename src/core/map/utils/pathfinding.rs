@@ -4,17 +4,21 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use bevy::prelude::*;
 
+use crate::core::map::cell_pos::CellPos;
 use crate::core::map::resources::grid_map::GridMap;
 
 /// A* over the walkable grid, 8 directions, cost 10 straight / 14 diagonal,
 /// octile-distance heuristic. Diagonal steps only require the target cell to
 /// be walkable (corner cutting allowed, matching the original game).
 ///
-/// Costs are integers scaled by 10 so the heap can stay `i32`.
-pub fn find_path(map: &GridMap, start: IVec2, goal: IVec2) -> Option<VecDeque<IVec2>> {
+/// Costs are integers scaled by 10 so the heap can stay `i32`. Internally
+/// the arithmetic runs on plain IVec2; the `CellPos` vocabulary wraps the
+/// boundary.
+pub fn find_path(map: &GridMap, start: CellPos, goal: CellPos) -> Option<VecDeque<CellPos>> {
     if !map.walkable(start) || !map.walkable(goal) {
         return None;
     }
+    let (start, goal) = (start.0, goal.0);
     if start == goal {
         return Some(VecDeque::new());
     }
@@ -71,7 +75,7 @@ pub fn find_path(map: &GridMap, start: IVec2, goal: IVec2) -> Option<VecDeque<IV
                 cur = prev;
             }
             path.pop_front(); // drop the start cell
-            return Some(path);
+            return Some(path.into_iter().map(CellPos).collect());
         }
         if !closed.insert(cell) {
             continue;
@@ -79,7 +83,7 @@ pub fn find_path(map: &GridMap, start: IVec2, goal: IVec2) -> Option<VecDeque<IV
         let g = g_score[&cell];
         for (dir, cost) in DIRS {
             let next = cell + dir;
-            if !map.walkable(next) {
+            if !map.walkable(CellPos(next)) {
                 continue;
             }
             let next_g = g + cost;
@@ -105,8 +109,8 @@ mod tests {
     fn path_around_pool() {
         let map = GridMap::demo_room();
         // Straight line between these cells crosses the pool (x 28..36, y 28..33).
-        let start = IVec2::new(20, 30);
-        let goal = IVec2::new(44, 30);
+        let start = CellPos::new(20, 30);
+        let goal = CellPos::new(44, 30);
         let path = find_path(&map, start, goal).expect("path exists");
         assert_eq!(*path.back().unwrap(), goal);
         for cell in &path {
@@ -121,16 +125,16 @@ mod tests {
     #[test]
     fn path_unreachable() {
         let map = GridMap::demo_room();
-        assert!(find_path(&map, IVec2::new(5, 5), IVec2::new(0, 0)).is_none()); // wall
-        assert!(find_path(&map, IVec2::new(5, 5), IVec2::new(30, 30)).is_none()); // water
-        assert!(find_path(&map, IVec2::new(5, 5), IVec2::new(-3, 5)).is_none());
+        assert!(find_path(&map, CellPos::new(5, 5), CellPos::new(0, 0)).is_none()); // wall
+        assert!(find_path(&map, CellPos::new(5, 5), CellPos::new(30, 30)).is_none()); // water
+        assert!(find_path(&map, CellPos::new(5, 5), CellPos::new(-3, 5)).is_none());
         // oob
     }
 
     #[test]
     fn path_start_equals_goal() {
         let map = GridMap::demo_room();
-        let path = find_path(&map, IVec2::new(5, 5), IVec2::new(5, 5)).unwrap();
+        let path = find_path(&map, CellPos::new(5, 5), CellPos::new(5, 5)).unwrap();
         assert!(path.is_empty());
     }
 }
