@@ -110,3 +110,4 @@ operations:
     guidance:
       - "未经用户明确指示不得修改代码；修改须先改 SDD 产物，再改代码"
       - "严格按域组织规范落位文件，不图一时方便把内容塞进错误的侧面"
+      - "提交前必须 `cargo fmt --check`、`cargo clippy`、`cargo test` 全绿（零警告）"
