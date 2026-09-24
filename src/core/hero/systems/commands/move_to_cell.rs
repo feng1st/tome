@@ -17,13 +17,13 @@ use crate::core::movement::components::position::Position;
 pub fn execute(
     mut commands: Commands,
     mut move_commands: MessageReader<MoveToCell>,
-    current: Res<CurrentMap>,
+    current_map: Res<CurrentMap>,
     hero: Query<(Entity, &Position), With<Hero>>,
 ) {
     let Ok((hero_entity, pos)) = hero.single() else {
         return;
     };
-    let map = current.map();
+    let map = current_map.map();
     for command in move_commands.read() {
         let goal = command.0;
         let start = pos.cell();

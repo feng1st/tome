@@ -10,8 +10,8 @@ use crate::core::movement::components::position::Position;
 use crate::core::movement::utils::step_duration::step_duration;
 
 /// Invariants: `cells.front()` is the current step's target cell;
-/// `step_from`/`step_target` are the current step's endpoints; the step
-/// completes when `step_t >= step_dur`.
+/// `step_from`/`step_to` are the current step's endpoints; the step
+/// completes when `step_elapsed >= step_duration`.
 #[derive(Component)]
 pub struct Path {
     /// Remaining cells to walk, excluding the cell the entity stands in.
@@ -19,12 +19,12 @@ pub struct Path {
     /// Position the current step started from.
     pub step_from: Position,
     /// Position the current step ends at (the target cell's center).
-    pub step_target: Position,
+    pub step_to: Position,
     /// Seconds accumulated in the current step.
-    pub step_t: f32,
+    pub step_elapsed: f32,
     /// Duration of the current step (straight vs diagonal, see
     /// `step_duration`).
-    pub step_dur: f32,
+    pub step_duration: f32,
 }
 
 impl Path {
@@ -35,9 +35,9 @@ impl Path {
         Path {
             cells,
             step_from: from,
-            step_target: Position::from(next),
-            step_t: 0.0,
-            step_dur: step_duration(from.cell(), next),
+            step_to: Position::from(next),
+            step_elapsed: 0.0,
+            step_duration: step_duration(from.cell(), next),
         }
     }
 }
