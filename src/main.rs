@@ -4,7 +4,7 @@
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 
-use core::system_sets::{GameSet, InputSet, RenderSet};
+use core::frame_phase::FramePhase;
 
 mod core;
 mod frontend;
@@ -16,7 +16,10 @@ fn main() {
     App::new()
         .add_plugins(engine_plugins())
         .add_plugins((core::register, frontend::register))
-        .configure_sets(Update, (InputSet, GameSet, RenderSet).chain())
+        .configure_sets(
+            Update,
+            (FramePhase::Input, FramePhase::Game, FramePhase::Render).chain(),
+        )
         .run();
 }
 

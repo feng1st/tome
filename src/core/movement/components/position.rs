@@ -10,7 +10,7 @@ use crate::core::map::cell_pos::CellPos;
 /// always sits at integer coordinates, and fractional values occur only
 /// mid-step — the single source of movement smoothness.
 ///
-/// Display plugins quantize this value (pixels for graphics, cells for
+/// The frontend quantizes this value (pixels for graphics, cells for
 /// text); the quantized result is never written back here.
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct Position(pub Vec2);

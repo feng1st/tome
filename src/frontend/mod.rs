@@ -3,15 +3,15 @@
 //! frontend) without touching the core; replaceable units inside it
 //! (tilesets, animations, HUD, modalities) are directories, not plugins.
 
-pub mod graphic;
+pub mod display;
 pub mod input;
 
 use bevy::prelude::*;
 
 /// Register the frontend's sub-areas. Systems land in the frame-phase sets
-/// owned by the core (`InputSet` at frame start, `RenderSet` at frame end);
+/// owned by the core (`FramePhase::Input` at frame start, `FramePhase::Render` at frame end);
 /// the assembly layer only chains the labels.
 pub fn register(app: &mut App) {
-    graphic::register(app);
+    display::register(app);
     input::register(app);
 }

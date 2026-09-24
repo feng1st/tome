@@ -48,3 +48,6 @@
 - [x] 8.3 三级动词定稿（translate/resolve/execute）；dispatch 拆为 `systems/resolve/` 一种手势一个 resolver — verify: `cargo check` 通过
 - [x] 8.4 core 侧执行器改名定型：`resolve_move` → `systems/commands/move_to_cell.rs#execute`；`commands/movement.rs` → `commands/move_to_cell.rs`；消息注册下沉 `commands/mod.rs#register`；resolver 函数定名 `resolve` — verify: `cargo test` 全绿
 - [x] 8.5 预防性目录拆分：`gestures.rs` → `gestures/`（一类型一文件，含两个范式标记）、`mouse.rs` → `mouse/left_click.rs` — verify: `cargo check` 通过、clippy 零警告
+- [x] 8.6 输入翻译按设备定轴：`systems/devices/mouse.rs#translate`（单击/双击消歧是设备级状态逻辑，必须同处一个系统；bindings 表到来时只改内部查询） — verify: `cargo test` 全绿、冒烟正常
+- [x] 8.7 注册下沉与子相位归位：devices/resolver 组各持 register，`InputPhase::{Translate, Resolve}` 归 frontend/input（core 只持顶层三相位） — verify: `cargo check` 通过、冒烟正常
+- [x] 8.8 帧相位统一为枚举：`core/system_sets.rs`（三 struct）→ `core/frame_phase.rs`（`FramePhase::{Input, Game, Render}`），与 `InputPhase` 形状对齐 — verify: `cargo test` 全绿、冒烟正常

@@ -1,5 +1,5 @@
 //! The map domain's game-data side: grid model, terrain kinds, pathfinding.
-//! Rendering (chunks, textures) lives in `graphic::map`.
+//! Rendering (chunks, textures) lives in `frontend::display`.
 
 pub mod cell_pos;
 pub mod constants;

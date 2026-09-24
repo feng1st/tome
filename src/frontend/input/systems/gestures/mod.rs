@@ -4,3 +4,16 @@
 //! one-to-one; modalities stay semantics-free.
 
 pub mod primary_action_on_cell;
+
+use bevy::prelude::*;
+
+use crate::frontend::input::input_phase::InputPhase;
+
+/// Register resolvers into the Resolve phase. A new gesture adds a mirrored
+/// file above and a line here.
+pub fn register(app: &mut App) {
+    app.add_systems(
+        Update,
+        primary_action_on_cell::resolve.in_set(InputPhase::Resolve),
+    );
+}

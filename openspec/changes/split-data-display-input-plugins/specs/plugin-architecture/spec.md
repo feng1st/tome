@@ -88,7 +88,7 @@
 
 ### Requirement: 集合化装配
 
-装配层 SHALL 只引用抽象系统集合标签（SystemSet）编排帧相位顺序——`InputSet`（手势翻译）、`GameSet`（内核逻辑）、`RenderSet`（呈现）——MUST NOT 引用具体系统函数。集合标签 MUST 由内核持有，作为协议的一部分；各方在自己的 register 内把系统注册进对应集合，并自行编排集合内部顺序。
+装配层 SHALL 只引用抽象系统集合标签（SystemSet）编排帧相位顺序——`FramePhase::{Input, Game, Render}`（输入翻译、内核逻辑、呈现）——MUST NOT 引用具体系统函数。集合标签 MUST 由内核持有，作为协议的一部分；各方在自己的 register 内把系统注册进对应集合，并自行编排集合内部顺序。
 
 #### Scenario: 装配层不点名具体系统
 
