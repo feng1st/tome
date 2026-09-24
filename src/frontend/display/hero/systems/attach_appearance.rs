@@ -36,7 +36,7 @@ pub fn attach_appearance(
             None,
             None,
         ));
-        let world = cell_to_world(pos.0);
+        let world = cell_to_world(*pos);
         commands.entity(entity).insert((
             Sprite {
                 image: texture,

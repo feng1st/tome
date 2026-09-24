@@ -5,9 +5,9 @@
 
 use bevy::prelude::*;
 
-use crate::core::map::cell_pos::CellPos;
+use crate::core::map::types::cell_coord::CellCoord;
 
 /// Command: walk the hero to a cell. The core validates walkability and
 /// pathfinds; invalid targets are ignored.
 #[derive(Message, Clone, Copy, Debug)]
-pub struct MoveToCell(pub CellPos);
+pub struct MoveToCell(pub CellCoord);

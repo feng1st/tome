@@ -34,7 +34,7 @@ graph TD
 ```
 src/
 ├── core/
-│   ├── map/        GridMap、TileKind、pathfinding（纯格子语义，无像素概念）
+│   ├── map/        GridMap（types/ 纯数据）、CurrentMap（resources/ 当前地图）、TileKind、pathfinding（纯格子语义，无像素概念）
 │   ├── hero/       Hero 标记、生成、命令执行
 │   ├── movement/   Position、Path、follow_path、step_duration
 │   └── frame_phase.rs  帧相位标签（协议）
@@ -48,10 +48,11 @@ src/
 
 ### Decision 2: 权威位置为连续格坐标
 
-`core/movement/components/position.rs` 定义 `Position(Vec2)`：1 单位 = 1 格，x = 列、y = 行（向下为正，与地图数组一致）。整数坐标即格中心，`position.round()` 即所在格；非整数坐标只在移动过程中出现，是平滑移动的唯一来源。整数格坐标的词汇类型为 `CellPos`（包 `IVec2` 的 newtype，`core/map/cell_pos.rs`），协议与 API 签名一律用它而不用裸数学向量；`Cell` 一名保留给未来的"格子实体"概念。
+`core/movement/components/position.rs` 定义 `Position`（具名 f32 字段 x/y）：1 单位 = 1 格，x = 列、y = 行（向下为正，与地图数组一致）。整数坐标即格中心，`position.round()` 即所在格；非整数坐标只在移动过程中出现，是平滑移动的唯一来源。整数格址的词汇类型为 `CellCoord`（具名 i32 字段 x/y，`core/map/types/cell_coord.rs`），协议与 API 签名一律用它而不用裸数学向量；与 `Position` 词根相异以示离散/连续之别，`Cell` 一名保留给未来的"格子实体"概念。纯值类型归 `types/` 侧面（规范扩展：组件归 components、资源归 resources、值类型归 types）。
 
 - `follow_path` 推进 `Position`，不再触碰 `Transform`；`Path` 的 `step_from`/`step_target` 为格坐标。每步时长模型不变（直走/斜走时长不同、直线速度恒定，还原原版手感——参考 pixel-dungeon `HeroSprite.java` 的移动节奏）。
 - `GridMap` 删除像素换算（`cell_center`/`world_to_cell`），只保留格子语义 API（`get`/`walkable`）；格坐标 ↔ 像素的换算函数归 `frontend/display/map/utils/coords.rs`。
+- `GridMap` 从 Resource 降为纯数据类型（`types/`），由 `CurrentMap` 资源（`resources/`）持有当前地图——"哪张地图在游玩"与"地图数据"分离。读者只经 `CurrentMap::map()` 取数据：终局多地图切换（持久楼层、世界地图）时 `CurrentMap` 内部变为地图库句柄，读者零改动。
 - `frontend/display/sync/systems/sync_position.rs` 每帧把 `Position` 写入 `Transform`：`x = pos.x × TILE_SIZE`，`y = -pos.y × TILE_SIZE`，保留既有 z。不额外取整——连续像素补间与现状逐帧一致（原版 PD 的移动同样是连续像素而非格跳）。
 - `animate` 的朝向判断改用格坐标：`Path.step_target` 与 `Position` 的差值符号决定 `flip_x`（参考 bevy `examples/2d/sprite_animation.rs` 的帧动画组织）。
 
@@ -72,10 +73,10 @@ flowchart LR
     trans --> cam[frontend/display/camera: follow_target]
 ```
 
-- **命中判定（frontend）**：原始事实是"点在某个屏幕像素"；像素落在怪物精灵遮罩内还是穿透到地面，只有握着遮罩与遮挡顺序的呈现侧能判（Bevy 0.19 内置像素级精灵拾取：`bevy_sprite` picking backend 逐像素查 alpha）。判定产出**按目标分型的手势**：`PrimaryActionOnCell(CellPos)`，预留 `PrimaryActionOnMonster(Entity)`、`PrimaryActionOnWorldCell(CellPos)`（以 `#[allow(dead_code)]` 标记，表明词族范式）。一种可命中目标一个类型一个文件（`frontend/input/gestures/`），不开 enum。手势是 frontend 内部消息，不跨侧。
+- **命中判定（frontend）**：原始事实是"点在某个屏幕像素"；像素落在怪物精灵遮罩内还是穿透到地面，只有握着遮罩与遮挡顺序的呈现侧能判（Bevy 0.19 内置像素级精灵拾取：`bevy_sprite` picking backend 逐像素查 alpha）。判定产出**按目标分型的手势**：`PrimaryActionOnCell(CellCoord)`，预留 `PrimaryActionOnMonster(Entity)`、`PrimaryActionOnWorldCell(CellCoord)`（以 `#[allow(dead_code)]` 标记，表明词族范式）。一种可命中目标一个类型一个文件（`frontend/input/gestures/`），不开 enum。手势是 frontend 内部消息，不跨侧。
 - **策略解析（frontend）**：`frontend/input/systems/gestures/` 下一种手势一个 resolver（与 `gestures/` 一一镜像），读手势与内核状态决定含义（点怪物=攻击还是查看，是界面策略）。今天是恒等映射（一切格子手势→`MoveToCell`）；第一个可点怪物出现时新增对应 resolver，并触发 bevy_picking 的引入。三级各有动词：模态 translate（换表示，含义不变）→ resolve（消解歧义）→ core execute（校验+执行）。
-- **命令协议（core）**：`MoveToCell(CellPos)` 等具体命令由内核持有（`core/hero/commands/move_to_cell.rs`），收到后校验并执行（不可通行/不可达→不动）。界面层对内核状态只读，一切变更请求经命令消息。回放/AI 驱动方跳过手势层直接发命令。命令是解释完毕的产物（歧义已在界面层解析），沿用 roguelike 传统词汇（ToME/Angband 的 `do_cmd_*`）；与 Bevy 的 `Commands` 系统参数同名但语境不冲突。
-- **载荷类型**：格子坐标用 `CellPos`（包 `IVec2` 的 newtype，`core/map/cell_pos.rs`），不用裸数学向量；`Cell` 一名保留给未来"格子实体"概念。模态状态（键盘光标位置）留在模态实现内部，不进协议。
+- **命令协议（core）**：`MoveToCell(CellCoord)` 等具体命令由内核持有（`core/hero/commands/move_to_cell.rs`），收到后校验并执行（不可通行/不可达→不动）。界面层对内核状态只读，一切变更请求经命令消息。回放/AI 驱动方跳过手势层直接发命令。命令是解释完毕的产物（歧义已在界面层解析），沿用 roguelike 传统词汇（ToME/Angband 的 `do_cmd_*`）；与 Bevy 的 `Commands` 系统参数同名但语境不冲突。
+- **载荷类型**：格子坐标用 `CellCoord`，不用裸数学向量。模态状态（键盘光标位置）留在模态实现内部，不进协议。
 - 与原版 PD 的关系：PD 在输入侧直接产出具体命令（`HeroAction.Move/Attack/PickUp`）；本设计同样把解析放在内核之外，但拆出"命中判定"与"策略解析"两级，模态保持无游戏语义，多模态复用同一解析层。
 - **dispatch 与 resolver 的职责判据**（三个判例）：①敌友判断决定命令**种类**（友→`TalkToMonster`、敌→`AttackMonster`）——语义属性，在命令存续期内稳定，归 resolver；②"攻击要先走近"——距离在命令执行期间每步都变，是执行的时序规则，归内核（`AttackMonster` 的执行=追击+攻击，追击不是独立命令）；③MUD 的 `MoveToLeft` 与图形界面的 `PrimaryActionOnCell` 是各界面自己的手势方言，分别解析到同一命令 `MoveToCell`——手势词族按界面生长，命令协议是所有界面的共同语。一句话判据：**命令开始执行后判断依据还会变的，留内核；不会变的，归 resolver**。
 

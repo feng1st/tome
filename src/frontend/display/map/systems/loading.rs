@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::map::resources::grid_map::GridMap;
+use crate::core::map::resources::current_map::CurrentMap;
 use crate::frontend::display::map::constants::layout::TILE_SIZE;
 use crate::frontend::display::map::constants::terrain_anims::TERRAIN_ANIMS;
 use crate::frontend::display::map::entities::chunks::spawn_chunks;
@@ -31,7 +31,7 @@ pub fn finish_chunks(
     mut commands: Commands,
     pending: Res<PendingChunks>,
     mut images: ResMut<Assets<Image>>,
-    grid_map: Res<GridMap>,
+    grid_map: Res<CurrentMap>,
 ) {
     let Some(tiles_src) = images.get(&pending.tiles).cloned() else {
         return;
@@ -60,7 +60,7 @@ pub fn finish_chunks(
         })
         .collect();
 
-    spawn_chunks(&mut commands, &grid_map, tiles_handle, anim_tilesets);
+    spawn_chunks(&mut commands, grid_map.map(), tiles_handle, anim_tilesets);
 
     commands.remove_resource::<PendingChunks>();
 }

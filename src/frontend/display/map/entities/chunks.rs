@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::sprite_render::{TileData, TilemapChunk, TilemapChunkTileData};
 
 use crate::core::map::constants::tile_kind::TileKind;
-use crate::core::map::resources::grid_map::GridMap;
+use crate::core::map::types::grid_map::GridMap;
 use crate::frontend::display::map::components::terrain_anim::TerrainAnim;
 use crate::frontend::display::map::constants::layout::{
     LAYER_FLOOR, LAYER_WALL, TILE_FLOOR, TILE_SIZE, TILE_WALL,

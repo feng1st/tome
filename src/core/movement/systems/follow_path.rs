@@ -28,17 +28,17 @@ pub fn follow_path(
             if path.step_t < path.step_dur {
                 // Mid-step: interpolate between cell centers.
                 let t = path.step_t / path.step_dur;
-                pos.0 = path.step_from.lerp(path.step_target, t);
+                *pos = path.step_from.lerp(path.step_target, t);
                 break;
             }
             // Step finished: snap to the cell center and start the next step.
             path.step_t -= path.step_dur;
             path.step_from = path.step_target;
             path.cells.pop_front();
-            pos.0 = path.step_target;
+            *pos = path.step_target;
             if let Some(&next) = path.cells.front() {
                 path.step_dur = step_duration(target, next);
-                path.step_target = next.as_vec2();
+                path.step_target = Position::from(next);
             }
         }
     }

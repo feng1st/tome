@@ -51,3 +51,4 @@
 - [x] 8.6 输入翻译按设备定轴：`systems/devices/mouse.rs#translate`（单击/双击消歧是设备级状态逻辑，必须同处一个系统；bindings 表到来时只改内部查询） — verify: `cargo test` 全绿、冒烟正常
 - [x] 8.7 注册下沉与子相位归位：devices/resolver 组各持 register，`InputPhase::{Translate, Resolve}` 归 frontend/input（core 只持顶层三相位） — verify: `cargo check` 通过、冒烟正常
 - [x] 8.8 帧相位统一为枚举：`core/system_sets.rs`（三 struct）→ `core/frame_phase.rs`（`FramePhase::{Input, Game, Render}`），与 `InputPhase` 形状对齐 — verify: `cargo test` 全绿、冒烟正常
+- [x] 8.9 词汇类型收尾：`CellPos` → `CellCoord`（具名字段 x/y）、`Position` 具名字段化、`types/` 侧面确立（`cell_coord.rs`/`grid_map.rs`）、`GridMap` 拆为纯数据 + `CurrentMap` 资源（`map()` 访问器保地图切换接缝） — verify: fmt/clippy/test 全绿、冒烟正常

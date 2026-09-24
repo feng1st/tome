@@ -53,7 +53,7 @@
 
 ### Requirement: 命令协议由内核持有并校验执行
 
-内核 SHALL 持有具体命令消息（如 `MoveToCell(cell)`：走向目标格）作为跨侧协议，收到后校验并执行。界面层对内核状态的一切变更请求 MUST 经命令消息，MUST NOT 直接改写内核状态。命令与手势的载荷 MUST 使用格子坐标类型 `CellPos`，MUST NOT 使用裸数学向量。
+内核 SHALL 持有具体命令消息（如 `MoveToCell(cell)`：走向目标格）作为跨侧协议，收到后校验并执行。界面层对内核状态的一切变更请求 MUST 经命令消息，MUST NOT 直接改写内核状态。命令与手势的载荷 MUST 使用格子坐标类型 `CellCoord`，MUST NOT 使用裸数学向量。
 
 #### Scenario: 不可通行命令不产生移动
 

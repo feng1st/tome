@@ -44,7 +44,7 @@ pub fn animate(time: Res<Time>, mut query: Query<AnimQuery>) {
         // Face the horizontal direction of the current step. Cell space has
         // the same x orientation as world space, so the sign carries over.
         if let Some(path) = item.path {
-            let dx = path.step_target.x - item.position.0.x;
+            let dx = path.step_target.x - item.position.x;
             if dx < 0.0 {
                 item.sprite.flip_x = true;
             } else if dx > 0.0 {

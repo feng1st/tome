@@ -1,3 +1,3 @@
 //! Map resources.
 
-pub mod grid_map;
+pub mod current_map;

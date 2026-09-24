@@ -9,7 +9,7 @@
   - `map` → `core/map`（GridMap、TileKind、寻路）+ `frontend/display/map`（chunk 渲染、贴图重排、地形动画）
   - `hero` → `core/hero`（标记组件、生成、命令执行）+ `frontend/display/hero`（精灵、动画帧表）
   - `movement` → `core/movement`；`animation`、`camera` → `frontend/display/`；点击处理 → `frontend/input/`
-- 内核定义显示无关的权威位置组件：连续格坐标（f32，1 单位 = 1 格），停留点恒为整数格（格中心），非整数值只在移动过程中出现——平滑移动的唯一来源。图形界面将其换算为像素坐标，文字界面取整到格。格子坐标的词汇类型为 `CellPos`（包整数的 newtype；`Cell` 一名保留给未来的实体概念）。
+- 内核定义显示无关的权威位置组件：连续格坐标（f32，1 单位 = 1 格），停留点恒为整数格（格中心），非整数值只在移动过程中出现——平滑移动的唯一来源。图形界面将其换算为像素坐标，文字界面取整到格。格址的词汇类型为 `CellCoord`（具名整数字段；`Cell` 一名保留给未来的实体概念；与连续位置 `Position` 词根相异）。
 - 输入协议分两层：模态将原始输入解析为按目标分型的**手势**（`PrimaryActionOnCell` 等，frontend 内部）；分发依据游戏状态将手势译为具体**命令**（`MoveToCell` 等，跨侧协议，内核持有并校验执行）。
 - `core/movement` 推进该位置，不再直接写 `Transform`；`GridMap` 移除像素换算（`cell_center`/`world_to_cell`、`TILE_SIZE` 依赖）。
 - display 侧新增 位置→Transform 同步：格坐标 ×TILE_SIZE、Y 翻转；`animate` 的朝向判断改用格坐标位移。
