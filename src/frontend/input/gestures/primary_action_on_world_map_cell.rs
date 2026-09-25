@@ -8,4 +8,4 @@ use crate::core::map::types::cell_coord::CellCoord;
 /// hit a cell representing a city/wilderness map — a travel destination.
 #[allow(dead_code)]
 #[derive(Message, Clone, Copy, Debug)]
-pub struct PrimaryActionOnWorldCell(pub CellCoord);
+pub struct PrimaryActionOnWorldMapCell(pub CellCoord);

@@ -1,32 +1,41 @@
 //! World display: sprite/tileset-based presentation of the core's game
-//! state, plus the display-side frame chain. Presentation only.
+//! state.
+//!
+//! Root discipline: side roots only orchestrate *sets* (the phase chain).
+//! Every `add_systems` sinks to the owning domain's register — phases
+//! carry the ordering, and each system's working conditions (`run_if`)
+//! travel with it.
 
 pub mod animation;
 pub mod camera;
+pub mod display_phase;
 pub mod hero;
+pub mod loading;
 pub mod map;
 pub mod sync;
 
 use bevy::prelude::*;
 
 use crate::core::frame_phase::FramePhase;
+use display_phase::DisplayPhase;
 
-/// Register all display domains plus the display-side frame logic, ordered
-/// inside `FramePhase::Render`: appearance first so a freshly spawned hero
-/// has a transform, then positions sync, then animation and camera read
-/// the results.
+/// Register the display side: the asset barrier, every domain's systems,
+/// and the display-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
+    loading::register(app);
     map::register(app);
+    hero::register(app);
+    sync::register(app);
+    animation::register(app);
     camera::register(app);
-    app.add_systems(
+    app.configure_sets(
         Update,
         (
-            hero::systems::attach_appearance::attach_appearance,
-            sync::systems::sync_position::sync_position,
-            animation::systems::animate::animate,
-            camera::systems::follow_target::follow_target,
+            DisplayPhase::Sync,
+            DisplayPhase::Animate,
+            DisplayPhase::Camera,
         )
             .chain()
-            .in_set(FramePhase::Render),
+            .in_set(FramePhase::Display),
     );
 }

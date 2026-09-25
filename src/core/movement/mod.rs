@@ -4,3 +4,10 @@
 pub mod components;
 pub mod systems;
 pub mod utils;
+
+use bevy::prelude::*;
+
+/// Register the movement domain.
+pub fn register(app: &mut App) {
+    systems::register(app);
+}

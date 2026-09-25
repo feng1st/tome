@@ -2,6 +2,10 @@
 //! gesture resolution. Internal to input — the cross-side frame phases
 //! (`FramePhase`) live in `core::frame_phase`; sides own their own
 //! sub-phases.
+//!
+//! Both phases run in `Update`: engine input state (`ButtonInput`) is
+//! refreshed in `PreUpdate`, so `Update` reads it fresh without any
+//! explicit ordering against engine internals.
 
 use bevy::prelude::*;
 

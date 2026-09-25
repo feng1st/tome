@@ -1,6 +1,13 @@
-//! The hero domain's display side: sprite sheet, frame tables, and
-//! attaching appearance to heroes spawned by the core. Its system joins
-//! the display-side chain registered in the frontend's display register.
+//! The hero domain's display side: sprite assets, frame tables, and
+//! attaching appearance to heroes spawned by the core.
 
 pub mod constants;
+pub mod resources;
 pub mod systems;
+
+use bevy::prelude::*;
+
+/// Register the hero display domain.
+pub fn register(app: &mut App) {
+    systems::register(app);
+}

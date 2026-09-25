@@ -4,6 +4,7 @@
 use bevy::prelude::*;
 use bevy::sprite_render::{TileData, TilemapChunk, TilemapChunkTileData};
 
+use crate::core::app_state::AppState;
 use crate::core::map::constants::tile_kind::TileKind;
 use crate::core::map::types::grid_map::GridMap;
 use crate::frontend::display::map::components::terrain_anim::TerrainAnim;
@@ -20,6 +21,8 @@ pub fn spawn_chunks(
     tiles_tileset: Handle<Image>,
     anim_tilesets: Vec<Handle<Image>>,
 ) {
+    // Chunks are `InGame` content: `DespawnOnExit` despawns them on exit, so
+    // a map rebuild on re-entry never doubles up.
     let w = grid_map.width;
     let h = grid_map.height;
     // TilemapChunk tile (0,0) is at the bottom-left (Y up); our map row 0 is
@@ -55,11 +58,13 @@ pub fn spawn_chunks(
         chunk(tiles_tileset.clone()),
         TilemapChunkTileData(floor_data),
         chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_FLOOR)),
+        DespawnOnExit(AppState::InGame),
     ));
     commands.spawn((
         chunk(tiles_tileset),
         TilemapChunkTileData(wall_data),
         chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_WALL)),
+        DespawnOnExit(AppState::InGame),
     ));
 
     for (spec, tileset) in TERRAIN_ANIMS.iter().zip(anim_tilesets) {
@@ -78,6 +83,7 @@ pub fn spawn_chunks(
             TilemapChunkTileData(data),
             chunk_transform.with_translation(chunk_transform.translation.with_z(spec.layer)),
             TerrainAnim::new(spec),
+            DespawnOnExit(AppState::InGame),
         ));
     }
 }

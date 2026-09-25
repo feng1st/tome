@@ -7,8 +7,8 @@ pub mod systems;
 
 use bevy::prelude::*;
 
-/// Register camera spawning. `follow_target` joins the cross-domain chain
-/// assembled in main.rs.
+/// Register the camera domain.
 pub fn register(app: &mut App) {
-    app.add_systems(Startup, entities::camera::spawn_camera);
+    entities::register(app);
+    systems::register(app);
 }

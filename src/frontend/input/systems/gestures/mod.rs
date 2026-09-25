@@ -3,17 +3,21 @@
 //! a given target means. One resolver per gesture, mirroring `gestures/`
 //! one-to-one; modalities stay semantics-free.
 
-pub mod primary_action_on_cell;
+pub mod primary_action_on_local_map_cell;
 
 use bevy::prelude::*;
 
+use crate::core::app_state::InGameState;
 use crate::frontend::input::input_phase::InputPhase;
 
 /// Register resolvers into the Resolve phase. A new gesture adds a mirrored
-/// file above and a line here.
+/// file above and a line here. Click-to-move is a local-map mechanic, so
+/// the resolver gates itself on `InGameState::LocalMap`.
 pub fn register(app: &mut App) {
     app.add_systems(
         Update,
-        primary_action_on_cell::resolve.in_set(InputPhase::Resolve),
+        primary_action_on_local_map_cell::resolve
+            .in_set(InputPhase::Resolve)
+            .run_if(in_state(InGameState::LocalMap)),
     );
 }

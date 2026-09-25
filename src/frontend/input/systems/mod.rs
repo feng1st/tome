@@ -5,7 +5,7 @@ pub mod gestures;
 
 use bevy::prelude::*;
 
-/// Register both system groups.
+/// Register both system groups into their phases.
 pub fn register(app: &mut App) {
     devices::register(app);
     gestures::register(app);

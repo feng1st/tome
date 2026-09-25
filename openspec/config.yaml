@@ -88,8 +88,21 @@ context: |
   - register：域的 mod.rs 里定义 pub fn register(app: &mut App)（裸函数即 Plugin），
     只注册域内自治的系统；参与跨域顺序编排（.chain() 等）的系统属装配级，
     由 main.rs 注册。若将来出现子域，其 register 由父域的 register 调用。
-  - 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
-    归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+- 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
+  归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+
+设计原则（经讨论确立）：
+- 面向终局设计：阶段内容可以少，结构必须对。为已知的演进方向预挖接缝
+  （如 CurrentMap 句柄、LoadingState 可重入、barrier 自注册），但不为假想需求写实现。
+- 开闭原则：新增同类对象只允许新增文件/域，不允许修改既有结构。
+- 单一职责：一个文件/域只承担一个主题；机制与业务分离（如 loading/ 不 import 业务域）。
+- 依赖倒置：多自注册、少显式调用——机制不 import 业务，业务向机制注册
+  （with_guard、集合标签、消息协议、Added 反应式补挂）。自注册的对象主要是
+  资源、消息等数据类要素。例外：系统编排具有全局性、依赖相关、顺序相关，
+  必须在侧根（core/、frontend/input/、frontend/display/）统一编排，不下放给各域；
+  域/组的 register 只做成员注册（资源、消息、系统入集合），不做编排。
+- 命名考究：风格统一、单复数一致、无歧义（如 CurrentMap 之于 current、
+  step_elapsed/step_duration 之于 step_t/step_dur）；动词在函数位、主语在路径位。
 
 # Per-artifact rules (optional)
 rules:

@@ -2,3 +2,10 @@
 //! cell-space positions.
 
 pub mod systems;
+
+use bevy::prelude::*;
+
+/// Register the sync domain.
+pub fn register(app: &mut App) {
+    systems::register(app);
+}

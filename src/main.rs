@@ -11,14 +11,14 @@ mod frontend;
 
 fn main() {
     // Assembly only: engine plugins, the two sides, and the frame-phase
-    // ordering by abstract set labels. Concrete systems are owned and
-    // ordered inside each side's register.
+    // chain. Concrete systems are owned and ordered inside each side's
+    // register; mode gating travels with each system as `run_if`.
     App::new()
         .add_plugins(engine_plugins())
         .add_plugins((core::register, frontend::register))
         .configure_sets(
             Update,
-            (FramePhase::Input, FramePhase::Game, FramePhase::Render).chain(),
+            (FramePhase::Input, FramePhase::Core, FramePhase::Display).chain(),
         )
         .run();
 }

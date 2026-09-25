@@ -1,7 +1,8 @@
 //! Input: devices translate raw input (PC mouse today) into
 //! display-independent gestures, then resolvers interpret gestures into
-//! core commands. New devices and new gestures add their own files and a
-//! line in their group's register; this module never names them.
+//! core commands. Message registration lives in `gestures/`; system
+//! registration sinks to each group (phases carry the ordering); the root
+//! only orchestrates the phase chain.
 
 pub mod gestures;
 pub mod input_phase;
@@ -13,7 +14,7 @@ use crate::core::frame_phase::FramePhase;
 use input_phase::InputPhase;
 
 /// Register the input domain: gesture message types, both system groups,
-/// and the internal phase ordering (translate before resolve, both inside
+/// and the phase ordering (translate before resolve, inside
 /// `FramePhase::Input`).
 pub fn register(app: &mut App) {
     gestures::register(app);

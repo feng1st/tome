@@ -1,7 +1,14 @@
 //! The game core: display- and input-agnostic game data and logic.
 //! Plain modules by design — the core defines no Plugin struct; the
 //! replaceable frontend is a plugin that depends on this core.
+//!
+//! Root discipline: side roots only orchestrate *sets* (phase chains,
+//! set-level gates). Every `add_systems` sinks to the owning domain's
+//! register — phases carry the ordering, so registration is one line per
+//! system and order facts never leave the phase enums.
 
+pub mod app_state;
+pub mod core_phase;
 pub mod frame_phase;
 pub mod hero;
 pub mod map;
@@ -9,20 +16,22 @@ pub mod movement;
 
 use bevy::prelude::*;
 
+use app_state::AppState;
+use app_state::InGameState;
+use core_phase::CorePhase;
 use frame_phase::FramePhase;
 
-/// Register all core domains plus the core-side frame logic, ordered inside
-/// `FramePhase::Game`: commands are executed before movement advances.
+/// Register the mode protocol and all core domains, then orchestrate the
+/// core-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
+    app.init_state::<AppState>().add_sub_state::<InGameState>();
     map::register(app);
     hero::register(app);
-    app.add_systems(
+    movement::register(app);
+    app.configure_sets(
         Update,
-        (
-            hero::systems::commands::move_to_cell::execute,
-            movement::systems::follow_path::follow_path,
-        )
+        (CorePhase::Decide, CorePhase::Act)
             .chain()
-            .in_set(FramePhase::Game),
+            .in_set(FramePhase::Core),
     );
 }

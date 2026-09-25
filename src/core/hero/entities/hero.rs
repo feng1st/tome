@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 
+use crate::core::app_state::AppState;
 use crate::core::hero::components::hero::Hero;
 use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::movement::components::position::Position;
@@ -10,8 +11,14 @@ use crate::core::movement::components::position::Position;
 /// Starting cell of the hero in the demo room.
 const HERO_START: CellCoord = CellCoord::new(32, 10);
 
-/// Startup system: spawn the hero as pure game data (marker + position at
-/// the start cell's center, i.e. integer cell coordinates).
+/// Spawn the hero as pure game data (marker + position at the start
+/// cell's center, i.e. integer cell coordinates). `DespawnOnExit` ties the
+/// hero to `InGame`: leaving the state despawns it, so re-entering via
+/// `OnEnter` is idempotent by construction.
 pub fn spawn_hero(mut commands: Commands) {
-    commands.spawn((Hero, Position::from(HERO_START)));
+    commands.spawn((
+        Hero,
+        Position::from(HERO_START),
+        DespawnOnExit(AppState::InGame),
+    ));
 }

@@ -9,7 +9,7 @@ pub mod input;
 use bevy::prelude::*;
 
 /// Register the frontend's sub-areas. Systems land in the frame-phase sets
-/// owned by the core (`FramePhase::Input` at frame start, `FramePhase::Render` at frame end);
+/// owned by the core (`FramePhase::Input` at frame start, `FramePhase::Display` at frame end);
 /// the assembly layer only chains the labels.
 pub fn register(app: &mut App) {
     display::register(app);

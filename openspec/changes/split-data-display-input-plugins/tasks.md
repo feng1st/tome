@@ -52,3 +52,6 @@
 - [x] 8.7 注册下沉与子相位归位：devices/resolver 组各持 register，`InputPhase::{Translate, Resolve}` 归 frontend/input（core 只持顶层三相位） — verify: `cargo check` 通过、冒烟正常
 - [x] 8.8 帧相位统一为枚举：`core/system_sets.rs`（三 struct）→ `core/frame_phase.rs`（`FramePhase::{Input, Game, Render}`），与 `InputPhase` 形状对齐 — verify: `cargo test` 全绿、冒烟正常
 - [x] 8.9 词汇类型收尾：`CellPos` → `CellCoord`（具名字段 x/y）、`Position` 具名字段化、`types/` 侧面确立（`cell_coord.rs`/`grid_map.rs`）、`GridMap` 拆为纯数据 + `CurrentMap` 资源（`map()` 访问器保地图切换接缝） — verify: fmt/clippy/test 全绿、冒烟正常
+- [x] 8.10 加载机制定型：`LoadingState` 上提 display 根、`loading/` 机制域（`AssetBarrier` + `with_guard` 自注册，与官方差异三条显式文档化）、hero 资产纳入 Loading、命名对齐 `systems/loading.rs#begin_load`；设计四原则记入 config — verify: fmt/clippy/test 全绿、冒烟正常
+- [x] 8.11 编排/注册分层：编排（链、门控、configure_sets）只在四个根部；成员注册（资源、消息、系统入集合）下沉到域/组——相位标签自带顺序时（`InputPhase`）组 register 只加一行 — verify: fmt/clippy/test 全绿、冒烟正常
+- [x] 8.12 对齐引擎主调度：`FramePhase::Render` → `FramePhase::Display`（GPU 渲染在独立 SubApp，相位实为呈现准备）；设备翻译曾下沉 PreUpdate，因需推导的 `.after(InputSystems)` 约束而回退 Update + `InputPhase` 子相位（保守：结构保证优于推导约束） — verify: fmt/clippy/test 全绿、冒烟正常
