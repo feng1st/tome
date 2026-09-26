@@ -20,7 +20,7 @@
 
 - [x] 4.1 `main.rs` 装配与执行链（click → resolve_goal → follow_path → sync_position → animate → follow_target）— verify: `cargo check` 通过
 - [x] 4.2 注释规范收尾：新/移文件 `//!` 与公开类型 `///` 齐全 — verify: 逐文件检查
-- [ ] 4.3 全量回归 — verify: `cargo test` 全绿 + 运行游戏人工确认点击移动、动画、相机、水面与现状一致
+- [x] 4.3 全量回归 — verify: `cargo test` 全绿 + 运行游戏人工确认点击移动、动画、相机、水面与现状一致
 
 ## 5. 协议与装配修订
 
@@ -55,3 +55,12 @@
 - [x] 8.10 加载机制定型：`LoadingState` 上提 display 根、`loading/` 机制域（`AssetBarrier` + `with_guard` 自注册，与官方差异三条显式文档化）、hero 资产纳入 Loading、命名对齐 `systems/loading.rs#begin_load`；设计四原则记入 config — verify: fmt/clippy/test 全绿、冒烟正常
 - [x] 8.11 编排/注册分层：编排（链、门控、configure_sets）只在四个根部；成员注册（资源、消息、系统入集合）下沉到域/组——相位标签自带顺序时（`InputPhase`）组 register 只加一行 — verify: fmt/clippy/test 全绿、冒烟正常
 - [x] 8.12 对齐引擎主调度：`FramePhase::Render` → `FramePhase::Display`（GPU 渲染在独立 SubApp，相位实为呈现准备）；设备翻译曾下沉 PreUpdate，因需推导的 `.after(InputSystems)` 约束而回退 Update + `InputPhase` 子相位（保守：结构保证优于推导约束） — verify: fmt/clippy/test 全绿、冒烟正常
+
+## 9. 词汇与域定稿（整理期收尾）
+
+- [x] 9.1 帧相位枚举定名 `GameLoop::{Input, Core, Display}`（原 `FramePhase`）；`CorePhase::{Sense, Plan, Act}` 三分——命令执行器入 Plan（定向：设置/修改 target），`follow_path` 入 Act（执行），Sense 空置待 AI — verify: `cargo check` 通过
+- [x] 9.2 无状态帧动画：帧 = f(全局虚拟时间)，删 `AnimTimer`；`AnimKind` 枚举词汇超集；`AnimClips` 并入 `Appearance::clip()`（Idle 回退）；Sync（播放意图+朝向）/Animate（纯播放）相位分工 — verify: `cargo test` 全绿
+- [x] 9.3 appearance 域：`AppearanceKind` 纯键（core）+ `Appearances` 注册表 + `load_appearances`（OnEnter）+ `attach_appearance`；新增 `DisplayPhase::Attach` 承载 `Added<>` 结构补挂 — verify: `cargo check` 通过
+- [x] 9.4 域名定稿：display/sync → display/movement；animation → sprite_animation；map 拆出 terrain_animation（`TerrainAnim` 定义/`TerrainAnimState` 组件，`animate()`/`spawn_anim_layers`）；display/hero 取消（相机挂接归 camera `attach_target`） — verify: fmt/clippy/test 全绿
+- [x] 9.5 demo room 缩为 48×32（视野 40×22.5 格）；水池与英雄出生点改从 MAP_W/MAP_H 派生；寻路/命令测试同步修复 — verify: `cargo test` 全绿
+- [x] 9.6 期末收尾：注释逐文件对照实现刷新（含去除已不存在的 `DespawnOnExit` 生命周期描述）、纯逻辑单测补齐（build_chunk_data、follow_path、clip 回退、step_duration，14 → 22）、SDD 产物同步 — verify: `cargo test` 全绿 + `openspec validate` 通过
