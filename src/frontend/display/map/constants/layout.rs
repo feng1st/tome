@@ -16,11 +16,11 @@ pub const LAYER_ACTOR: f32 = 2.0;
 pub const LAYER_WALL: f32 = 3.0;
 
 // The z layers are strictly ordered (compile-time check).
-const {
+const _: () = {
     assert!(LAYER_SCROLL < LAYER_FLOOR);
     assert!(LAYER_FLOOR < LAYER_ACTOR);
     assert!(LAYER_ACTOR < LAYER_WALL);
-}
+};
 
 // Tileset indices: the terrain value is used directly as the tileset
 // frame index.
