@@ -59,7 +59,7 @@ mod tests {
             .spawn((Hero, Position::from(CellCoord::new(10, 10))))
             .id();
         app.world_mut()
-            .write_message(MoveToCell(CellCoord::new(30, 30))); // water pool
+            .write_message(MoveToCell(CellCoord::new(24, 19))); // water pool
         app.update();
         assert!(app.world().get::<Path>(hero).is_none());
     }
