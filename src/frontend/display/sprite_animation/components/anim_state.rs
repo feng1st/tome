@@ -43,30 +43,30 @@ mod tests {
         fps: 4.0,
     };
 
-    fn frame_at(playback: &AnimState, clip: &AnimClip, elapsed: f32) -> usize {
+    fn frame_at(state: &AnimState, clip: &AnimClip, elapsed: f32) -> usize {
         let len = clip.frames.len();
-        clip.frames[((elapsed * clip.fps) as usize + playback.frame_offset) % len]
+        clip.frames[((elapsed * clip.fps) as usize + state.frame_offset) % len]
     }
 
     #[test]
     fn switch_starts_the_new_clip_at_frame_zero() {
-        let mut playback = AnimState {
+        let mut state = AnimState {
             anim: AnimKind::Idle,
             frame_offset: 0,
         };
-        playback.switch(AnimKind::Run, &CLIP, 3.3);
-        assert_eq!(frame_at(&playback, &CLIP, 3.3), 10);
+        state.switch(AnimKind::Run, &CLIP, 3.3);
+        assert_eq!(frame_at(&state, &CLIP, 3.3), 10);
     }
 
     #[test]
     fn switch_at_exact_cycle_boundary_anchors_to_zero_offset() {
-        let mut playback = AnimState {
+        let mut state = AnimState {
             anim: AnimKind::Idle,
             frame_offset: 99,
         };
-        playback.switch(AnimKind::Run, &CLIP, 1.0); // phase 0
-        assert_eq!(playback.frame_offset, 0);
-        assert_eq!(frame_at(&playback, &CLIP, 1.0), 10);
+        state.switch(AnimKind::Run, &CLIP, 1.0); // phase 0
+        assert_eq!(state.frame_offset, 0);
+        assert_eq!(frame_at(&state, &CLIP, 1.0), 10);
     }
 
     #[test]

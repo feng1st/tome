@@ -13,9 +13,9 @@ use crate::core::movement::components::position::Position;
 const HERO_START: CellCoord = CellCoord::new(MAP_W as i32 / 2, 10);
 
 /// Spawn the hero as pure game data (marker + position at the start
-/// cell's center, i.e. integer cell coordinates). `DespawnOnExit` ties the
-/// hero to `Game`: leaving the state despawns it, so re-entering via
-/// `OnEnter` is idempotent by construction.
+/// cell's center, i.e. integer cell coordinates). Nothing despawns on
+/// state exit today (the app never leaves `Game`); a cleanup/rebuild
+/// strategy arrives with map switching.
 pub fn spawn_hero(mut commands: Commands) {
     commands.spawn((Hero, AppearanceKind::Warrior, Position::from(HERO_START)));
 }

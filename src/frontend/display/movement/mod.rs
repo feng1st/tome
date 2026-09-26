@@ -7,7 +7,8 @@ use bevy::prelude::*;
 
 use crate::frontend::display::display_phase::DisplayPhase;
 
-/// Register the sync domain.
+/// Register the movement domain: render transforms sync from the core's
+/// positions in the Sync phase.
 pub fn register(app: &mut App) {
     app.add_systems(
         Update,

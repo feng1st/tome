@@ -18,7 +18,9 @@ pub fn spawn_chunks(
 ) {
     // The chunk shader samples texture_2d_array; the loader reinterprets
     // the grid atlas as array layers at load time (row-major tile order,
-    // matching PD's terrain-value tileset indices).
+    // matching PD's terrain-value tileset indices). tiles0.png is loaded
+    // at this single point — a second load site risks diverging
+    // array-layout settings.
     let tileset = asset_server
         .load_builder()
         .with_settings(|s: &mut ImageLoaderSettings| {
@@ -30,8 +32,9 @@ pub fn spawn_chunks(
         .load("tiles0.png");
 
     let map = grid_map.map();
-    // Chunks are `Game`-state content: `DespawnOnExit` despawns them on exit, so
-    // a map rebuild on re-entry never doubles up.
+    // Chunks spawn per `Game` entry; nothing despawns on exit today (the
+    // app never leaves `Game`). A rebuild strategy arrives with map
+    // switching.
     let w = map.width;
     let h = map.height;
     // The chunk transform shifts chunk-local coordinates onto world map
