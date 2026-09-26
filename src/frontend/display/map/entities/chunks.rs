@@ -21,7 +21,7 @@ pub fn spawn_chunks(
     tiles_tileset: Handle<Image>,
     anim_tilesets: Vec<Handle<Image>>,
 ) {
-    // Chunks are `InGame` content: `DespawnOnExit` despawns them on exit, so
+    // Chunks are `Game`-state content: `DespawnOnExit` despawns them on exit, so
     // a map rebuild on re-entry never doubles up.
     let w = grid_map.width;
     let h = grid_map.height;
@@ -58,13 +58,13 @@ pub fn spawn_chunks(
         chunk(tiles_tileset.clone()),
         TilemapChunkTileData(floor_data),
         chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_FLOOR)),
-        DespawnOnExit(AppState::InGame),
+        DespawnOnExit(AppState::Game),
     ));
     commands.spawn((
         chunk(tiles_tileset),
         TilemapChunkTileData(wall_data),
         chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_WALL)),
-        DespawnOnExit(AppState::InGame),
+        DespawnOnExit(AppState::Game),
     ));
 
     for (spec, tileset) in TERRAIN_ANIMS.iter().zip(anim_tilesets) {
@@ -83,7 +83,7 @@ pub fn spawn_chunks(
             TilemapChunkTileData(data),
             chunk_transform.with_translation(chunk_transform.translation.with_z(spec.layer)),
             TerrainAnim::new(spec),
-            DespawnOnExit(AppState::InGame),
+            DespawnOnExit(AppState::Game),
         ));
     }
 }

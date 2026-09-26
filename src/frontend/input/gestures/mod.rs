@@ -6,16 +6,15 @@
 //! things add a new gesture file plus a new resolver; existing code is
 //! never modified.
 
-pub mod primary_action_on_local_map_cell;
+pub mod primary_action_on_cell;
 pub mod primary_action_on_monster;
-pub mod primary_action_on_world_map_cell;
 
 use bevy::prelude::*;
 
-use primary_action_on_local_map_cell::PrimaryActionOnLocalMapCell;
+use primary_action_on_cell::PrimaryActionOnCell;
 
 /// Register the gesture message types. Paradigm-marker gestures join this
 /// list when a modality first emits them.
 pub fn register(app: &mut App) {
-    app.add_message::<PrimaryActionOnLocalMapCell>();
+    app.add_message::<PrimaryActionOnCell>();
 }

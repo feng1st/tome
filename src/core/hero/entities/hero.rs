@@ -13,12 +13,12 @@ const HERO_START: CellCoord = CellCoord::new(32, 10);
 
 /// Spawn the hero as pure game data (marker + position at the start
 /// cell's center, i.e. integer cell coordinates). `DespawnOnExit` ties the
-/// hero to `InGame`: leaving the state despawns it, so re-entering via
+/// hero to `Game`: leaving the state despawns it, so re-entering via
 /// `OnEnter` is idempotent by construction.
 pub fn spawn_hero(mut commands: Commands) {
     commands.spawn((
         Hero,
         Position::from(HERO_START),
-        DespawnOnExit(AppState::InGame),
+        DespawnOnExit(AppState::Game),
     ));
 }

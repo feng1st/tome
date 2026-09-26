@@ -17,18 +17,16 @@ pub mod movement;
 use bevy::prelude::*;
 
 use app_state::AppState;
-use app_state::InGameState;
 use core_phase::CorePhase;
 use frame_phase::FramePhase;
 
 /// Register the mode protocol and all core domains, then orchestrate the
 /// core-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
-    app.init_state::<AppState>().add_sub_state::<InGameState>();
     map::register(app);
     hero::register(app);
     movement::register(app);
-    app.configure_sets(
+    app.init_state::<AppState>().configure_sets(
         Update,
         (CorePhase::Decide, CorePhase::Act)
             .chain()

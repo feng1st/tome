@@ -4,7 +4,7 @@
 //!
 //! Readiness is a property, not a mode: it lives in the barrier, not in a
 //! state. Any side may sign loads into the same barrier at any time (menu
-//! assets at startup, map assets on entering `InGame`, a new map mid-game
+//! assets at startup, map assets on entering `Game`, a new map mid-game
 //! via message); the gate closes when a guard is minted and opens when the
 //! last one drops.
 

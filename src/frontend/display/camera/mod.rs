@@ -7,8 +7,14 @@ pub mod systems;
 
 use bevy::prelude::*;
 
-/// Register the camera domain.
+use crate::frontend::display::display_phase::DisplayPhase;
+
+/// Register the camera domain: the camera is display infrastructure,
+/// spawned in `Startup`; target following runs in the Camera phase.
 pub fn register(app: &mut App) {
-    entities::register(app);
-    systems::register(app);
+    app.add_systems(Startup, entities::camera::spawn_camera)
+        .add_systems(
+            Update,
+            systems::follow_target::follow_target.in_set(DisplayPhase::Camera),
+        );
 }

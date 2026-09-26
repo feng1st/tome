@@ -7,7 +7,12 @@ pub mod utils;
 
 use bevy::prelude::*;
 
+use crate::core::core_phase::CorePhase;
+
 /// Register the movement domain.
 pub fn register(app: &mut App) {
-    systems::register(app);
+    app.add_systems(
+        Update,
+        systems::follow_path::follow_path.in_set(CorePhase::Act),
+    );
 }

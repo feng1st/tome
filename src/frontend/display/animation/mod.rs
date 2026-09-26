@@ -5,7 +5,12 @@ pub mod systems;
 
 use bevy::prelude::*;
 
+use crate::frontend::display::display_phase::DisplayPhase;
+
 /// Register the animation domain.
 pub fn register(app: &mut App) {
-    systems::register(app);
+    app.add_systems(
+        Update,
+        systems::animate::animate.in_set(DisplayPhase::Animate),
+    );
 }
