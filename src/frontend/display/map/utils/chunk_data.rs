@@ -13,7 +13,7 @@ use crate::frontend::display::map::utils::autotile::shore_tile;
 /// Build the floor and wall chunk tile arrays from the map. Water cells
 /// draw their shoreline variant (`utils::autotile`); fully surrounded
 /// ones become the transparent open-water tile, letting the scrolling
-/// layer beneath show through (PD parity).
+/// layer beneath show through.
 ///
 /// TilemapChunk tile (0,0) is at the bottom-left (Y up); our map row 0 is
 /// the top row, so chunk row = h - 1 - map_y.

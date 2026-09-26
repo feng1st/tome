@@ -1,5 +1,5 @@
 //! Terrain animation: time-driven terrain visuals (today: one scrolling
-//! UV layer per animated terrain kind, PD's `SkinnedBlock` approach).
+//! UV layer per animated terrain kind).
 //! Mechanism-owned — frame-table creature animation lives in
 //! `sprite_animation`; both feed `DisplayPhase::Animate`.
 

@@ -77,4 +77,21 @@ mod tests {
         let path = app.world().get::<Path>(hero).expect("path attached");
         assert_eq!(*path.cells.back().unwrap(), CellCoord::new(12, 10));
     }
+
+    #[test]
+    fn new_goal_mid_walk_repaths() {
+        let mut app = app();
+        let hero = app
+            .world_mut()
+            .spawn((Hero, Position::from(CellCoord::new(10, 10))))
+            .id();
+        app.world_mut()
+            .write_message(MoveToCell(CellCoord::new(12, 10)));
+        app.update();
+        app.world_mut()
+            .write_message(MoveToCell(CellCoord::new(14, 10)));
+        app.update();
+        let path = app.world().get::<Path>(hero).expect("path replaced");
+        assert_eq!(*path.cells.back().unwrap(), CellCoord::new(14, 10));
+    }
 }

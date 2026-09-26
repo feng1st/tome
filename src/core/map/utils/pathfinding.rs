@@ -9,7 +9,7 @@ use crate::core::map::types::grid_map::GridMap;
 
 /// A* over the walkable grid, 8 directions, cost 10 straight / 14 diagonal,
 /// octile-distance heuristic. Diagonal steps only require the target cell to
-/// be walkable (corner cutting allowed, matching the original game).
+/// be walkable (corner cutting allowed).
 ///
 /// Costs are integers scaled by 10 so the heap can stay `i32`.
 pub fn find_path(map: &GridMap, start: CellCoord, goal: CellCoord) -> Option<VecDeque<CellCoord>> {

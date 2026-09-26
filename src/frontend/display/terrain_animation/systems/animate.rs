@@ -9,9 +9,8 @@ use bevy::prelude::*;
 
 use crate::frontend::display::terrain_animation::components::terrain_anim_state::TerrainAnimState;
 
-/// PD parity: `GameScene.update()` scrolls its water block by a fixed
-/// pixel velocity each frame; writing the `uv_transform` translation does
-/// the same thing on the material uniform.
+/// The layer scrolls at a fixed velocity: writing the `uv_transform`
+/// translation advances the offset on the material uniform.
 pub fn animate(
     time: Res<Time>,
     mut materials: ResMut<Assets<ColorMaterial>>,

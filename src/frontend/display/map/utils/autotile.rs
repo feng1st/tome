@@ -1,19 +1,17 @@
 //! Shore autotiling: water cells render as one of 16 shoreline variants
 //! (tileset indices 48..=63) chosen by a 4-bit mask of which orthogonal
-//! neighbors don't blend — a display-side derivation from `GridMap`,
-//! mirroring PD's `Level.getWaterTile` (PD's `Terrain.UNSTITCHABLE`
-//! neighbor flag ≈ our "not floor" check).
+//! neighbors are not floor — a display-side derivation from `GridMap`.
 
 use crate::core::map::constants::tile_kind::TileKind;
 use crate::core::map::types::grid_map::GridMap;
 use crate::frontend::display::map::constants::layout::TILE_SHORE_BASE;
 
 /// Tileset index for the water cell at (x, y): base + 4-bit mask, the bit
-/// set for each orthogonal neighbor that isn't floor (water or wall —
-/// PD's `UNSTITCHABLE` flag — or the map edge, PD levels being
-/// wall-bordered), in PD's bit order (up, right, down, left). Fully
-/// surrounded water becomes `TILE_SHORE_BASE + 15`, the fully transparent
-/// open-water tile that lets the scrolling layer show through.
+/// set for each orthogonal neighbor that isn't floor (water or wall) or
+/// is the map edge (rooms are wall-bordered), in bit order up, right,
+/// down, left. Fully surrounded water becomes `TILE_SHORE_BASE + 15`,
+/// the fully transparent open-water tile that lets the scrolling layer
+/// show through.
 pub fn shore_tile(map: &GridMap, x: usize, y: usize) -> u16 {
     let w = map.width;
     let h = map.height;

@@ -1,8 +1,7 @@
 //! The animated terrain layer: one map-sized REPEAT quad beneath the
-//! chunks — PD's `SkinnedBlock` approach (the chunks render open water
-//! as a fully transparent tile, so the layer shows through). Hardwired
-//! to water for now; multi-kind support (presence mask + per-cell
-//! meshes) is future work.
+//! chunks (the chunks render open water as a fully transparent tile, so
+//! the layer shows through). Hardwired to water for now; multi-kind
+//! support (presence mask + per-cell meshes) is future work.
 
 use bevy::image::{ImageAddressMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor};
 use bevy::prelude::*;
@@ -31,8 +30,7 @@ pub fn spawn_anim_layers(
     let h = map.height as f32 * TILE_SIZE;
 
     let anim = WATER_ANIM;
-    // REPEAT addressing lets the UV scroll wrap, like PD's
-    // `texture.wrap(Texture.REPEAT, Texture.REPEAT)`.
+    // REPEAT addressing lets the UV scroll wrap.
     let texture = asset_server
         .load_builder()
         .with_settings(|s: &mut ImageLoaderSettings| {

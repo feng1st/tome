@@ -1,4 +1,4 @@
-//! tome: a Pixel Dungeon-like roguelike in Bevy. This binary only
+//! tome: a tile-based roguelike in Bevy. This binary only
 //! assembles plugins and the cross-side ordering of their set labels.
 
 use bevy::app::PluginGroupBuilder;
