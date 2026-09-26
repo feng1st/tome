@@ -6,7 +6,7 @@
 use bevy::math::Affine2;
 use bevy::prelude::*;
 
-use crate::frontend::display::map::components::terrain_scroll::TerrainScroll;
+use crate::frontend::display::terrain_animation::components::terrain_scroll::TerrainScroll;
 
 /// PD parity: `GameScene.update()` scrolls its water block by a fixed
 /// pixel velocity each frame; writing the `uv_transform` translation does

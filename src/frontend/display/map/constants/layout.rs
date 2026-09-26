@@ -1,9 +1,10 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Display-side layout constants: pixel size, z layers, tileset indices.
 //! Map dimensions in cells are game data (`core::map::constants::layout`).
 
-/// Tile size in world pixels; every rendered grid constant derives from it.
-pub const TILE_SIZE: i32 = 16;
+/// Tile size in world pixels; every rendered grid constant derives from
+/// it. `f32`: the display side's pixel math is floating point (the rare
+/// integer use, e.g. texture sizes, casts at the call site).
+pub const TILE_SIZE: f32 = 16.0;
 
 // Fixed z layers. The scrolling terrain layer sits beneath the floor and
 // shows through the chunks' empty cells; actors render between floor and

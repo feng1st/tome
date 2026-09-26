@@ -9,9 +9,9 @@ use bevy::prelude::*;
 use bevy::sprite_render::AlphaMode2d;
 
 use crate::core::map::resources::current_map::CurrentMap;
-use crate::frontend::display::map::components::terrain_scroll::TerrainScroll;
 use crate::frontend::display::map::constants::layout::{LAYER_SCROLL, TILE_SIZE};
-use crate::frontend::display::map::constants::terrain_anims::TERRAIN_ANIMS;
+use crate::frontend::display::terrain_animation::components::terrain_scroll::TerrainScroll;
+use crate::frontend::display::terrain_animation::constants::terrain_anims::TERRAIN_ANIMS;
 
 /// Spawn one scrolling layer per animated terrain the map contains. The
 /// quad is map-sized and centered on the map; which cells reveal it is
@@ -25,8 +25,8 @@ pub fn spawn_scroll_layers(
     grid_map: Res<CurrentMap>,
 ) {
     let map = grid_map.map();
-    let w = map.width as f32 * TILE_SIZE as f32;
-    let h = map.height as f32 * TILE_SIZE as f32;
+    let w = map.width as f32 * TILE_SIZE;
+    let h = map.height as f32 * TILE_SIZE;
     for spec in TERRAIN_ANIMS {
         if !map.tiles.contains(&spec.kind) {
             continue;

@@ -9,9 +9,9 @@ use bevy::prelude::*;
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::animation::components::anim_state::AnimState;
-use crate::frontend::display::animation::constants::anim_kind::AnimKind;
 use crate::frontend::display::appearance::resources::appearances::Appearances;
+use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
+use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 
 #[derive(QueryData)]
 #[query_data(mutable)]

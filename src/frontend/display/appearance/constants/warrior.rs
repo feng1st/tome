@@ -6,8 +6,8 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use crate::frontend::display::animation::constants::anim_kind::AnimKind;
-use crate::frontend::display::animation::types::anim_clip::AnimClip;
+use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
+use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
 /// Warrior sheet asset path (from pixel-dungeon, GPLv3).
 pub const WARRIOR_TEXTURE: &str = "warrior.png";

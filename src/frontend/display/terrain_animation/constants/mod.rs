@@ -1,4 +1,4 @@
 // TODO: pending cleanup review — remove once stabilized
-//! Map display components.
+//! Terrain animation constants.
 
-pub mod terrain_scroll;
+pub mod terrain_anims;

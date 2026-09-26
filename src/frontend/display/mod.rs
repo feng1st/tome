@@ -6,13 +6,13 @@
 //! carry the ordering, and each system's working conditions (`run_if`)
 //! travel with it.
 
-pub mod animation;
 pub mod appearance;
 pub mod camera;
 pub mod display_phase;
-pub mod hero;
 pub mod map;
 pub mod movement;
+pub mod sprite_animation;
+pub mod terrain_animation;
 
 use bevy::prelude::*;
 
@@ -23,10 +23,10 @@ use crate::core::game_loop::GameLoop;
 /// display-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
     map::register(app);
-    hero::register(app);
     movement::register(app);
     appearance::register(app);
-    animation::register(app);
+    sprite_animation::register(app);
+    terrain_animation::register(app);
     camera::register(app);
     app.configure_sets(
         Update,

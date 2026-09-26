@@ -5,8 +5,8 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use crate::frontend::display::animation::constants::anim_kind::AnimKind;
-use crate::frontend::display::animation::types::anim_clip::AnimClip;
+use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
+use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
 /// One appearance: sprite sheet, atlas layout, and the anim table. Pure
 /// display data — the core knows only the `AppearanceKind` key. The

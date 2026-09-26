@@ -8,7 +8,7 @@ use crate::core::hero::components::hero::Hero;
 use crate::frontend::display::camera::components::camera_target::CameraTarget;
 
 /// The camera follows the hero.
-pub fn attach_camera_target(mut commands: Commands, query: Query<Entity, Added<Hero>>) {
+pub fn attach_target(mut commands: Commands, query: Query<Entity, Added<Hero>>) {
     for entity in &query {
         commands.entity(entity).insert(CameraTarget);
     }

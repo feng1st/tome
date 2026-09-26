@@ -3,8 +3,8 @@
 
 use bevy::prelude::*;
 
-use crate::frontend::display::animation::constants::anim_kind::AnimKind;
-use crate::frontend::display::animation::types::anim_clip::AnimClip;
+use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
+use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
 /// Playback instruction, written by `sync_animation` in
 /// `DisplayPhase::Sync` and consumed by `animate` in

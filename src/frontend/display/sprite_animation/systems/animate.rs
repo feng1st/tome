@@ -11,8 +11,8 @@ use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
-use crate::frontend::display::animation::components::anim_state::AnimState;
 use crate::frontend::display::appearance::resources::appearances::Appearances;
+use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 
 #[derive(QueryData)]
 #[query_data(mutable)]

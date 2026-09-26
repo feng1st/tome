@@ -1,5 +1,5 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Map display pure functions.
 
+pub mod autotile;
+pub mod chunk_data;
 pub mod coords;
-pub mod stitching;

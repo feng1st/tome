@@ -6,11 +6,11 @@ use bevy::prelude::*;
 
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::animation::components::anim_state::AnimState;
-use crate::frontend::display::animation::constants::anim_kind::AnimKind;
 use crate::frontend::display::appearance::resources::appearances::Appearances;
 use crate::frontend::display::map::constants::layout::LAYER_ACTOR;
 use crate::frontend::display::map::utils::coords::cell_to_world;
+use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
+use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 
 /// Attach sprite, transform and playback state to every entity wearing a
 /// new appearance, cloning the registry's handles onto the instance — the

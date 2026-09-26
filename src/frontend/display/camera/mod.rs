@@ -15,6 +15,10 @@ pub fn register(app: &mut App) {
     app.add_systems(Startup, entities::camera::spawn_camera)
         .add_systems(
             Update,
+            systems::attach_target::attach_target.in_set(DisplayPhase::Attach),
+        )
+        .add_systems(
+            Update,
             systems::follow_target::follow_target.in_set(DisplayPhase::Camera),
         );
 }
