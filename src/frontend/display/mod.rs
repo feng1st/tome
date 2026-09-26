@@ -16,8 +16,8 @@ pub mod sync;
 
 use bevy::prelude::*;
 
+use self::display_phase::DisplayPhase;
 use crate::core::game_loop::GameLoop;
-use display_phase::DisplayPhase;
 
 /// Register the display side: every domain's systems and the
 /// display-internal phase chain. No concrete system is named here.

@@ -11,8 +11,8 @@ pub mod systems;
 
 use bevy::prelude::*;
 
+use self::input_phase::InputPhase;
 use crate::core::game_loop::GameLoop;
-use input_phase::InputPhase;
 
 /// Register the input domain: gesture message types, both system groups,
 /// and the phase ordering (translate before resolve, inside

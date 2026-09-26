@@ -8,8 +8,8 @@ pub mod utils;
 
 use bevy::prelude::*;
 
-use resources::current_map::CurrentMap;
-use types::grid_map::GridMap;
+use self::resources::current_map::CurrentMap;
+use self::types::grid_map::GridMap;
 
 /// Register the map domain: the current map is game data. Rendering the
 /// map (chunks, textures) is the frontend's job.

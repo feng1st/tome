@@ -16,9 +16,9 @@ pub mod movement;
 
 use bevy::prelude::*;
 
-use app_state::AppState;
-use core_phase::CorePhase;
-use game_loop::GameLoop;
+use self::app_state::AppState;
+use self::core_phase::CorePhase;
+use self::game_loop::GameLoop;
 
 /// Register the mode protocol and all core domains, then orchestrate the
 /// core-internal phase chain. No concrete system is named here.

@@ -4,7 +4,7 @@
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 
-use core::game_loop::GameLoop;
+use crate::core::game_loop::GameLoop;
 
 mod core;
 mod frontend;

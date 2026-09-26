@@ -12,7 +12,7 @@ pub mod primary_action_on_monster;
 
 use bevy::prelude::*;
 
-use primary_action_on_cell::PrimaryActionOnCell;
+use self::primary_action_on_cell::PrimaryActionOnCell;
 
 /// Register the gesture message types. Paradigm-marker gestures join this
 /// list when a modality first emits them.

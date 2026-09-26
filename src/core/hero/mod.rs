@@ -8,10 +8,9 @@ pub mod systems;
 
 use bevy::prelude::*;
 
+use self::commands::move_to_cell::MoveToCell;
 use crate::core::app_state::AppState;
 use crate::core::core_phase::CorePhase;
-
-use commands::move_to_cell::MoveToCell;
 
 /// Register the hero domain: command messages, executors, and spawning.
 pub fn register(app: &mut App) {
