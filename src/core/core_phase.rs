@@ -1,10 +1,10 @@
-//! Core-side phase labels: ordering within `FramePhase::Core`. The hero's
+//! Core-side phase labels: ordering within `GameLoop::Core`. The hero's
 //! action arrives via commands (see `hero::systems::commands`); `Decide`
 //! is reserved for agent AI choosing intents, `Act` executes them.
 
 use bevy::prelude::*;
 
-/// Sub-phases within `FramePhase::Core`.
+/// Sub-phases within `GameLoop::Core`.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CorePhase {
     /// Agents choose their intents (monster AI; future).

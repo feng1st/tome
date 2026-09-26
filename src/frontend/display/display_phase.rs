@@ -1,11 +1,11 @@
-//! Display-side phase labels: ordering within `FramePhase::Display`.
+//! Display-side phase labels: ordering within `GameLoop::Display`.
 //! Presentation is mode-agnostic — the same pipeline serves world map and
 //! local maps — so these phases are shared and mode differences are
 //! expressed by `run_if(in_state(...))` on systems, not per-mode phases.
 
 use bevy::prelude::*;
 
-/// Sub-phases within `FramePhase::Display`.
+/// Sub-phases within `GameLoop::Display`.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DisplayPhase {
     /// Core state flows into presentation: appearance attach, transform

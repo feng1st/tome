@@ -4,13 +4,13 @@
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 
-use core::frame_phase::FramePhase;
+use core::game_loop::GameLoop;
 
 mod core;
 mod frontend;
 
 fn main() {
-    // Assembly only: engine plugins, the two sides, and the frame-phase
+    // Assembly only: engine plugins, the two sides, and the game-loop
     // chain. Concrete systems are owned and ordered inside each side's
     // register; mode gating travels with each system as `run_if`.
     App::new()
@@ -18,7 +18,7 @@ fn main() {
         .add_plugins((core::register, frontend::register))
         .configure_sets(
             Update,
-            (FramePhase::Input, FramePhase::Core, FramePhase::Display).chain(),
+            (GameLoop::Input, GameLoop::Core, GameLoop::Display).chain(),
         )
         .run();
 }

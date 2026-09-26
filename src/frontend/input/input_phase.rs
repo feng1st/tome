@@ -1,6 +1,6 @@
 //! Ordering phases inside the input domain: device translation runs before
-//! gesture resolution. Internal to input — the cross-side frame phases
-//! (`FramePhase`) live in `core::frame_phase`; sides own their own
+//! gesture resolution. Internal to input — the cross-side game-loop stages
+//! (`GameLoop`) live in `core::game_loop`; sides own their own
 //! sub-phases.
 //!
 //! Both phases run in `Update`: engine input state (`ButtonInput`) is
@@ -9,7 +9,7 @@
 
 use bevy::prelude::*;
 
-/// Sub-phases within `FramePhase::Input`.
+/// Sub-phases within `GameLoop::Input`.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum InputPhase {
     /// Devices translate raw input into gestures.

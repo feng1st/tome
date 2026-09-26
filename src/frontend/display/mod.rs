@@ -15,7 +15,7 @@ pub mod sync;
 
 use bevy::prelude::*;
 
-use crate::core::frame_phase::FramePhase;
+use crate::core::game_loop::GameLoop;
 use display_phase::DisplayPhase;
 
 /// Register the display side: every domain's systems and the
@@ -34,6 +34,6 @@ pub fn register(app: &mut App) {
             DisplayPhase::Camera,
         )
             .chain()
-            .in_set(FramePhase::Display),
+            .in_set(GameLoop::Display),
     );
 }

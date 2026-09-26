@@ -10,12 +10,12 @@ pub mod systems;
 
 use bevy::prelude::*;
 
-use crate::core::frame_phase::FramePhase;
+use crate::core::game_loop::GameLoop;
 use input_phase::InputPhase;
 
 /// Register the input domain: gesture message types, both system groups,
 /// and the phase ordering (translate before resolve, inside
-/// `FramePhase::Input`).
+/// `GameLoop::Input`).
 pub fn register(app: &mut App) {
     gestures::register(app);
     systems::register(app);
@@ -23,6 +23,6 @@ pub fn register(app: &mut App) {
         Update,
         (InputPhase::Translate, InputPhase::Resolve)
             .chain()
-            .in_set(FramePhase::Input),
+            .in_set(GameLoop::Input),
     );
 }

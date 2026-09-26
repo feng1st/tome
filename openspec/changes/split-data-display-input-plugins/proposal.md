@@ -13,7 +13,7 @@
 - 输入协议分两层：模态将原始输入解析为按目标分型的**手势**（`PrimaryActionOnCell` 等，frontend 内部）；分发依据游戏状态将手势译为具体**命令**（`MoveToCell` 等，跨侧协议，内核持有并校验执行）。
 - `core/movement` 推进该位置，不再直接写 `Transform`；`GridMap` 移除像素换算（`cell_center`/`world_to_cell`、`TILE_SIZE` 依赖）。
 - display 侧新增 位置→Transform 同步：格坐标 ×TILE_SIZE、Y 翻转；`animate` 的朝向判断改用格坐标位移。
-- **内核不引用界面层的具体类型**，替换实现只需改 `main.rs` 的装配；装配层只编排 `FramePhase` 集合标签，不引用具体系统函数。
+- **内核不引用界面层的具体类型**，替换实现只需改 `main.rs` 的装配；装配层只编排 `GameLoop` 集合标签，不引用具体系统函数。
 - 游戏行为不变：渲染分层、动画帧序列、移动手感、点击寻路均与现状一致。
 
 ## Capabilities

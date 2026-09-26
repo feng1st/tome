@@ -9,7 +9,7 @@
 
 pub mod app_state;
 pub mod core_phase;
-pub mod frame_phase;
+pub mod game_loop;
 pub mod hero;
 pub mod map;
 pub mod movement;
@@ -18,7 +18,7 @@ use bevy::prelude::*;
 
 use app_state::AppState;
 use core_phase::CorePhase;
-use frame_phase::FramePhase;
+use game_loop::GameLoop;
 
 /// Register the mode protocol and all core domains, then orchestrate the
 /// core-internal phase chain. No concrete system is named here.
@@ -30,6 +30,6 @@ pub fn register(app: &mut App) {
         Update,
         (CorePhase::Decide, CorePhase::Act)
             .chain()
-            .in_set(FramePhase::Core),
+            .in_set(GameLoop::Core),
     );
 }

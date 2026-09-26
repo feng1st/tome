@@ -37,7 +37,7 @@ src/
 │   ├── map/        GridMap（types/ 纯数据）、CurrentMap（resources/ 当前地图）、TileKind、pathfinding（纯格子语义，无像素概念）
 │   ├── hero/       Hero 标记、生成、命令执行
 │   ├── movement/   Position、Path、follow_path、step_duration
-│   └── frame_phase.rs  帧相位标签（协议）
+│   └── game_loop.rs  主循环阶段标签（协议）
 └── frontend/
     ├── display/    世界画面呈现：map（chunks、贴图、地形动画、像素换算）、hero（精灵、帧表）、animation、camera、sync
     ├── input/      输入：gestures/（手势类型）、systems/gestures/（resolver 镜像）、systems/devices/（一设备一文件）
@@ -84,10 +84,10 @@ flowchart LR
 
 装配层若引用具体系统函数，替换任一实现（输入不再是鼠标、呈现没有动画）都要改 main.rs。Bevy 的 `SystemSet` 正是为此设计（官方 `examples/ecs/ecs_guide.rs`）：各方把系统注册进抽象集合标签，装配层只编排标签。
 
-- 帧相位标签定义在 `core::frame_phase`：`FramePhase::{Input, Core, Display}`（命令产出、内核逻辑、呈现）。它们是跨侧顺序编排的协议，按"内核持有协议"原则归内核；放在装配层会形成双向依赖（装配层引用插件的 register，插件反向引用装配层的标签）。命名注记：GPU 渲染在 Bevy 独立的 render SubApp 执行，主调度里的 `Display` 相位是呈现*准备*（sync/动画/相机/chunks），不称 Render 以免与引擎渲染管线撞词。
-- 注意标签是帧相位而非侧的私产：frontend 一个插件同时把翻译系统放进 `FramePhase::Input`（帧首）、渲染系统放进 `FramePhase::Display`（帧尾）。
-- 各方 register 自行展开内部顺序：core 内 execute 与 follow_path 各自在域 register 入 `CorePhase::Act`（同相位无链）；frontend 内 display 各系统在域 register 入 `DisplayPhase::{Sync, Animate, Camera}`，input 侧：设备翻译与 resolver 都在 `Update`，子相位 `InputPhase::{Translate, Resolve}` 链编排（嵌于 `FramePhase::Input`）。曾尝试按引擎语义把翻译下沉 `PreUpdate`——引擎输入系统确实在 PreUpdate 刷新 `ButtonInput`——但那需要 `.after(InputSystems)` 这个推导出的显式约束（官方文档未明言消费方排序方式）；留在 Update 则由"PreUpdate 恒在 Update 前"的结构零成本保证读到新输入，保守方案胜出。命名约定：动词在函数位、主语在路径位——命令类型在 `commands/<名>.rs`，执行器在镜像的 `systems/commands/<名>.rs#execute`；手势类型在 `gestures/<名>.rs`，解析器在镜像的 `systems/gestures/<名>.rs#resolve`；设备翻译系统在 `systems/devices/<设备>.rs#translate`。按设备而非语义动作组织的原因：单击/双击/长按的消歧是带状态的设备级逻辑，必须共处一个系统；设备内的绑定查询将来从字面量改为查 bindings 表，路径与注册零变化。消息类型的注册下沉到所属域/组的 register（命令消息归域 register，如 `MoveToCell` 在 `hero/mod.rs`；手势归 `gestures/mod.rs`）；注册与编排的分层：编排（`.chain()`、`configure_sets`、`.before/.after`、门控）只在侧根（core、frontend/input、frontend/display）与装配层——编排具有全局性、依赖相关、顺序相关，下放给各域会失序；成员注册（资源、消息、系统入集合）可下沉到域/组的 register——当相位标签本身携带顺序时（如设备组入 PreUpdate、resolver 组入 FramePhase::Input），"系统入集合"不含编排成分。标签归属规则：core 持有的集合标签 = 跨侧帧相位的最小集合（`FramePhase` 三个变体，替换实现时装配层依赖它们保持不动）；侧内子相位（如 `InputPhase`）归各侧自己，不进 core。
-- main.rs 只剩一句编排：`configure_sets(Update, (FramePhase::Input, FramePhase::Core, FramePhase::Display).chain())`。
+- 主循环阶段标签定义在 `core::game_loop`：`GameLoop::{Input, Core, Display}`（命令产出、内核逻辑、呈现）。它们是跨侧顺序编排的协议，按"内核持有协议"原则归内核；放在装配层会形成双向依赖（装配层引用插件的 register，插件反向引用装配层的标签）。命名注记：枚举取名自经典 game loop 模式（input → update → present），变体沿用三侧名以保留"相位镜像三侧"；GPU 渲染在 Bevy 独立的 render SubApp 执行，主调度里的 `Display` 相位是呈现*准备*（sync/动画/相机/chunks）——不称 Render，也不称 Present（wgpu/Vulkan 的 present 即交换链提交上屏，同样在引擎层），避免与引擎渲染管线撞词。
+- 注意标签是主循环阶段而非侧的私产：frontend 一个插件同时把翻译系统放进 `GameLoop::Input`（帧首）、渲染系统放进 `GameLoop::Display`（帧尾）。
+- 各方 register 自行展开内部顺序：core 内 execute 与 follow_path 各自在域 register 入 `CorePhase::Act`（同相位无链）；frontend 内 display 各系统在域 register 入 `DisplayPhase::{Sync, Animate, Camera}`，input 侧：设备翻译与 resolver 都在 `Update`，子相位 `InputPhase::{Translate, Resolve}` 链编排（嵌于 `GameLoop::Input`）。曾尝试按引擎语义把翻译下沉 `PreUpdate`——引擎输入系统确实在 PreUpdate 刷新 `ButtonInput`——但那需要 `.after(InputSystems)` 这个推导出的显式约束（官方文档未明言消费方排序方式）；留在 Update 则由"PreUpdate 恒在 Update 前"的结构零成本保证读到新输入，保守方案胜出。命名约定：动词在函数位、主语在路径位——命令类型在 `commands/<名>.rs`，执行器在镜像的 `systems/commands/<名>.rs#execute`；手势类型在 `gestures/<名>.rs`，解析器在镜像的 `systems/gestures/<名>.rs#resolve`；设备翻译系统在 `systems/devices/<设备>.rs#translate`。按设备而非语义动作组织的原因：单击/双击/长按的消歧是带状态的设备级逻辑，必须共处一个系统；设备内的绑定查询将来从字面量改为查 bindings 表，路径与注册零变化。消息类型的注册下沉到所属域/组的 register（命令消息归域 register，如 `MoveToCell` 在 `hero/mod.rs`；手势归 `gestures/mod.rs`）；注册与编排的分层：编排（`.chain()`、`configure_sets`、`.before/.after`、门控）只在侧根（core、frontend/input、frontend/display）与装配层——编排具有全局性、依赖相关、顺序相关，下放给各域会失序；成员注册（资源、消息、系统入集合）可下沉到域/组的 register——当相位标签本身携带顺序时（如设备组入 PreUpdate、resolver 组入 GameLoop::Input），"系统入集合"不含编排成分。标签归属规则：core 持有的集合标签 = 跨侧主循环阶段的最小集合（`GameLoop` 三个变体，替换实现时装配层依赖它们保持不动）；侧内子相位（如 `InputPhase`）归各侧自己，不进 core。
+- main.rs 只剩一句编排：`configure_sets(Update, (GameLoop::Input, GameLoop::Core, GameLoop::Display).chain())`。
 
 ### Decision 5: hero 生成拆为内核生成 + 显示补挂
 
@@ -98,7 +98,7 @@ flowchart LR
 ## Risks / Trade-offs
 
 - [`Position` 与 `Transform` 两份位置可能不一致] → `Transform` 的 x/y 每帧被 `sync_position` 从 `Position` 重写，不再是位置真相来源；z 由显示侧生成时设定并保持。
-- [集合内顺序由单方自治，跨侧只有标签级先后] → 跨侧顺序需求只有"输入→内核→呈现"一层；未来出现更细粒度跨侧约束时，在 core::frame_phase 增设变体。
+- [集合内顺序由单方自治，跨侧只有标签级先后] → 跨侧顺序需求只有"输入→内核→呈现"一层；未来出现更细粒度跨侧约束时，在 core::game_loop 增设变体。
 - [目录大规模移动期间编译断点较多] → 一次性迁移，以 `cargo check` 收敛；现有 `grid_map`、`pathfinding` 单元测试保持不变作为回归网。
 
 ## Migration Plan
