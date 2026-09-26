@@ -6,7 +6,6 @@ use bevy::image::{ImageArrayLayout, ImageLoaderSettings};
 use bevy::prelude::*;
 use bevy::sprite_render::{AlphaMode2d, TileData, TilemapChunk, TilemapChunkTileData};
 
-use crate::core::app_state::AppState;
 use crate::core::map::constants::tile_kind::TileKind;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::frontend::display::map::constants::layout::{
@@ -78,12 +77,10 @@ pub fn spawn_chunks(
         chunk(AlphaMode2d::Blend),
         TilemapChunkTileData(floor_data),
         chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_FLOOR)),
-        DespawnOnExit(AppState::Game),
     ));
     commands.spawn((
         chunk(AlphaMode2d::Opaque),
         TilemapChunkTileData(wall_data),
         chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_WALL)),
-        DespawnOnExit(AppState::Game),
     ));
 }

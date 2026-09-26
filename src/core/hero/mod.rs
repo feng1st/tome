@@ -19,6 +19,6 @@ pub fn register(app: &mut App) {
         .add_systems(OnEnter(AppState::Game), entities::hero::spawn_hero)
         .add_systems(
             Update,
-            systems::commands::move_to_cell::execute.in_set(CorePhase::Decide),
+            systems::commands::move_to_cell::execute.in_set(CorePhase::Plan),
         );
 }

@@ -28,7 +28,7 @@ pub fn register(app: &mut App) {
     movement::register(app);
     app.init_state::<AppState>().configure_sets(
         Update,
-        (CorePhase::Decide, CorePhase::Act)
+        (CorePhase::Sense, CorePhase::Plan, CorePhase::Act)
             .chain()
             .in_set(GameLoop::Core),
     );

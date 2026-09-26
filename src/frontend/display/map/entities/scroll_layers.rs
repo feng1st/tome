@@ -8,7 +8,6 @@ use bevy::image::{ImageAddressMode, ImageLoaderSettings, ImageSampler, ImageSamp
 use bevy::prelude::*;
 use bevy::sprite_render::AlphaMode2d;
 
-use crate::core::app_state::AppState;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::frontend::display::map::components::terrain_scroll::TerrainScroll;
 use crate::frontend::display::map::constants::layout::{LAYER_SCROLL, TILE_SIZE};
@@ -56,7 +55,6 @@ pub fn spawn_scroll_layers(
                 scale: Vec2::new(w / spec.texture_size as f32, h / spec.texture_size as f32),
                 scroll: spec.scroll,
             },
-            DespawnOnExit(AppState::Game),
         ));
     }
 }
