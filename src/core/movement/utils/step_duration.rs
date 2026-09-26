@@ -16,3 +16,16 @@ pub fn step_duration(from_cell: CellCoord, to_cell: CellCoord) -> f32 {
             1.0
         }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn diagonal_costs_sqrt2_times_straight() {
+        let straight = step_duration(CellCoord::new(0, 0), CellCoord::new(1, 0));
+        let diagonal = step_duration(CellCoord::new(0, 0), CellCoord::new(1, 1));
+        assert_eq!(straight, TILE_TIME);
+        assert_eq!(diagonal, TILE_TIME * std::f32::consts::SQRT_2);
+    }
+}

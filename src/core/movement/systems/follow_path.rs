@@ -44,3 +44,66 @@ pub fn follow_path(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+    use std::time::Duration;
+
+    use super::*;
+    use crate::core::map::types::cell_coord::CellCoord;
+
+    fn app() -> App {
+        let mut app = App::new();
+        app.insert_resource(Time::<()>::default())
+            .add_systems(Update, follow_path);
+        app
+    }
+
+    /// Walker at (0,0) with a two-cell straight path: (1,0), (2,0).
+    fn walker(app: &mut App) -> Entity {
+        let from = Position::from(CellCoord::new(0, 0));
+        let cells = VecDeque::from([CellCoord::new(1, 0), CellCoord::new(2, 0)]);
+        app.world_mut().spawn((from, Path::new(cells, from))).id()
+    }
+
+    fn advance(app: &mut App, secs: f32) {
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_secs_f32(secs));
+        app.update();
+    }
+
+    fn assert_pos_near(app: &App, entity: Entity, x: f32, y: f32) {
+        let pos = app.world().get::<Position>(entity).unwrap();
+        assert!(
+            (pos.x - x).abs() < 1e-6 && (pos.y - y).abs() < 1e-6,
+            "{pos:?} vs ({x}, {y})"
+        );
+    }
+
+    #[test]
+    fn mid_step_interpolates_between_cell_centers() {
+        let mut app = app();
+        let walker = walker(&mut app);
+        advance(&mut app, 0.075); // half of the 0.15s straight step
+        assert_pos_near(&app, walker, 0.5, 0.0);
+    }
+
+    #[test]
+    fn overshoot_carries_into_the_next_step() {
+        let mut app = app();
+        let walker = walker(&mut app);
+        advance(&mut app, 0.225); // one full step plus half of the next
+        assert_pos_near(&app, walker, 1.5, 0.0);
+    }
+
+    #[test]
+    fn completed_path_despawns_and_stands_at_the_goal() {
+        let mut app = app();
+        let walker = walker(&mut app);
+        advance(&mut app, 0.3); // both steps
+        assert_pos_near(&app, walker, 2.0, 0.0);
+        assert!(app.world().get::<Path>(walker).is_none());
+    }
+}
