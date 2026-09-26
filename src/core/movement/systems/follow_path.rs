@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn completed_path_despawns_and_stands_at_the_goal() {
+    fn completed_path_is_removed_and_stands_at_the_goal() {
         let mut app = app();
         let walker = walker(&mut app);
         advance(&mut app, 0.3); // both steps

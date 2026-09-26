@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
-/// Warrior sheet asset path (from pixel-dungeon, GPLv3).
+/// Warrior sheet asset path (GPLv3).
 pub const WARRIOR_TEXTURE: &str = "warrior.png";
 
 /// Frame size in the warrior sheet: 12×15 px frames in a 21-column,

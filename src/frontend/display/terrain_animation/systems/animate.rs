@@ -27,3 +27,50 @@ pub fn animate(
             Affine2::from_mat2_translation(Mat2::from_diagonal(anim.scale), anim.velocity * t);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use bevy::math::Mat2;
+
+    use super::*;
+
+    fn app() -> App {
+        let mut app = App::new();
+        app.insert_resource(Time::<()>::default())
+            .init_resource::<Assets<ColorMaterial>>()
+            .add_systems(Update, animate);
+        app
+    }
+
+    #[test]
+    fn uv_offset_advances_with_time() {
+        let mut app = app();
+        let material = app
+            .world_mut()
+            .resource_mut::<Assets<ColorMaterial>>()
+            .add(ColorMaterial::default());
+        app.world_mut().spawn((
+            TerrainAnimState {
+                scale: Vec2::new(2.0, 4.0),
+                velocity: Vec2::new(0.0, -0.5),
+            },
+            MeshMaterial2d(material.clone()),
+        ));
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_secs(2));
+        app.update();
+        let uv = app
+            .world()
+            .resource::<Assets<ColorMaterial>>()
+            .get(&material)
+            .expect("material registered")
+            .uv_transform;
+        // Scale repeats the texture across the quad; the translation is the
+        // scroll velocity integrated over elapsed virtual time.
+        assert_eq!(uv.matrix2, Mat2::from_diagonal(Vec2::new(2.0, 4.0)));
+        assert_eq!(uv.translation, Vec2::new(0.0, -1.0));
+    }
+}

@@ -22,7 +22,7 @@
 
 ### Decision 1: 两方结构与依赖方向
 
-最初按"内核 + 显示插件 + 输入插件"三方拆分；实现中发现输入对显示的依赖（相机投影、视口、坐标换算、hover）是永久且稠密的——模态与呈现天然成对（触控界面=触控布局+触控输入，键盘光标=光标的渲染与移动），可替换的真实单位是整套玩家界面。故合并为界面层 frontend，内部仍按主题分区。
+输入与呈现不可分：输入对显示的依赖（相机投影、视口、坐标换算、hover）是永久且稠密的，模态与呈现天然成对（触控界面=触控布局+触控输入，键盘光标=光标的渲染与移动），可替换的真实单位是整套玩家界面。故 frontend 即单一界面层，内部按主题分区。
 
 ```mermaid
 graph TD
@@ -55,10 +55,10 @@ src/
 
 `core/movement/components/position.rs` 定义 `Position`（具名 f32 字段 x/y）：1 单位 = 1 格，x = 列、y = 行（向下为正，与地图数组一致）。整数坐标即格中心，`position.round()` 即所在格；非整数坐标只在移动过程中出现，是平滑移动的唯一来源。整数格址的词汇类型为 `CellCoord`（具名 i32 字段 x/y，`core/map/types/cell_coord.rs`），协议与 API 签名一律用它而不用裸数学向量；与 `Position` 词根相异以示离散/连续之别，`Cell` 一名保留给未来的"格子实体"概念。纯值类型归 `types/` 侧面（规范扩展：组件归 components、资源归 resources、值类型归 types）。
 
-- `follow_path` 推进 `Position`，不再触碰 `Transform`；`Path` 的 `step_from`/`step_to` 为格坐标。每步时长模型不变（直走/斜走时长不同、直线速度恒定，还原原版手感——参考 pixel-dungeon `HeroSprite.java` 的移动节奏）。
+- `follow_path` 只推进 `Position`，不触碰 `Transform`；`Path` 的 `step_from`/`step_to` 是当前步的连续端点。每步时长直走与斜走不同（斜走 ×√2），保证直线速度恒定（还原原版步进手感——参考 pixel-dungeon `CharSprite.java` 的逐格补间）。
 - `GridMap` 删除像素换算（`cell_center`/`world_to_cell`），只保留格子语义 API（`get`/`walkable`）；格坐标 ↔ 像素的换算函数归 `frontend/display/map/utils/coords.rs`。
 - `GridMap` 从 Resource 降为纯数据类型（`types/`），由 `CurrentMap` 资源（`resources/`）持有当前地图——"哪张地图在游玩"与"地图数据"分离。读者只经 `CurrentMap::map()` 取数据：终局多地图切换（持久楼层、世界地图）时 `CurrentMap` 内部变为地图库句柄，读者零改动。
-- `frontend/display/movement/systems/sync_position.rs` 每帧把 `Position` 写入 `Transform`：`x = pos.x × TILE_SIZE`，`y = -pos.y × TILE_SIZE`，保留既有 z。不额外取整——连续像素补间与现状逐帧一致（原版 PD 的移动同样是连续像素而非格跳）。
+- `frontend/display/movement/systems/sync_position.rs` 每帧把 `Position` 写入 `Transform`：`x = (pos.x + 0.5) × TILE_SIZE`，`y = -(pos.y + 0.5) × TILE_SIZE`（+0.5 即"整数格 = 格中心"的半格偏移），保留既有 z。不额外取整，保持连续像素补间（原版 PD 的移动同样是连续像素而非格跳）。
 - `sync_animation`（Sync 相位）的朝向判断改用格坐标：`Path.step_to` 与 `Position` 的差值符号决定 `flip_x`（参考 bevy `examples/2d/sprite_animation.rs` 的帧动画组织）。
 
 ### Decision 3: 输入管道——模态、命中判定、策略解析在 frontend，命令协议在 core
@@ -78,20 +78,20 @@ flowchart LR
     trans --> cam[frontend/display/camera: follow_target]
 ```
 
-- **命中判定（frontend）**：原始事实是"点在某个屏幕像素"；像素落在怪物精灵遮罩内还是穿透到地面，只有握着遮罩与遮挡顺序的呈现侧能判（Bevy 0.19 内置像素级精灵拾取：`bevy_sprite` picking backend 逐像素查 alpha）。判定产出**按目标分型的手势**：`PrimaryActionOnCell(CellCoord)`，预留 `PrimaryActionOnMonster(Entity)`、`PrimaryActionOnWorldCell(CellCoord)`（以 `#[allow(dead_code)]` 标记，表明词族范式）。一种可命中目标一个类型一个文件（`frontend/input/gestures/`），不开 enum。手势是 frontend 内部消息，不跨侧。
+- **命中判定（frontend）**：原始事实是"点在某个屏幕像素"；像素落在怪物精灵遮罩内还是穿透到地面，只有握着遮罩与遮挡顺序的呈现侧能判（Bevy 0.19 内置像素级精灵拾取：`bevy_sprite` picking backend 逐像素查 alpha）。判定产出**按目标分型的手势**：`PrimaryActionOnCell(CellCoord)`；`PrimaryActionOnMonster(Entity)` 作为词族范式落位（`#[allow(dead_code)]` 标记，待第一个可点怪物接入）。一种可命中目标一个类型一个文件（`frontend/input/gestures/`），不开 enum。手势是 frontend 内部消息，不跨侧。
 - **策略解析（frontend）**：`frontend/input/systems/gestures/` 下一种手势一个 resolver（与 `gestures/` 一一镜像），读手势与内核状态决定含义（点怪物=攻击还是查看，是界面策略）。今天是恒等映射（一切格子手势→`MoveToCell`）；第一个可点怪物出现时新增对应 resolver，并触发 bevy_picking 的引入。三级各有动词：模态 translate（换表示，含义不变）→ resolve（消解歧义）→ core execute（校验+执行）。
 - **命令协议（core）**：`MoveToCell(CellCoord)` 等具体命令由内核持有（`core/hero/commands/move_to_cell.rs`），收到后校验并执行（不可通行/不可达→不动）。界面层对内核状态只读，一切变更请求经命令消息。回放/AI 驱动方跳过手势层直接发命令。命令是解释完毕的产物（歧义已在界面层解析），沿用 roguelike 传统词汇（ToME/Angband 的 `do_cmd_*`）；与 Bevy 的 `Commands` 系统参数同名但语境不冲突。
 - **载荷类型**：格子坐标用 `CellCoord`，不用裸数学向量。模态状态（键盘光标位置）留在模态实现内部，不进协议。
 - 与原版 PD 的关系：PD 在输入侧直接产出具体命令（`HeroAction.Move/Attack/PickUp`）；本设计同样把解析放在内核之外，但拆出"命中判定"与"策略解析"两级，模态保持无游戏语义，多模态复用同一解析层。
-- **dispatch 与 resolver 的职责判据**（三个判例）：①敌友判断决定命令**种类**（友→`TalkToMonster`、敌→`AttackMonster`）——语义属性，在命令存续期内稳定，归 resolver；②"攻击要先走近"——距离在命令执行期间每步都变，是执行的时序规则，归内核（`AttackMonster` 的执行=追击+攻击，追击不是独立命令）；③MUD 的 `MoveToLeft` 与图形界面的 `PrimaryActionOnCell` 是各界面自己的手势方言，分别解析到同一命令 `MoveToCell`——手势词族按界面生长，命令协议是所有界面的共同语。一句话判据：**命令开始执行后判断依据还会变的，留内核；不会变的，归 resolver**。
+- **resolver 与内核的职责判据**（三个判例）：①敌友判断决定命令**种类**（友→`TalkToMonster`、敌→`AttackMonster`）——语义属性，在命令存续期内稳定，归 resolver；②"攻击要先走近"——距离在命令执行期间每步都变，是执行的时序规则，归内核（`AttackMonster` 的执行=追击+攻击，追击不是独立命令）；③MUD 的 `MoveToLeft` 与图形界面的 `PrimaryActionOnCell` 是各界面自己的手势方言，分别解析到同一命令 `MoveToCell`——手势词族按界面生长，命令协议是所有界面的共同语。一句话判据：**命令开始执行后判断依据还会变的，留内核；不会变的，归 resolver**。
 
 ### Decision 4: 集合化装配，集合标签归内核持有
 
 装配层若引用具体系统函数，替换任一实现（输入不再是鼠标、呈现没有动画）都要改 main.rs。Bevy 的 `SystemSet` 正是为此设计（官方 `examples/ecs/ecs_guide.rs`）：各方把系统注册进抽象集合标签，装配层只编排标签。
 
-- 主循环阶段标签定义在 `core::game_loop`：`GameLoop::{Input, Core, Display}`（命令产出、内核逻辑、呈现）。它们是跨侧顺序编排的协议，按"内核持有协议"原则归内核；放在装配层会形成双向依赖（装配层引用插件的 register，插件反向引用装配层的标签）。命名注记：枚举取名自经典 game loop 模式（input → update → present），变体沿用三侧名以保留"相位镜像三侧"；GPU 渲染在 Bevy 独立的 render SubApp 执行，主调度里的 `Display` 相位是呈现*准备*（sync/动画/相机/chunks）——不称 Render，也不称 Present（wgpu/Vulkan 的 present 即交换链提交上屏，同样在引擎层），避免与引擎渲染管线撞词。
+- 主循环阶段标签定义在 `core::game_loop`：`GameLoop::{Input, Core, Display}`（命令产出、内核逻辑、呈现）。它们是跨侧顺序编排的协议，按"内核持有协议"原则归内核；放在装配层会形成双向依赖（装配层引用插件的 register，插件反向引用装配层的标签）。命名注记：枚举取名自经典 game loop 模式（input → update → present）；GPU 渲染在 Bevy 独立的 render SubApp 执行，主调度里的 `Display` 相位是呈现*准备*（sync/动画/相机/chunks）——不称 Render，也不称 Present（wgpu/Vulkan 的 present 即交换链提交上屏，同样在引擎层），避免与引擎渲染管线撞词。
 - 注意标签是主循环阶段而非侧的私产：frontend 一个插件同时把翻译系统放进 `GameLoop::Input`（帧首）、渲染系统放进 `GameLoop::Display`（帧尾）。
-- 各方 register 自行展开内部顺序：core 内子相位 `CorePhase::{Sense, Plan, Act}` 链编排——Plan 语义为定向（设置/修改 target：命令执行器校验并物化为 `Path`，世界状态全程只读快照），Act 语义为执行（`follow_path` 推进移动，同相位成员不排序）；Sense 空置，待第一个需要物化感知的 AI。frontend 内 display 各系统在域 register 入 `DisplayPhase::{Attach, Sync, Animate, Camera}`——Attach 相位承载 `Added<>` 结构补挂（外观、相机目标），Sync 把内核状态流入既有呈现组件（位置、播放意图），Animate 推进动画，Camera 跟随。input 侧：设备翻译与 resolver 都在 `Update`，子相位 `InputPhase::{Translate, Resolve}` 链编排（嵌于 `GameLoop::Input`）。曾尝试按引擎语义把翻译下沉 `PreUpdate`——引擎输入系统确实在 PreUpdate 刷新 `ButtonInput`——但那需要 `.after(InputSystems)` 这个推导出的显式约束（官方文档未明言消费方排序方式）；留在 Update 则由"PreUpdate 恒在 Update 前"的结构零成本保证读到新输入，保守方案胜出。命名约定：动词在函数位、主语在路径位——命令类型在 `commands/<名>.rs`，执行器在镜像的 `systems/commands/<名>.rs#execute`；手势类型在 `gestures/<名>.rs`，解析器在镜像的 `systems/gestures/<名>.rs#resolve`；设备翻译系统在 `systems/devices/<设备>.rs#translate`。按设备而非语义动作组织的原因：单击/双击/长按的消歧是带状态的设备级逻辑，必须共处一个系统；设备内的绑定查询将来从字面量改为查 bindings 表，路径与注册零变化。消息类型的注册下沉到所属域/组的 register（命令消息归域 register，如 `MoveToCell` 在 `hero/mod.rs`；手势归 `gestures/mod.rs`）；注册与编排的分层：编排（`.chain()`、`configure_sets`、`.before/.after`、门控）只在侧根（core、frontend/input、frontend/display）与装配层——编排具有全局性、依赖相关、顺序相关，下放给各域会失序；成员注册（资源、消息、系统入集合）可下沉到域/组的 register——当相位标签本身携带顺序时（如设备组入 PreUpdate、resolver 组入 GameLoop::Input），"系统入集合"不含编排成分。标签归属规则：core 持有的集合标签 = 跨侧主循环阶段的最小集合（`GameLoop` 三个变体，替换实现时装配层依赖它们保持不动）；侧内子相位（如 `InputPhase`）归各侧自己，不进 core。
+- 各方 register 自行展开内部顺序：core 内子相位 `CorePhase::{Sense, Plan, Act}` 链编排——Plan 语义为定向（设置/修改 target：命令执行器校验并物化为 `Path`，世界状态全程只读快照），Act 语义为执行（`follow_path` 推进移动，同相位成员不排序）；Sense 空置，待第一个需要物化感知的 AI。frontend 内 display 各系统在域 register 入 `DisplayPhase::{Attach, Sync, Animate, Camera}`——Attach 相位承载 `Added<>` 结构补挂（外观、相机目标），Sync 把内核状态流入既有呈现组件（位置、播放意图），Animate 推进动画，Camera 跟随。input 侧：设备翻译与 resolver 都在 `Update`，子相位 `InputPhase::{Translate, Resolve}` 链编排（嵌于 `GameLoop::Input`）。翻译在 `Update` 运行：引擎输入系统在 `PreUpdate` 刷新 `ButtonInput`，"PreUpdate 恒在 `Update` 前"的结构保证翻译读到新输入，无需推导 `.after(InputSystems)` 这类引擎内部排序约束。命名约定：动词在函数位、主语在路径位——命令类型在 `commands/<名>.rs`，执行器在镜像的 `systems/commands/<名>.rs#execute`；手势类型在 `gestures/<名>.rs`，解析器在镜像的 `systems/gestures/<名>.rs#resolve`；设备翻译系统在 `systems/devices/<设备>.rs#translate`。按设备而非语义动作组织的原因：单击/双击/长按的消歧是带状态的设备级逻辑，必须共处一个系统；设备内的绑定查询将来从字面量改为查 bindings 表，路径与注册零变化。消息类型的注册下沉到所属域/组的 register（命令消息归域 register，如 `MoveToCell` 在 `hero/mod.rs`；手势归 `gestures/mod.rs`）；注册与编排的分层：编排（`.chain()`、`configure_sets`、`.before/.after`、门控）只在侧根（core、frontend/input、frontend/display）与装配层——编排具有全局性、依赖相关、顺序相关，下放给各域会失序；成员注册（资源、消息、系统入集合）可下沉到域/组的 register——当相位标签本身携带顺序时（如设备翻译入 `InputPhase::Translate`、resolver 入 `InputPhase::Resolve`），"系统入集合"不含编排成分。标签归属规则：core 持有的集合标签 = 跨侧主循环阶段的最小集合（`GameLoop` 三个变体，替换实现时装配层依赖它们保持不动）；侧内子相位（如 `InputPhase`）归各侧自己，不进 core。
 - main.rs 只剩一句编排：`configure_sets(Update, (GameLoop::Input, GameLoop::Core, GameLoop::Display).chain())`。
 
 ### Decision 5: hero 生成拆为内核生成 + 显示补挂（Attach 相位）
@@ -101,7 +101,7 @@ flowchart LR
   - `frontend/display/appearance`：`attach_appearance` 对 `Added<AppearanceKind>` 补挂 `Sprite`（注册表 handle 克隆）、初始 `Transform`（z = `LAYER_ACTOR`）与 `AnimState`。形象数据集中在 `Appearances` 注册表（Resource）：`AppearanceKind`（内核持有的纯键，变体名"长相"而非生物种类——一种生物可换形象、多种生物可共用形象）→ `Appearance`（贴图 handle + 图集布局 + 动画表）。注册表进 `Game` 时由 `load_appearances` 一次性构建（fire-and-forget，渲染器等待像素，接受短暂 pop-in）；贴图/atlas handle 在补挂时克隆到实例（bevymark 模式），动画表留在注册表按帧查询（`Appearance::clip()`，未定义的动画回退 `Idle`）。
   - `frontend/display/camera`：`attach_target` 对 `Added<Hero>` 补挂 `CameraTarget`。hero 的显示补挂只有外观与相机两类，按职责分属 appearance 与 camera 域，不单设 hero 显示域。
 - 帧动画为无状态播放：帧 = `(全局虚拟时间 × fps + frame_offset) % 帧数`，无定时器组件；`AnimState{anim, frame_offset}` 只在动画切换时写（`sync_animation`，Sync 相位），稳态播放零写入（`animate`，Animate 相位，纯函数读取）。`AnimKind` 枚举是全部形象共用的动画词汇超集（Idle/Walk/Run/Attack/Hit/Die，引用发生在代码里故为枚举，serde 映射到数据文件帧表）。
-- warrior 显示数据（12×15 精灵表、tier 0、IDLE/RUN 帧序列，还原原版 `HeroSprite.java`）归 `appearance/constants/warrior.rs`。
+- warrior 显示数据（12×15 精灵表、tier 0、IDLE/RUN 帧序列与帧率：IDLE 8 fps、RUN 20 fps；帧序列参考原版 `HeroSprite.java`）归 `appearance/constants/warrior.rs`。
 - 该模式即"内核生成游戏实体、界面层按 Attach 相位补挂呈现"的协议实例，未来怪物等实体沿用。
 
 ### Decision 6: 动画域按机制拆分——sprite_animation 与 terrain_animation
@@ -112,9 +112,9 @@ flowchart LR
 
 ## Risks / Trade-offs
 
-- [`Position` 与 `Transform` 两份位置可能不一致] → `Transform` 的 x/y 每帧被 `sync_position` 从 `Position` 重写，不再是位置真相来源；z 由显示侧生成时设定并保持。
+- [`Position` 与 `Transform` 两份位置可能不一致] → `Transform` 的 x/y 每帧由 `sync_position` 从 `Position` 重写，不是位置真相来源；z 由显示侧生成时设定并保持。
 - [集合内顺序由单方自治，跨侧只有标签级先后] → 跨侧顺序需求只有"输入→内核→呈现"一层；未来出现更细粒度跨侧约束时，在 core::game_loop 增设变体。
-- [目录大规模移动期间编译断点较多] → 一次性迁移，以 `cargo check` 收敛；现有 `grid_map`、`pathfinding` 单元测试保持不变作为回归网。
+- [目录大规模移动期间编译断点较多] → 一次性迁移，以 `cargo check` 收敛；核心逻辑与显示纯函数均有单测（地图、寻路、移动、chunk 数据、岸线拼合等）作为回归网。
 
 ## Migration Plan
 

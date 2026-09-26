@@ -52,7 +52,7 @@
 - [x] 8.7 注册下沉与子相位归位：devices/resolver 组各持 register，`InputPhase::{Translate, Resolve}` 归 frontend/input（core 只持顶层三相位） — verify: `cargo check` 通过、冒烟正常
 - [x] 8.8 帧相位统一为枚举：`core/system_sets.rs`（三 struct）→ `core/frame_phase.rs`（`FramePhase::{Input, Game, Render}`），与 `InputPhase` 形状对齐 — verify: `cargo test` 全绿、冒烟正常
 - [x] 8.9 词汇类型收尾：`CellPos` → `CellCoord`（具名字段 x/y）、`Position` 具名字段化、`types/` 侧面确立（`cell_coord.rs`/`grid_map.rs`）、`GridMap` 拆为纯数据 + `CurrentMap` 资源（`map()` 访问器保地图切换接缝） — verify: fmt/clippy/test 全绿、冒烟正常
-- [x] 8.10 加载机制定型：`LoadingState` 上提 display 根、`loading/` 机制域（`AssetBarrier` + `with_guard` 自注册，与官方差异三条显式文档化）、hero 资产纳入 Loading、命名对齐 `systems/loading.rs#begin_load`；设计四原则记入 config — verify: fmt/clippy/test 全绿、冒烟正常
+- [x] 8.10 加载机制定型：资产 fire-and-forget——`load_appearances` 在 OnEnter 一次性构建注册表，渲染器等待像素（接受短暂 pop-in）；设计原则记入 config — verify: fmt/clippy/test 全绿、冒烟正常
 - [x] 8.11 编排/注册分层：编排（链、门控、configure_sets）只在四个根部；成员注册（资源、消息、系统入集合）下沉到域/组——相位标签自带顺序时（`InputPhase`）组 register 只加一行 — verify: fmt/clippy/test 全绿、冒烟正常
 - [x] 8.12 对齐引擎主调度：`FramePhase::Render` → `FramePhase::Display`（GPU 渲染在独立 SubApp，相位实为呈现准备）；设备翻译曾下沉 PreUpdate，因需推导的 `.after(InputSystems)` 约束而回退 Update + `InputPhase` 子相位（保守：结构保证优于推导约束） — verify: fmt/clippy/test 全绿、冒烟正常
 
@@ -63,4 +63,6 @@
 - [x] 9.3 appearance 域：`AppearanceKind` 纯键（core）+ `Appearances` 注册表 + `load_appearances`（OnEnter）+ `attach_appearance`；新增 `DisplayPhase::Attach` 承载 `Added<>` 结构补挂 — verify: `cargo check` 通过
 - [x] 9.4 域名定稿：display/sync → display/movement；animation → sprite_animation；map 拆出 terrain_animation（`TerrainAnim` 定义/`TerrainAnimState` 组件，`animate()`/`spawn_anim_layers`）；display/hero 取消（相机挂接归 camera `attach_target`） — verify: fmt/clippy/test 全绿
 - [x] 9.5 demo room 缩为 48×32（视野 40×22.5 格）；水池与英雄出生点改从 MAP_W/MAP_H 派生；寻路/命令测试同步修复 — verify: `cargo test` 全绿
-- [x] 9.6 期末收尾：注释逐文件对照实现刷新（含去除已不存在的 `DespawnOnExit` 生命周期描述）、纯逻辑单测补齐（build_chunk_data、follow_path、clip 回退、step_duration，14 → 22）、SDD 产物同步 — verify: `cargo test` 全绿 + `openspec validate` 通过
+- [x] 9.6 期末收尾：注释逐文件对照实现刷新（含去除已不存在的 `DespawnOnExit` 生命周期描述）、纯逻辑单测补齐（build_chunk_data、follow_path、clip 回退、step_duration 等）、SDD 产物同步 — verify: `cargo test` 全绿 + `openspec validate` 通过
+- [x] 9.7 手势词族收敛：world/local 地图手势并入统一的 `PrimaryActionOnCell`（地图归属留给 resolver 读游戏状态判断），`PrimaryActionOnMonster` 保留为词族范式标记 — verify: `cargo check` 通过、冒烟正常
+- [x] 9.8 对齐收尾：注释与 SDD 产物对照实现刷新（加载机制、手势词族、相位命名、位置换算）；spec-locking 测试补齐（墙/越界目标、不可达目标、对角切角、左斜向翻转、水面 UV 滚动）并加强（绕池最短路径、移动中重寻路）— verify: fmt/clippy/test 全绿 + `openspec validate` 通过

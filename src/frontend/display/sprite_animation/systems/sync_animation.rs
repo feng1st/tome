@@ -124,6 +124,18 @@ mod tests {
     }
 
     #[test]
+    fn walking_diagonally_left_faces_left() {
+        let mut app = app();
+        let creature = spawn_creature(
+            &mut app,
+            AnimKind::Idle,
+            Some(path_to(CellCoord::new(0, 1))),
+        );
+        app.update();
+        assert!(app.world().get::<Sprite>(creature).unwrap().flip_x);
+    }
+
+    #[test]
     fn walking_right_keeps_facing_right() {
         let mut app = app();
         let creature = spawn_creature(

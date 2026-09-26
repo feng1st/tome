@@ -115,9 +115,28 @@ mod tests {
             assert!(map.walkable(*cell), "path steps on walkable cells only");
             assert!(map.get(*cell) != Some(TileKind::Water));
         }
-        // Optimal detour uses 6 diagonal steps (3 up + 3 down), so the step
-        // count stays at the horizontal distance of 16.
-        assert!(path.len() >= 16);
+        // A shortest route detours with 6 diagonal steps (3 up, 3 down), so
+        // it keeps the step count at the horizontal distance of 16.
+        assert_eq!(path.len(), 16);
+    }
+
+    #[test]
+    fn diagonal_step_only_needs_its_target_walkable() {
+        // A 4x4 grid; walls at (2,1) and (1,2) — the two orthogonal cells
+        // flanking the step — leave the diagonal from (1,1) to (2,2) legal.
+        const W: usize = 4;
+        let mut tiles = vec![TileKind::Floor; W * W];
+        tiles[2 + W] = TileKind::Wall;
+        tiles[1 + 2 * W] = TileKind::Wall;
+        let map = GridMap {
+            width: W,
+            height: W,
+            tiles,
+        };
+        let path = find_path(&map, CellCoord::new(1, 1), CellCoord::new(2, 2))
+            .expect("the diagonal only needs its target walkable");
+        assert_eq!(path.len(), 1);
+        assert_eq!(path[0], CellCoord::new(2, 2));
     }
 
     #[test]

@@ -18,9 +18,9 @@ pub fn spawn_chunks(
 ) {
     // The chunk shader samples texture_2d_array; the loader reinterprets
     // the grid atlas as array layers at load time (row-major tile order,
-    // matching the terrain-value tileset indices). tiles0.png is loaded
-    // at this single point — a second load site risks diverging
-    // array-layout settings.
+    // matching the tileset frame indices `build_chunk_data` writes).
+    // tiles0.png is loaded at this single point — a second load site
+    // risks diverging array-layout settings.
     let tileset = asset_server
         .load_builder()
         .with_settings(|s: &mut ImageLoaderSettings| {

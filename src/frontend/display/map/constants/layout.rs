@@ -22,8 +22,8 @@ const _: () = {
     assert!(LAYER_ACTOR < LAYER_WALL);
 };
 
-// Tileset indices: the terrain value is used directly as the tileset
-// frame index.
+// Tileset frame indices for the chunk data; water cells take one of the
+// shoreline variants (see `utils/autotile`).
 pub const TILE_FLOOR: u16 = 1;
 pub const TILE_WALL: u16 = 4;
 /// First of the 16 shoreline variants (48..=63).

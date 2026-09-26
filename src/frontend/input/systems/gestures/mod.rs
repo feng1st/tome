@@ -10,9 +10,9 @@ use bevy::prelude::*;
 use crate::frontend::input::input_phase::InputPhase;
 
 /// Register resolvers into the Resolve phase. A new gesture adds a mirrored
-/// file above and a line here. Which map a cell gesture lands on (world vs.
-/// local) is decided here from game-internal state, not from engine
-/// substates.
+/// file above and a line here. Where a cell gesture lands (world vs. local
+/// map) is the resolver's call from game-internal state, not an engine
+/// substate.
 pub fn register(app: &mut App) {
     app.add_systems(
         Update,
