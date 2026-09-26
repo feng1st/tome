@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Chunk spawning: builds floor/wall tilemap chunks from the core's
 //! GridMap. Rendering detail, fully owned by the display side.
 

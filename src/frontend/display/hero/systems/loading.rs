@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Loads the hero's sprite assets once, on entering `Game`.
 
 use bevy::prelude::*;

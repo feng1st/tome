@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Keeps the gameplay camera centered on its target.
 
 use bevy::prelude::*;

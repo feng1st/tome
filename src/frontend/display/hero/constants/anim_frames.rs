@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Warrior sprite-sheet frame tables. Display data: which frames each
 //! locomotion state plays. Sequences match the original game's
 //! HeroSprite.java (tier 0, unarmored): idle breathes between frames 0/1,

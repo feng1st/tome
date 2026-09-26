@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Core-side phase labels: ordering within `GameLoop::Core`. The hero's
 //! action arrives via commands (see `hero::systems::commands`); `Decide`
 //! is reserved for agent AI choosing intents, `Act` executes them.

@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Component marking a scrolling terrain layer quad.
 
 use bevy::prelude::*;

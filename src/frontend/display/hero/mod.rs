@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! The hero domain's display side: sprite assets, frame tables, and
 //! attaching appearance to heroes spawned by the core.
 

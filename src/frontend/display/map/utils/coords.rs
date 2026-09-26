@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Cell <-> world-pixel conversion. The core counts in continuous cell
 //! coordinates and knows nothing about pixels; these functions are the
 //! display side's only bridge between the two spaces.

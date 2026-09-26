@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! The game core: display- and input-agnostic game data and logic.
 //! Plain modules by design — the core defines no Plugin struct; the
 //! replaceable frontend is a plugin that depends on this core.

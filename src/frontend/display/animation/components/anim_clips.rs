@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Frame tables per animation state.
 
 use bevy::prelude::*;

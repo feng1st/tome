@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Executes `MoveToCell` commands: validation (walkability, reachability)
 //! and pathfinding live here in the core — the frontend asks, the core
 //! decides.

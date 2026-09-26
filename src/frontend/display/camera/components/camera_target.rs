@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Marker for the entity the camera follows.
 
 use bevy::prelude::*;

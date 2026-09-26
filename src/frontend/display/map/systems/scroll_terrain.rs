@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Drives every scrolling terrain layer: the UV offset advances with
 //! elapsed time, written into the material's `uv_transform` — the engine's
 //! own color-material shader applies it, no custom shader needed.

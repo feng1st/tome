@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! The hero domain's game-data side: marker, spawning, and command
 //! execution. Appearance lives in the frontend.
 

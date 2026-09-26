@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Terrain kinds and their game-data properties (walkability).
 
 /// Terrain kinds. Walkability lives here (not in the tileset): only floor

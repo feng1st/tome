@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! The map domain's display side: tileset textures, chunk rendering,
 //! scrolling terrain layers, and cell/pixel conversion.
 

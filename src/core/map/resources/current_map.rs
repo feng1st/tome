@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! The map currently in play.
 
 use bevy::prelude::*;

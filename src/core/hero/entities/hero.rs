@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Hero spawning: game data only. The frontend attaches appearance
 //! (sprite, animation clips, camera target) via `Added<Hero>`.
 

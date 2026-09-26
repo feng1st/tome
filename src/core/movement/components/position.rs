@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Position in continuous cell coordinates — the movement vocabulary type.
 
 use bevy::prelude::*;

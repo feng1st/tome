@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Input: devices translate raw input (PC mouse today) into
 //! display-independent gestures, then resolvers interpret gestures into
 //! core commands. Message registration lives in `gestures/`; system

@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! The hero marker component.
 
 use bevy::prelude::*;

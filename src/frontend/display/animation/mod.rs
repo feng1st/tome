@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Frame animation for sprite entities: clips, states, timers.
 
 pub mod components;

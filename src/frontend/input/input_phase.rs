@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Ordering phases inside the input domain: device translation runs before
 //! gesture resolution. Internal to input — the cross-side game-loop stages
 //! (`GameLoop`) live in `core::game_loop`; sides own their own

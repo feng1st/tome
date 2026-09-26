@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Preloaded hero sprite assets.
 
 use bevy::prelude::*;

@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Attaches the hero's display components. The core spawns heroes as pure
 //! game data (`Hero` + `Position`); this system is the display side's
 //! registered appearance, reacting to `Added<Hero>` so later entity kinds

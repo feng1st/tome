@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Resolves `PrimaryActionOnCell` gestures.
 
 use bevy::prelude::*;

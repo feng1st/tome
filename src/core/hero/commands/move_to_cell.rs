@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Command messages: the cross-side protocol. The frontend interprets raw
 //! input into these concrete commands; the core validates and executes
 //! them. Commands are the only channel through which the frontend may ask

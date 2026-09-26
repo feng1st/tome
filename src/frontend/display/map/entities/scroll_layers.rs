@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Scrolling terrain layers: one map-sized REPEAT quad per animated
 //! terrain, beneath the chunks — PD's `SkinnedBlock` approach (the chunks
 //! render open water as a fully transparent tile, so the layer shows

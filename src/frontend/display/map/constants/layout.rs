@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Display-side layout constants: pixel size, z layers, tileset indices.
 //! Map dimensions in cells are game data (`core::map::constants::layout`).
 

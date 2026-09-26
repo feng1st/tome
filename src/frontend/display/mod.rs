@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! World display: sprite/tileset-based presentation of the core's game
 //! state.
 //!

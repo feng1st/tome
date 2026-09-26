@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Shore stitching: water cells render as one of 16 shoreline variants
 //! (tileset indices 48..=63) chosen by which orthogonal neighbors are
 //! water/wall — a display-side derivation from `GridMap`, mirroring PD's

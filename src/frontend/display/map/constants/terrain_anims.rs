@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Animated terrain definitions: which tile kinds get a scrolling layer
 //! and how it moves. Display data layered on top of the core's tile kinds.
 

@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Frame animation for any entity with animation components.
 //! Faces the movement direction via flip_x, derived from cell-space
 //! positions (presentation reads the core's state; it never owns it).

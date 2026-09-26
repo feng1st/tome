@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Display-side phase labels: ordering within `GameLoop::Display`.
 //! Presentation is mode-agnostic — the same pipeline serves world map and
 //! local maps — so these phases are shared and mode differences are

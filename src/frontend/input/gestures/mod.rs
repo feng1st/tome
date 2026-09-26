@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Input gestures: what the pointer hit, typed by target. Frontend-internal
 //! messages from modalities to the resolvers — the core never sees them
 //! (the cross-side protocol is the commands in `core::hero::commands`).

@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Locomotion animation states shared by all animated characters.
 
 use bevy::prelude::*;

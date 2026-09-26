@@ -1,3 +1,4 @@
+// TODO: pending cleanup review — remove once stabilized
 //! Per-entity frame-advance timer.
 
 use bevy::prelude::*;
