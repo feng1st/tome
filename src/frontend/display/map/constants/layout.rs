@@ -15,21 +15,16 @@ pub const LAYER_FLOOR: f32 = 0.0;
 pub const LAYER_ACTOR: f32 = 2.0;
 pub const LAYER_WALL: f32 = 3.0;
 
+// The z layers are strictly ordered (compile-time check).
+const {
+    assert!(LAYER_SCROLL < LAYER_FLOOR);
+    assert!(LAYER_FLOOR < LAYER_ACTOR);
+    assert!(LAYER_ACTOR < LAYER_WALL);
+}
+
 // Tileset indices: the terrain value is used directly as the tileset
 // frame index.
 pub const TILE_FLOOR: u16 = 1;
 pub const TILE_WALL: u16 = 4;
 /// First of the 16 shoreline variants (48..=63).
 pub const TILE_SHORE_BASE: u16 = 48;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn z_layers_are_strictly_ordered() {
-        assert!(LAYER_SCROLL < LAYER_FLOOR);
-        assert!(LAYER_FLOOR < LAYER_ACTOR);
-        assert!(LAYER_ACTOR < LAYER_WALL);
-    }
-}
