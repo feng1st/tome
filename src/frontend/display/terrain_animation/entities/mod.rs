@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Terrain animation entity spawning.
 
-pub mod scroll_layers;
+pub mod terrain_anim_layers;

@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Animated terrain definitions: which tile kinds get a scrolling layer
 //! and how it moves. Display data layered on top of the core's tile kinds.
 
@@ -13,5 +12,5 @@ pub const TERRAIN_ANIMS: &[TerrainAnimSpec] = &[TerrainAnimSpec {
     kind: TileKind::Water,
     texture: "water0.png",
     texture_size: 32,
-    scroll: Vec2::new(0.0, -5.0 / 32.0),
+    velocity: Vec2::new(0.0, -5.0 / 32.0),
 }];

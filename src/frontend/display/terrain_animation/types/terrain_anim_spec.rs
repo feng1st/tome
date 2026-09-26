@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! The animated-terrain spec value type.
 
 use bevy::prelude::*;
@@ -16,7 +15,7 @@ use crate::core::map::constants::tile_kind::TileKind;
 /// scrolls this texture, showing through the transparent parts. PD scrolls
 /// by offsetting UVs on the CPU each frame (`water.offset(0, -5 *
 /// elapsed)`); we write `ColorMaterial`'s `uv_transform` instead (see
-/// `systems/scroll_terrain.rs`).
+/// `systems/animate.rs`).
 pub struct TerrainAnimSpec {
     /// The terrain this layer animates; the quad spawns only when the map
     /// actually contains this kind.
@@ -28,5 +27,5 @@ pub struct TerrainAnimSpec {
     pub texture_size: u32,
     /// UV scroll velocity (uv units per second). PD scrolls its 32px water
     /// texture at -5 px/s, i.e. -5/32 uv/s.
-    pub scroll: Vec2,
+    pub velocity: Vec2,
 }

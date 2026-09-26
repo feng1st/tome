@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Terrain animation: time-driven terrain visuals (today: one scrolling
 //! UV layer per animated terrain kind, PD's `SkinnedBlock` approach).
 //! Mechanism-owned — frame-table creature animation lives in
@@ -15,16 +14,16 @@ use bevy::prelude::*;
 use crate::core::app_state::AppState;
 use crate::frontend::display::display_phase::DisplayPhase;
 
-/// Register the terrain animation domain: scrolling layers spawn on
-/// entering `Game` (the same path a later map switch takes); the scroll
-/// offset advances in the Animate phase.
+/// Register the terrain animation domain: animated layers spawn on
+/// entering `Game` (the same path a later map switch takes); playback
+/// advances in the Animate phase.
 pub fn register(app: &mut App) {
     app.add_systems(
         OnEnter(AppState::Game),
-        entities::scroll_layers::spawn_scroll_layers,
+        entities::terrain_anim_layers::spawn_terrain_anim_layers,
     )
     .add_systems(
         Update,
-        systems::scroll_terrain::scroll_terrain.in_set(DisplayPhase::Animate),
+        systems::animate::animate.in_set(DisplayPhase::Animate),
     );
 }

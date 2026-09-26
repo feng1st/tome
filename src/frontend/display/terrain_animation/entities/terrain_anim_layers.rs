@@ -1,5 +1,4 @@
-// TODO: pending cleanup review — remove once stabilized
-//! Scrolling terrain layers: one map-sized REPEAT quad per animated
+//! Animated terrain layers: one map-sized REPEAT quad per animated
 //! terrain, beneath the chunks — PD's `SkinnedBlock` approach (the chunks
 //! render open water as a fully transparent tile, so the layer shows
 //! through).
@@ -10,14 +9,14 @@ use bevy::sprite_render::AlphaMode2d;
 
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::frontend::display::map::constants::layout::{LAYER_SCROLL, TILE_SIZE};
-use crate::frontend::display::terrain_animation::components::terrain_scroll::TerrainScroll;
+use crate::frontend::display::terrain_animation::components::terrain_anim::TerrainAnim;
 use crate::frontend::display::terrain_animation::constants::terrain_anims::TERRAIN_ANIMS;
 
-/// Spawn one scrolling layer per animated terrain the map contains. The
+/// Spawn one animated layer per animated terrain the map contains. The
 /// quad is map-sized and centered on the map; which cells reveal it is
 /// the chunks' business (transparent open-water tiles and semi-transparent
 /// shoreline pixels).
-pub fn spawn_scroll_layers(
+pub fn spawn_terrain_anim_layers(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -51,9 +50,9 @@ pub fn spawn_scroll_layers(
                 ..default()
             })),
             Transform::from_xyz(w / 2.0, -h / 2.0, LAYER_SCROLL),
-            TerrainScroll {
+            TerrainAnim {
                 scale: Vec2::new(w / spec.texture_size as f32, h / spec.texture_size as f32),
-                scroll: spec.scroll,
+                velocity: spec.velocity,
             },
         ));
     }
