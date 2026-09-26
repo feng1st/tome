@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Cell coordinates: the map grid's vocabulary type.
 
 use bevy::prelude::*;

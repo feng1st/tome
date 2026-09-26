@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Application mode protocol: the cross-side state tree. Modes live in
 //! states; data about modes (which map, load readiness) lives in resources
 //! and messages — never in state variants.

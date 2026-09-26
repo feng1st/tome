@@ -1,10 +1,8 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Hero spawning: game data only. The frontend attaches appearance
 //! (sprite, animation clips, camera target) via `Added<Hero>`.
 
 use bevy::prelude::*;
 
-use crate::core::app_state::AppState;
 use crate::core::hero::components::hero::Hero;
 use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::movement::components::position::Position;
@@ -17,9 +15,5 @@ const HERO_START: CellCoord = CellCoord::new(32, 10);
 /// hero to `Game`: leaving the state despawns it, so re-entering via
 /// `OnEnter` is idempotent by construction.
 pub fn spawn_hero(mut commands: Commands) {
-    commands.spawn((
-        Hero,
-        Position::from(HERO_START),
-        DespawnOnExit(AppState::Game),
-    ));
+    commands.spawn((Hero, Position::from(HERO_START)));
 }

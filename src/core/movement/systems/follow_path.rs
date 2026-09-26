@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Advances every entity with a `Path` along its steps, in cell space.
 //! Knows nothing about heroes, mobs, or pixels: the authoritative
 //! `Position` is all that moves here.

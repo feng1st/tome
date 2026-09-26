@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Game-loop set labels: the cross-side ordering contract. The core owns
 //! these labels as protocol — plugins place their systems into them and
 //! order their own internals; the assembly layer chains the labels without

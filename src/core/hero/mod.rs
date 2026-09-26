@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! The hero domain's game-data side: marker, spawning, and command
 //! execution. Appearance lives in the frontend.
 
@@ -20,6 +19,6 @@ pub fn register(app: &mut App) {
         .add_systems(OnEnter(AppState::Game), entities::hero::spawn_hero)
         .add_systems(
             Update,
-            systems::commands::move_to_cell::execute.in_set(CorePhase::Act),
+            systems::commands::move_to_cell::execute.in_set(CorePhase::Decide),
         );
 }

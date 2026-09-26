@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! tome: a Pixel Dungeon-like roguelike in Bevy. This binary only
 //! assembles plugins and the cross-side ordering of their set labels.
 

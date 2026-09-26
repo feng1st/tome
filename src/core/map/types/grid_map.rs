@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Grid-based map data model: a width×height array of terrain cells with
 //! walkability, shared by pathfinding, movement and rendering.
 //!

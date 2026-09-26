@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Per-step durations for tile-by-tile movement.
 
 use crate::core::map::types::cell_coord::CellCoord;

@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! A path an entity is walking along, one tile step at a time.
 //! Generic: works for the hero and, later, for mobs.
 

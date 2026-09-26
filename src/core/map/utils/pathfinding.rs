@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! A* over the walkable grid. Pure cell semantics — no pixel concepts.
 
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
