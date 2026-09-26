@@ -51,7 +51,10 @@ pub fn spawn_terrain_anim_layers(
             })),
             Transform::from_xyz(w / 2.0, -h / 2.0, LAYER_SCROLL),
             TerrainAnim {
-                scale: Vec2::new(w / spec.texture_size as f32, h / spec.texture_size as f32),
+                scale: Vec2::new(
+                    w / spec.texture_size.x as f32,
+                    h / spec.texture_size.y as f32,
+                ),
                 velocity: spec.velocity,
             },
         ));
