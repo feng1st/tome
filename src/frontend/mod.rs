@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! The frontend: everything player-facing — world rendering, input
 //! modalities, and later the HUD. Replaceable as a whole (e.g. with a text
 //! frontend) without touching the core; replaceable units inside it

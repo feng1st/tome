@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Gesture: primary action on a monster.
 
 use bevy::prelude::*;

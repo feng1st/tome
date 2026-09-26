@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Input systems: device translation plus the gesture resolvers.
 
 pub mod devices;

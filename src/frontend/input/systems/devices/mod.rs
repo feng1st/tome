@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Device translation systems: one file per input device (mouse, keyboard,
 //! touch), each translating all of its device's controls into gestures.
 

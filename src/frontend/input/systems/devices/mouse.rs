@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Mouse device translation: every mouse control (buttons today, wheel and
 //! double-click later) is translated here, so click/double-click
 //! disambiguation and other device-level timing stay in one place.
