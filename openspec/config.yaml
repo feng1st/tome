@@ -11,10 +11,12 @@ context: |
     用途: 游戏机制与数值的权威参考（地形、动画帧定义、移动/寻路手感）；
     assets/ 下的素材可复制进本工程（GPLv3，项目发布须兼容）。
   - ../PD-classes/ — PD 引擎层 (noosa) 反编译类，渲染/动画底层机制参考。
+  - ../tome2-ref/ — ToME2 C 源码，词汇与机制考证参考（地形定义、生物词汇等
+    roguelike 传统惯例）。
   - ../bevy/ — Bevy 官方仓库本地 checkout (v0.19.1 tag)，重点参考 examples/
     (2d/sprite_animation.rs, 2d/2d_viewport_to_world.rs, 2d/pixel_grid_snap.rs 等)。
     注意: 工程依赖用 crates.io 的 bevy，本地 checkout 仅供读代码。
-  - /home/feng/Projects/bevy-website/content/learn/quick-start/getting-started/ —
+  - ../bevy-website/content/learn/quick-start/getting-started/ —
     Bevy 官方入门文档 (apps/ecs/plugins/resources/setup)，核心概念的权威参考。
     写 design 时须体现这些概念的运用。摘要:
 
@@ -39,7 +41,7 @@ context: |
     Resource: 全局唯一的数据（时间、素材集合、地图数据等），derive Resource，
     系统里用 Res<T>/ResMut<T> 访问。Entity+Component 表达可查询的对象群体，
     Resource 表达独一份的数据，二者分工明确。
-    常用内置资源: Time（帧间隔 delta，配 Timer 做周期/补间计时）。
+    常用内置资源: Time（帧间隔 delta）。
 
   工作区结构: 工作区根是屏蔽 home git 的伪仓库；真正的工作仓库是 new-tome2/ 子目录，
   所有代码与 openspec/ 都在其中。
@@ -52,14 +54,18 @@ context: |
     doc comment 说明职责；不显然的决策点必须有行内注释。
   - 注释粒度：解释“为什么”和不显然的不变量（模型、约束、设计点），
     不复述代码在做什么。分支级一句说决策点；自明的调用不注释。
+  - 代码注释自解释，不体现 PD、ToME2 等参考对象的存在（不提及其类名、
+    文件名、"原版"）；与参考对象的对应关系只出现在 SDD 产物里。
   - SDD 产物与代码一律写成最终状态，不带补丁感：只描述现在是什么，
     不写“改为 A 而非 B”“不再是 B”这类与本文档旧版本的对比；
     与参考对象（如原版 PD）的差异说明是设计依据，可以保留。
+  - config 只放稳定原则，不放具体逻辑——机制名、文件名、域名等
+    会随实现腐烂的细节归 SDD 产物与代码，不写进本文件。
 
   架构原则（经讨论确立）:
 
   插件三层分类：
-  - 游戏内核不定义 Plugin 结构体：地图、主角、相机等核心域是普通 Rust 模块，
+  - 游戏内核不定义 Plugin 结构体：核心域是普通 Rust 模块，
     模块间自由引用，不为内核设计插件接口。
   - 可整体替换的实现抽成插件：内核持有协议（trait + 数据类型），插件单向依赖
     内核、注册实现。可替换性来自 trait 抽象，不来自 Plugin 机制。
@@ -72,11 +78,12 @@ context: |
     注册入口（组织手段）。内核域的 register 属于后者。
 
   域组织规范：
-  - 按域分目录（map/ hero/ camera/ movement/ animation/ 等），域持有自己的 ECS 要素。
+  - 按域分目录，域持有自己的 ECS 要素。
   - 域内按 ECS 侧面分子目录（不是 .rs 单文件）：components/（组件）、
     resources/（资源）、entities/（entity 生成）、systems/（系统）、
-    utils/（纯函数）、constants/（跨文件复用的枚举与常量）。文件再小也按此落位；
-    侧面目录内部按主题再分具名文件（如 systems/click.rs）。
+    utils/（纯函数）、constants/（跨文件复用的枚举与常量）、
+    types/（纯值类型，无 ECS 角色）。文件再小也按此落位；
+    侧面目录内部按主题再分具名文件。
   - 枚举、常量不归 resources/：跨文件复用的放 constants/；只被一处使用的，
     放在归属类型（resource/entity/component）的同一个文件里。
   - mod.rs 只写 mod 声明和 register 函数，不放其他内容；内容一律在具名 .rs
@@ -86,23 +93,26 @@ context: |
     不允许改动现有结构。会被多类对象使用的通用能力及时下沉为独立域
     （如 movement、animation）。
   - register：域的 mod.rs 里定义 pub fn register(app: &mut App)（裸函数即 Plugin），
-    只注册域内自治的系统；参与跨域顺序编排（.chain() 等）的系统属装配级，
-    由 main.rs 注册。若将来出现子域，其 register 由父域的 register 调用。
-- 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
-  归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+    只做成员注册（资源、消息、系统入集合），不做编排；编排（.chain()、
+    configure_sets、门控）只在侧根与装配层。若将来出现子域，
+    其 register 由父域的 register 调用。
+  - 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
+    归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
 
-设计原则（经讨论确立）：
-- 面向终局设计：阶段内容可以少，结构必须对。为已知的演进方向预挖接缝
-  （如 CurrentMap 句柄、LoadingState 可重入、barrier 自注册），但不为假想需求写实现。
-- 开闭原则：新增同类对象只允许新增文件/域，不允许修改既有结构。
-- 单一职责：一个文件/域只承担一个主题；机制与业务分离（如 loading/ 不 import 业务域）。
-- 依赖倒置：多自注册、少显式调用——机制不 import 业务，业务向机制注册
-  （with_guard、集合标签、消息协议、Added 反应式补挂）。自注册的对象主要是
-  资源、消息等数据类要素。例外：系统编排具有全局性、依赖相关、顺序相关，
-  必须在侧根（core/、frontend/input/、frontend/display/）统一编排，不下放给各域；
-  域/组的 register 只做成员注册（资源、消息、系统入集合），不做编排。
-- 命名考究：风格统一、单复数一致、无歧义（如 CurrentMap 之于 current、
-  step_elapsed/step_duration 之于 step_t/step_dur）；动词在函数位、主语在路径位。
+  设计原则（经讨论确立）：
+  - 面向终局设计：阶段内容可以少，结构必须对。为已知的演进方向预挖接缝，
+    但不为假想需求写实现。
+  - 开闭原则：新增同类对象只允许新增文件/域，不允许修改既有结构。
+  - 单一职责：一个文件/域只承担一个主题；机制与业务分离。
+  - 依赖倒置：多自注册、少显式调用——机制不 import 业务，业务向机制注册。
+    自注册的对象主要是资源、消息等数据类要素。例外：系统编排具有全局性、
+    依赖相关、顺序相关，必须在侧根（core/、frontend/input/、frontend/display/）
+    统一编排，不下放给各域；域/组的 register 只做成员注册（资源、消息、
+    系统入集合），不做编排。
+  - 命名考究：风格统一、单复数一致、无歧义（如 CurrentMap 之于 current、
+    step_elapsed/step_duration 之于 step_t/step_dur）；动词在函数位、主语在路径位。
+  - 单测与 spec 对齐：spec 的可测 requirement 由对应单测锁定，单测即
+    requirement 被满足的证据；行为变更先改 spec，单测同步跟进。
 
 # Per-artifact rules (optional)
 rules:
@@ -123,4 +133,4 @@ operations:
     guidance:
       - "未经用户明确指示不得修改代码；修改须先改 SDD 产物，再改代码"
       - "严格按域组织规范落位文件，不图一时方便把内容塞进错误的侧面"
-      - "提交前必须 `cargo fmt --check`、`cargo clippy`、`cargo test` 全绿（零警告）"
+      - "提交前必须全绿（零警告）：`cargo +nightly fmt --check`（rustfmt.toml 含 nightly-only 选项）、`cargo clippy --all-targets`、`cargo check --all-targets`、`cargo test`；完整工具链与系统库在 distrobox devel 内执行，宿主机环境可能链接不过"
