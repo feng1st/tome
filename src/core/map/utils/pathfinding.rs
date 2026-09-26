@@ -105,9 +105,10 @@ mod tests {
     #[test]
     fn path_around_pool() {
         let map = GridMap::demo_room();
-        // Straight line between these cells crosses the pool (x 28..36, y 28..33).
-        let start = CellCoord::new(20, 30);
-        let goal = CellCoord::new(44, 30);
+        // Straight line between these cells crosses the pool (8x5 cells,
+        // slightly below the room center).
+        let start = CellCoord::new(16, 19);
+        let goal = CellCoord::new(32, 19);
         let path = find_path(&map, start, goal).expect("path exists");
         assert_eq!(*path.back().unwrap(), goal);
         for cell in &path {
@@ -115,15 +116,15 @@ mod tests {
             assert!(map.get(*cell) != Some(TileKind::Water));
         }
         // Optimal detour uses 6 diagonal steps (3 up + 3 down), so the step
-        // count stays at the horizontal distance of 24.
-        assert!(path.len() >= 24);
+        // count stays at the horizontal distance of 16.
+        assert!(path.len() >= 16);
     }
 
     #[test]
     fn path_unreachable() {
         let map = GridMap::demo_room();
         assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(0, 0)).is_none()); // wall
-        assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(30, 30)).is_none()); // water
+        assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(24, 19)).is_none()); // water
         assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(-3, 5)).is_none());
         // oob
     }

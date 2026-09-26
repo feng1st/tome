@@ -1,3 +1,3 @@
 //! Terrain animation entity spawning.
 
-pub mod layers;
+pub mod anim_layers;

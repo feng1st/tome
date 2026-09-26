@@ -19,7 +19,7 @@ use crate::frontend::display::terrain_animation::constants::terrain_anims::WATER
 /// a "skip kinds the map lacks" check returns with the multi-kind rework
 /// (as an O(1) presence mask built at map creation, not a per-spawn
 /// scan).
-pub fn spawn_layers(
+pub fn spawn_anim_layers(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,

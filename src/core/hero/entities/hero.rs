@@ -5,11 +5,12 @@ use bevy::prelude::*;
 
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::hero::components::hero::Hero;
+use crate::core::map::constants::layout::MAP_W;
 use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::movement::components::position::Position;
 
 /// Starting cell of the hero in the demo room.
-const HERO_START: CellCoord = CellCoord::new(32, 10);
+const HERO_START: CellCoord = CellCoord::new(MAP_W as i32 / 2, 10);
 
 /// Spawn the hero as pure game data (marker + position at the start
 /// cell's center, i.e. integer cell coordinates). `DespawnOnExit` ties the

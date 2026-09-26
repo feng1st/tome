@@ -35,8 +35,10 @@ impl GridMap {
             }
         }
         // Water pool, slightly below the room center.
-        for y in 28..33 {
-            for x in 28..36 {
+        let cx = width / 2;
+        let cy = height / 2;
+        for y in cy + 1..cy + 6 {
+            for x in cx - 4..cx + 4 {
                 tiles[x + y * width] = TileKind::Water;
             }
         }
@@ -70,7 +72,7 @@ mod tests {
         let map = GridMap::demo_room();
         assert!(map.walkable(CellCoord::new(10, 10)));
         assert!(!map.walkable(CellCoord::new(0, 0))); // wall corner
-        assert!(!map.walkable(CellCoord::new(30, 30))); // water pool
+        assert!(!map.walkable(CellCoord::new(MAP_W as i32 / 2, MAP_H as i32 / 2 + 3))); // water pool
         assert!(!map.walkable(CellCoord::new(-1, 10))); // out of bounds
         assert!(!map.walkable(CellCoord::new(MAP_W as i32, 10))); // out of bounds
     }

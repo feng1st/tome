@@ -2,6 +2,6 @@
 //! side (`frontend::display::map::constants::layout`); the core counts in cells only.
 
 /// Map width in cells.
-pub const MAP_W: usize = 64;
+pub const MAP_W: usize = 48;
 /// Map height in cells.
-pub const MAP_H: usize = 48;
+pub const MAP_H: usize = 32;
