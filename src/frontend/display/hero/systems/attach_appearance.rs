@@ -9,8 +9,8 @@ use bevy::prelude::*;
 use crate::core::hero::components::hero::Hero;
 use crate::core::movement::components::position::Position;
 use crate::frontend::display::animation::components::anim_clips::AnimClips;
+use crate::frontend::display::animation::components::anim_start::AnimStartFrame;
 use crate::frontend::display::animation::components::anim_state::AnimState;
-use crate::frontend::display::animation::components::anim_timer::AnimTimer;
 use crate::frontend::display::camera::components::camera_target::CameraTarget;
 use crate::frontend::display::hero::constants::anim_frames::{IDLE, RUN};
 use crate::frontend::display::hero::resources::hero_sprites::HeroSprites;
@@ -44,7 +44,8 @@ pub fn attach_appearance(
                 idle: IDLE,
                 run: RUN,
             },
-            AnimTimer::new(IDLE.fps),
+            // A lone hero needs no phase offset; crowds take a random one.
+            AnimStartFrame(0),
         ));
     }
 }
