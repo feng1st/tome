@@ -99,7 +99,7 @@ flowchart LR
 - `core/hero/entities/hero.rs`（`OnEnter(AppState::Game)`）：spawn `Hero` 标记 + `AppearanceKind::Warrior` + `Position(HERO_START)`——纯游戏数据，不含任何显示组件。
 - 补挂按职责拆两域，都在 `DisplayPhase::Attach` 以 `Added<>` 反应执行：
   - `frontend/display/appearance`：`attach_appearance` 对 `Added<AppearanceKind>` 补挂 `Sprite`（注册表 handle 克隆）、初始 `Transform`（z = `LAYER_ACTOR`）与 `AnimState`。形象数据集中在 `Appearances` 注册表（Resource）：`AppearanceKind`（内核持有的纯键，变体名"长相"而非生物种类——一种生物可换形象、多种生物可共用形象）→ `Appearance`（贴图 handle + 图集布局 + 动画表）。注册表进 `Game` 时由 `load_appearances` 一次性构建（fire-and-forget，渲染器等待像素，接受短暂 pop-in）；贴图/atlas handle 在补挂时克隆到实例（bevymark 模式），动画表留在注册表按帧查询（`Appearance::clip()`，未定义的动画回退 `Idle`）。
-  - `frontend/display/camera`：`attach_target` 对 `Added<Hero>` 补挂 `CameraTarget`。曾设独立的 display/hero 域，其唯一内容（相机挂接）实为相机域职责，遂取消。
+  - `frontend/display/camera`：`attach_target` 对 `Added<Hero>` 补挂 `CameraTarget`。hero 的显示补挂只有外观与相机两类，按职责分属 appearance 与 camera 域，不单设 hero 显示域。
 - 帧动画为无状态播放：帧 = `(全局虚拟时间 × fps + frame_offset) % 帧数`，无定时器组件；`AnimState{anim, frame_offset}` 只在动画切换时写（`sync_animation`，Sync 相位），稳态播放零写入（`animate`，Animate 相位，纯函数读取）。`AnimKind` 枚举是全部形象共用的动画词汇超集（Idle/Walk/Run/Attack/Hit/Die，引用发生在代码里故为枚举，serde 映射到数据文件帧表）。
 - warrior 显示数据（12×15 精灵表、tier 0、IDLE/RUN 帧序列，还原原版 `HeroSprite.java`）归 `appearance/constants/warrior.rs`。
 - 该模式即"内核生成游戏实体、界面层按 Attach 相位补挂呈现"的协议实例，未来怪物等实体沿用。
