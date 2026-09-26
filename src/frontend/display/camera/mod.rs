@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! The gameplay camera: spawn and target following. Camera is presentation;
 //! a text display would have none.
 

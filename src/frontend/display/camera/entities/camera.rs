@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Spawns the one gameplay camera (2x zoom).
 
 use bevy::prelude::*;

@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 
+use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::hero::components::hero::Hero;
 use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::movement::components::position::Position;
@@ -15,5 +16,5 @@ const HERO_START: CellCoord = CellCoord::new(32, 10);
 /// hero to `Game`: leaving the state despawns it, so re-entering via
 /// `OnEnter` is idempotent by construction.
 pub fn spawn_hero(mut commands: Commands) {
-    commands.spawn((Hero, Position::from(HERO_START)));
+    commands.spawn((Hero, AppearanceKind::Warrior, Position::from(HERO_START)));
 }

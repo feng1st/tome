@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Marker for the one gameplay camera.
 
 use bevy::prelude::*;

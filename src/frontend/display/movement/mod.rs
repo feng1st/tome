@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Position sync: derives render transforms from the core's authoritative
 //! cell-space positions.
 

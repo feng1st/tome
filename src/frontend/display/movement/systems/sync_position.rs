@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Copies the core's authoritative `Position` into the render `Transform`.
 
 use bevy::prelude::*;

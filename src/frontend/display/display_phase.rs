@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Display-side phase labels: ordering within `GameLoop::Display`.
 //! Presentation is mode-agnostic — the same pipeline serves world map and
 //! local maps — so these phases are shared and mode differences are
@@ -9,8 +8,11 @@ use bevy::prelude::*;
 /// Sub-phases within `GameLoop::Display`.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DisplayPhase {
-    /// Core state flows into presentation: appearance attach, transform
-    /// sync, chunk builds.
+    /// Structural assembly: newly spawned entities get their renderable
+    /// parts (sprite, camera target) via `Added<>` reactions.
+    Attach,
+    /// Core state flows into existing presentation components: transform
+    /// sync, playback intent.
     Sync,
     /// Sprite and terrain animations advance.
     Animate,

@@ -8,6 +8,7 @@
 //! system and order facts never leave the phase enums.
 
 pub mod app_state;
+pub mod appearance;
 pub mod core_phase;
 pub mod game_loop;
 pub mod hero;

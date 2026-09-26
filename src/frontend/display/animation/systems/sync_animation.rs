@@ -1,28 +1,33 @@
 //! Derives playback intent and facing from core state (`DisplayPhase::Sync`
 //! work: presentation reads the core's state; it never owns it). Writes
-//! `Playback` only on anim switches — steady-state playback is a pure
+//! `AnimState` only on anim switches — steady-state playback is a pure
 //! function of global time, computed in `animate`.
 
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
+use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::animation::components::anim_clips::AnimClips;
 use crate::frontend::display::animation::components::anim_state::AnimState;
 use crate::frontend::display::animation::constants::anim_kind::AnimKind;
+use crate::frontend::display::appearance::resources::appearances::Appearances;
 
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AnimSyncQuery {
+    pub kind: &'static AppearanceKind,
     pub path: Option<&'static Path>,
     pub position: &'static Position,
-    pub clips: &'static AnimClips,
     pub state: &'static mut AnimState,
     pub sprite: &'static mut Sprite,
 }
 
-pub fn sync_animation(time: Res<Time>, mut query: Query<AnimSyncQuery>) {
+pub fn sync_animation(
+    time: Res<Time>,
+    appearances: Res<Appearances>,
+    mut query: Query<AnimSyncQuery>,
+) {
     let elapsed = time.elapsed_secs();
     for mut item in &mut query {
         let desired = if item.path.is_some() {
@@ -31,7 +36,7 @@ pub fn sync_animation(time: Res<Time>, mut query: Query<AnimSyncQuery>) {
             AnimKind::Idle
         };
         if item.state.anim != desired {
-            let clip = item.clips.clip(desired);
+            let clip = appearances.appearance(*item.kind).clip(desired);
             item.state.switch(desired, clip, elapsed);
         }
         // Face the horizontal direction of the current step. Cell space has

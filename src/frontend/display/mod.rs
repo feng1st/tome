@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! World display: sprite/tileset-based presentation of the core's game
 //! state.
 //!
@@ -8,11 +7,12 @@
 //! travel with it.
 
 pub mod animation;
+pub mod appearance;
 pub mod camera;
 pub mod display_phase;
 pub mod hero;
 pub mod map;
-pub mod sync;
+pub mod movement;
 
 use bevy::prelude::*;
 
@@ -24,12 +24,14 @@ use crate::core::game_loop::GameLoop;
 pub fn register(app: &mut App) {
     map::register(app);
     hero::register(app);
-    sync::register(app);
+    movement::register(app);
+    appearance::register(app);
     animation::register(app);
     camera::register(app);
     app.configure_sets(
         Update,
         (
+            DisplayPhase::Attach,
             DisplayPhase::Sync,
             DisplayPhase::Animate,
             DisplayPhase::Camera,

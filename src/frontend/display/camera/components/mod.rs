@@ -1,4 +1,3 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Camera components.
 
 pub mod camera_target;

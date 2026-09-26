@@ -1,12 +1,11 @@
-// TODO: pending cleanup review — remove once stabilized
-//! Warrior sprite-sheet frame tables. Display data: which frames each
-//! locomotion state plays. Sequences match the original game's
-//! HeroSprite.java (tier 0, unarmored): idle breathes between frames 0/1,
-//! run cycles 2..7.
+//! Warrior appearance data: sprite sheet layout and anim table. Display
+//! data for the hero's tier-0 look; sequences match the original game's
+//! HeroSprite.java (idle breathes between frames 0/1, run cycles 2..7).
+
+use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use crate::frontend::display::animation::components::anim_clips::AnimClips;
 use crate::frontend::display::animation::constants::anim_kind::AnimKind;
 use crate::frontend::display::animation::types::anim_clip::AnimClip;
 
@@ -31,7 +30,7 @@ pub const RUN: AnimClip = AnimClip {
     fps: 20.0,
 };
 
-/// The warrior's template anim table: Idle and Run only.
-pub fn warrior_clips() -> AnimClips {
-    AnimClips([(AnimKind::Idle, IDLE), (AnimKind::Run, RUN)].into())
+/// The warrior's anim table: Idle and Run only.
+pub fn warrior_clips() -> HashMap<AnimKind, AnimClip> {
+    [(AnimKind::Idle, IDLE), (AnimKind::Run, RUN)].into()
 }
