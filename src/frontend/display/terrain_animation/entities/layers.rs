@@ -10,8 +10,8 @@ use bevy::sprite_render::AlphaMode2d;
 
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::frontend::display::map::constants::layout::{LAYER_SCROLL, TILE_SIZE};
-use crate::frontend::display::terrain_animation::components::terrain_anim::TerrainAnim;
-use crate::frontend::display::terrain_animation::constants::terrain_anims::WATER_ANIM_SPEC;
+use crate::frontend::display::terrain_animation::components::terrain_anim_state::TerrainAnimState;
+use crate::frontend::display::terrain_animation::constants::terrain_anims::WATER_ANIM;
 
 /// Spawn the water layer. The quad is map-sized and centered on the map;
 /// which cells reveal it is the chunks' business (transparent open-water
@@ -30,7 +30,7 @@ pub fn spawn_layers(
     let w = map.width as f32 * TILE_SIZE;
     let h = map.height as f32 * TILE_SIZE;
 
-    let spec = WATER_ANIM_SPEC;
+    let anim = WATER_ANIM;
     // REPEAT addressing lets the UV scroll wrap, like PD's
     // `texture.wrap(Texture.REPEAT, Texture.REPEAT)`.
     let texture = asset_server
@@ -42,7 +42,7 @@ pub fn spawn_layers(
                 ..default()
             });
         })
-        .load(spec.texture);
+        .load(anim.texture);
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::from_size(Vec2::new(w, h)))),
         MeshMaterial2d(materials.add(ColorMaterial {
@@ -51,12 +51,12 @@ pub fn spawn_layers(
             ..default()
         })),
         Transform::from_xyz(w / 2.0, -h / 2.0, LAYER_SCROLL),
-        TerrainAnim {
+        TerrainAnimState {
             scale: Vec2::new(
-                w / spec.texture_size.x as f32,
-                h / spec.texture_size.y as f32,
+                w / anim.texture_size.x as f32,
+                h / anim.texture_size.y as f32,
             ),
-            velocity: spec.velocity,
+            velocity: anim.velocity,
         },
     ));
 }

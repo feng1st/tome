@@ -7,7 +7,7 @@
 use bevy::math::Affine2;
 use bevy::prelude::*;
 
-use crate::frontend::display::terrain_animation::components::terrain_anim::TerrainAnim;
+use crate::frontend::display::terrain_animation::components::terrain_anim_state::TerrainAnimState;
 
 /// PD parity: `GameScene.update()` scrolls its water block by a fixed
 /// pixel velocity each frame; writing the `uv_transform` translation does
@@ -15,7 +15,7 @@ use crate::frontend::display::terrain_animation::components::terrain_anim::Terra
 pub fn animate(
     time: Res<Time>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    query: Query<(&TerrainAnim, &MeshMaterial2d<ColorMaterial>)>,
+    query: Query<(&TerrainAnimState, &MeshMaterial2d<ColorMaterial>)>,
 ) {
     let t = time.elapsed_secs();
     for (anim, material) in &query {
