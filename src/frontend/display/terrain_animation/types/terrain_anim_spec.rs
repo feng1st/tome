@@ -2,10 +2,9 @@
 
 use bevy::prelude::*;
 
-use crate::core::map::constants::tile_kind::TileKind;
-
-/// One animated terrain type: which tile kind it animates and how its
-/// scrolling texture layer moves.
+/// One animated terrain type: how its scrolling texture layer moves. The
+/// kind binding lives at the use site (today: `WATER_ANIM_SPEC` in
+/// `constants/terrain_anims`).
 ///
 /// Rendering follows PD's water (`GameScene.java` + `SkinnedBlock.java`):
 /// the chunks draw this terrain's cells as shoreline variants (open water
@@ -22,9 +21,6 @@ use crate::core::map::constants::tile_kind::TileKind;
 /// per-cell meshes with world-space UVs instead; deferred until a second
 /// animated kind lands.
 pub struct TerrainAnimSpec {
-    /// The terrain this layer animates; the quad spawns only when the map
-    /// actually contains this kind.
-    pub kind: TileKind,
     pub texture: &'static str,
     /// Texture size in pixels; the quad's UV scale repeats the texture
     /// every `texture_size` world pixels (PD `SkinnedBlock`:

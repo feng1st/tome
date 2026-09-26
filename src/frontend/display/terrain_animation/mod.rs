@@ -18,12 +18,9 @@ use crate::frontend::display::display_phase::DisplayPhase;
 /// entering `Game` (the same path a later map switch takes); playback
 /// advances in the Animate phase.
 pub fn register(app: &mut App) {
-    app.add_systems(
-        OnEnter(AppState::Game),
-        entities::terrain_anim_layers::spawn_terrain_anim_layers,
-    )
-    .add_systems(
-        Update,
-        systems::animate::animate.in_set(DisplayPhase::Animate),
-    );
+    app.add_systems(OnEnter(AppState::Game), entities::layers::spawn_layers)
+        .add_systems(
+            Update,
+            systems::animate::animate.in_set(DisplayPhase::Animate),
+        );
 }
