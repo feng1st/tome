@@ -6,7 +6,9 @@
 
 use bevy::prelude::*;
 
-use crate::frontend::display::animation::components::anim_clips::AnimClip;
+use crate::frontend::display::animation::components::anim_clips::AnimClips;
+use crate::frontend::display::animation::constants::anim_kind::AnimKind;
+use crate::frontend::display::animation::types::anim_clip::AnimClip;
 
 /// Warrior sheet asset path (from pixel-dungeon, GPLv3).
 pub const WARRIOR_TEXTURE: &str = "warrior.png";
@@ -28,3 +30,8 @@ pub const RUN: AnimClip = AnimClip {
     frames: &[2, 3, 4, 5, 6, 7],
     fps: 20.0,
 };
+
+/// The warrior's template anim table: Idle and Run only.
+pub fn warrior_clips() -> AnimClips {
+    AnimClips([(AnimKind::Idle, IDLE), (AnimKind::Run, RUN)].into())
+}

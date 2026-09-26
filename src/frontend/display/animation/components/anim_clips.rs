@@ -1,30 +1,26 @@
-// TODO: pending cleanup review — remove once stabilized
-//! Frame tables per animation state.
+//! A creature template's anim table: which clip each `AnimKind` plays.
+
+use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-/// One animation clip: a frame sequence into the entity's sprite sheet
-/// and its playback rate.
+use crate::frontend::display::animation::constants::anim_kind::AnimKind;
+use crate::frontend::display::animation::types::anim_clip::AnimClip;
 
-#[derive(Clone, Copy)]
-pub struct AnimClip {
-    pub frames: &'static [usize],
-    pub fps: f32,
-}
-
-/// Frame tables per animation state, defined by the owning entity at spawn
-/// (e.g. the hero uses the warrior sheet's frames).
-#[derive(Component)]
-pub struct AnimClips {
-    pub idle: AnimClip,
-    pub run: AnimClip,
-}
+/// The template's anim map. Templates define a subset of `AnimKind`
+/// (`Idle` is mandatory — it is the fallback); the map is cloned onto each
+/// instance at spawn, resolve-once style. When templates move to data
+/// files, `frames` becomes `Rc<[usize]>` and this cloning stays cheap.
+#[derive(Component, Clone)]
+pub struct AnimClips(pub HashMap<AnimKind, AnimClip>);
 
 impl AnimClips {
-    pub fn clip(&self, state: super::anim_state::AnimState) -> &AnimClip {
-        match state {
-            super::anim_state::AnimState::Idle => &self.idle,
-            super::anim_state::AnimState::Run => &self.run,
-        }
+    /// The clip for `anim`, falling back to `Idle` when the template does
+    /// not define it.
+    pub fn clip(&self, anim: AnimKind) -> &AnimClip {
+        self.0
+            .get(&anim)
+            .or_else(|| self.0.get(&AnimKind::Idle))
+            .expect("every template defines an Idle clip")
     }
 }

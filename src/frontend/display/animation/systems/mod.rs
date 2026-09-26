@@ -1,4 +1,4 @@
-// TODO: pending cleanup review — remove once stabilized
 //! Animation systems.
 
 pub mod animate;
+pub mod sync_animation;

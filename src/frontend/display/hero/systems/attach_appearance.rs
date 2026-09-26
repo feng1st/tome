@@ -8,11 +8,10 @@ use bevy::prelude::*;
 
 use crate::core::hero::components::hero::Hero;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::animation::components::anim_clips::AnimClips;
-use crate::frontend::display::animation::components::anim_start::AnimStartFrame;
 use crate::frontend::display::animation::components::anim_state::AnimState;
+use crate::frontend::display::animation::constants::anim_kind::AnimKind;
 use crate::frontend::display::camera::components::camera_target::CameraTarget;
-use crate::frontend::display::hero::constants::anim_frames::{IDLE, RUN};
+use crate::frontend::display::hero::constants::anim_frames::warrior_clips;
 use crate::frontend::display::hero::resources::hero_sprites::HeroSprites;
 use crate::frontend::display::map::constants::layout::LAYER_ACTOR;
 use crate::frontend::display::map::utils::coords::cell_to_world;
@@ -39,13 +38,12 @@ pub fn attach_appearance(
             },
             Transform::from_xyz(world.x, world.y, LAYER_ACTOR),
             CameraTarget,
-            AnimState::Idle,
-            AnimClips {
-                idle: IDLE,
-                run: RUN,
-            },
+            warrior_clips(),
             // A lone hero needs no phase offset; crowds take a random one.
-            AnimStartFrame(0),
+            AnimState {
+                anim: AnimKind::Idle,
+                frame_offset: 0,
+            },
         ));
     }
 }
