@@ -10,7 +10,6 @@ pub mod animation;
 pub mod camera;
 pub mod display_phase;
 pub mod hero;
-pub mod loading;
 pub mod map;
 pub mod sync;
 
@@ -19,10 +18,9 @@ use bevy::prelude::*;
 use crate::core::frame_phase::FramePhase;
 use display_phase::DisplayPhase;
 
-/// Register the display side: the asset barrier, every domain's systems,
-/// and the display-internal phase chain. No concrete system is named here.
+/// Register the display side: every domain's systems and the
+/// display-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
-    loading::register(app);
     map::register(app);
     hero::register(app);
     sync::register(app);

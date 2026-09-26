@@ -1,3 +1,3 @@
 //! Map display components.
 
-pub mod terrain_anim;
+pub mod terrain_scroll;

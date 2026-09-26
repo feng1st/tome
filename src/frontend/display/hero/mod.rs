@@ -9,17 +9,14 @@ use bevy::prelude::*;
 
 use crate::core::app_state::AppState;
 use crate::frontend::display::display_phase::DisplayPhase;
-use crate::frontend::display::loading::assets_ready;
 
-/// Register the hero display domain: sprite loads are signed on entering
-/// `Game`; appearance attaches only once every guarded load has finished
-/// (no pop-in), in the Sync phase.
+/// Register the hero display domain: sprite loads are issued on entering
+/// `Game`; appearance attaches in the Sync phase — handles need no pixel
+/// readiness, the renderer waits (brief pop-in accepted).
 pub fn register(app: &mut App) {
     app.add_systems(OnEnter(AppState::Game), systems::loading::begin_load)
         .add_systems(
             Update,
-            systems::attach_appearance::attach_appearance
-                .run_if(assets_ready)
-                .in_set(DisplayPhase::Sync),
+            systems::attach_appearance::attach_appearance.in_set(DisplayPhase::Sync),
         );
 }
