@@ -3,26 +3,22 @@ schema: spec-driven
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 context: |
-  项目: new-tome2 — 用 Bevy (Rust) 重实现 Pixel Dungeon 类 roguelike，PC 桌面平台，鼠标为主、键盘为辅。
+  项目: tome — 用 Bevy (Rust) 重实现 Pixel Dungeon 类 roguelike，PC 桌面平台，鼠标为主、键盘为辅。
   Tech stack: Rust, Bevy 0.19 (钉住 0.19.x；升级引擎须走独立 change)。
 
   参考项目（本工作区内的参考仓库，只读参考，不在其中改代码）:
-  - ../pixel-dungeon/ — 原版 Pixel Dungeon v1.9.1 Java/Android 源码 (GPLv3)。
+  - .ref/pixel-dungeon/ — 原版 Pixel Dungeon v1.9.1 Java/Android 源码 (GPLv3)。
     用途: 游戏机制与数值的权威参考（地形、动画帧定义、移动/寻路手感）；
-    assets/ 下的素材可复制进本工程（GPLv3，项目发布须兼容）。
-  - ../PD-classes/ — PD 引擎层 (noosa) 反编译类，渲染/动画底层机制参考。
-  - ../tome2-ref/ — ToME2 C 源码，词汇与机制考证参考（地形定义、生物词汇等
+    assets/ 下的素材原型阶段可复制进本工程，未来会统一替换。
+  - .ref/PD-classes/ — PD 引擎层 (noosa) 反编译类，渲染/动画底层机制参考。
+  - .ref/tome2/ — ToME2 C 源码，词汇与机制考证参考（地形定义、生物词汇等
     roguelike 传统惯例）。
-  - ../bevy/ — Bevy 官方仓库本地 checkout (v0.19.1 tag)，重点参考 examples/
+  - .ref/bevy/ — Bevy 官方仓库本地 checkout (v0.19.1 tag)，重点参考 examples/
     (2d/sprite_animation.rs, 2d/2d_viewport_to_world.rs, 2d/pixel_grid_snap.rs 等)。
     注意: 工程依赖用 crates.io 的 bevy，本地 checkout 仅供读代码。
-  - ../bevy-website/content/learn/quick-start/getting-started/ —
+  - .ref/bevy-website/content/learn/quick-start/getting-started/ —
     Bevy 官方入门文档 (apps/ecs/plugins/resources/setup)，核心概念的权威参考。
     写 design 时须体现这些概念的运用。摘要:
-
-    App: 每个 Bevy 程序是一个 App，内含 World（全部游戏数据）和 Schedule（系统调度表）。
-    main() 里用 builder 链式装配：init_resource 加全局数据、add_systems 加系统、
-    add_plugins 加插件，最后 run()。
 
     ECS: 全部游戏逻辑的组织方式。
     - Entity: 游戏对象的唯一 ID，本身无数据。
@@ -41,14 +37,10 @@ context: |
     Resource: 全局唯一的数据（时间、素材集合、地图数据等），derive Resource，
     系统里用 Res<T>/ResMut<T> 访问。Entity+Component 表达可查询的对象群体，
     Resource 表达独一份的数据，二者分工明确。
-    常用内置资源: Time（帧间隔 delta）。
 
-  工作区结构: 工作区根是屏蔽 home git 的伪仓库；真正的工作仓库是 new-tome2/ 子目录，
-  所有代码与 openspec/ 都在其中。
-
-  语言与表达原则（**注释、sdd产物特别注意**）:
-  - 沟通与所有文档（proposal/spec/design/tasks）用地道中文：禁止翻译腔、禁止自造词，
-    拿不准的词就用平实说法或保留英文原词。
+  **语言与表达原则**:
+  - 沟通与所有文档用地道汉语表达。严禁翻译腔，严禁自造词——
+    必须符合中国大陆语文书写要求、只能采用惯用中文术语；如果英文术语原词更常用，直接用原词。
   - 代码、标识符、代码注释一律用英文。
   - 注释是必需的，不是可选项：每个文件、每个公开类型、每个系统都必须有
     doc comment 说明职责；不显然的决策点必须有行内注释。
@@ -56,26 +48,19 @@ context: |
     不复述代码在做什么。分支级一句说决策点；自明的调用不注释。
   - 代码注释自解释，不体现 PD、ToME2 等参考对象的存在（不提及其类名、
     文件名、"原版"）；与参考对象的对应关系只出现在 SDD 产物里。
-  - SDD 产物与代码一律写成最终状态，不带补丁感：只描述现在是什么，
-    不写“改为 A 而非 B”“不再是 B”这类与本文档旧版本的对比；
-    与参考对象（如原版 PD）的差异说明是设计依据，可以保留。
+  - SDD 产物、注释、代码、测试一律写成最终状态，不带补丁感：
+    只描述现在是什么，不得出现“改为 A 而非 B”“不再是 B”这类补丁描述，不得无故强调“A”好像历史实现并不是A一样。
   - config 只放稳定原则，不放具体逻辑——机制名、文件名、域名等
     会随实现腐烂的细节归 SDD 产物与代码，不写进本文件。
 
-  架构原则（经讨论确立）:
+  架构原则:
 
   插件三层分类：
-  - 游戏内核不定义 Plugin 结构体：核心域是普通 Rust 模块，
-    模块间自由引用，不为内核设计插件接口。
-  - 可整体替换的实现抽成插件：内核持有协议（trait + 数据类型），插件单向依赖
-    内核、注册实现。可替换性来自 trait 抽象，不来自 Plugin 机制。
-  - 可选功能（DLC 式子系统）做成插件：现阶段用 cargo feature + 显式注册；
-    未来出现第二个此类需求时再评估 inventory/linkme 式自注册。
+  - 游戏内核不拆插件：游戏功能是一个整体，不通过插件拆分、组织。
+  - 可整体替换的实现抽成插件：内核持有协议，插件单向依赖内核。前端（输入和显示）是插件。
+  - 可选功能（DLC 式子系统）做成插件：目前不涉及。
   - 依据：Bevy 的 Plugin 是编译期装配单元（`fn(&mut App)` 天然实现 Plugin），
     不是运行时可热插拔组件；插件间没有依赖声明机制，耦合全部落在共享类型上。
-    真正可拔插的是自包含的第三方 crate 插件。不为假想的可拔性做设计。
-  - “插件”一词在 Bevy 里有两个含义：可拔插部件（第三方 crate、DLC）与
-    注册入口（组织手段）。内核域的 register 属于后者。
 
   域组织规范：
   - 按域分目录，域持有自己的 ECS 要素。
@@ -84,7 +69,7 @@ context: |
     utils/（纯函数）、constants/（跨文件复用的枚举与常量）、
     types/（纯值类型，无 ECS 角色）。文件再小也按此落位；
     侧面目录内部按主题再分具名文件。
-  - 枚举、常量不归 resources/：跨文件复用的放 constants/；只被一处使用的，
+  - 枚举、常量归属：跨文件复用的放 constants/；只被一处使用、私有的，
     放在归属类型（resource/entity/component）的同一个文件里。
   - mod.rs 只写 mod 声明和 register 函数，不放其他内容；内容一律在具名 .rs
     文件里。统一标准，避免日后“从 mod.rs 抽取内容”的返工。
@@ -99,7 +84,7 @@ context: |
   - 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
     归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
 
-  设计原则（经讨论确立）：
+  设计原则：
   - 面向终局设计：阶段内容可以少，结构必须对。为已知的演进方向预挖接缝，
     但不为假想需求写实现。
   - 开闭原则：新增同类对象只允许新增文件/域，不允许修改既有结构。
@@ -109,28 +94,24 @@ context: |
     依赖相关、顺序相关，必须在侧根（core/、frontend/input/、frontend/display/）
     统一编排，不下放给各域；域/组的 register 只做成员注册（资源、消息、
     系统入集合），不做编排。
-  - 命名考究：风格统一、单复数一致、无歧义（如 CurrentMap 之于 current、
-    step_elapsed/step_duration 之于 step_t/step_dur）；动词在函数位、主语在路径位。
+  - 命名考究：风格统一、单复数原则一致、无歧义。
   - 单测与 spec 对齐：spec 的可测 requirement 由对应单测锁定，单测即
     requirement 被满足的证据；行为变更先改 spec，单测同步跟进。
 
-# Per-artifact rules (optional)
+# Per-artifact rules
 rules:
   proposal:
     - "保存 proposal 前必须用 grilling 方法向用户做问题澄清（design tree 分轮提问，每题给推荐答案），澄清结论须反映到 proposal 中"
-    - "proposal 的 Impact 中注明素材来源与许可影响（GPLv3）"
   design:
     - "保存 design 前必须用 grilling 方法向用户做问题澄清，澄清结论须反映到 design 中"
-    - "重要概念、结构、流程必须用 mermaid（首选）或 plantuml 画图，不得以纯文字描述代替"
+    - "重要概念、结构、流程必须用 mermaid 或 plantuml 画图，不得以纯文字描述、ASCII图代替"
     - "关键设计须注明参考来源（例如 pixel-dungeon HeroSprite.java、bevy examples/2d/sprite_animation.rs）"
-    - "用词遵守语言与表达原则（见 context）"
   tasks:
     - "每个任务须带可验证的 verify 条件（测试、命令或可观察行为）"
 
-# Per-operation guidance (optional)
+# Per-operation guidance
 operations:
   apply:
     guidance:
-      - "未经用户明确指示不得修改代码；修改须先改 SDD 产物，再改代码"
       - "严格按域组织规范落位文件，不图一时方便把内容塞进错误的侧面"
-      - "提交前必须全绿（零警告）：`cargo +nightly fmt --check`（rustfmt.toml 含 nightly-only 选项）、`cargo clippy --all-targets`、`cargo check --all-targets`、`cargo test`；完整工具链与系统库在 distrobox devel 内执行，宿主机环境可能链接不过"
+      - "提交前必须全绿（零警告）：`cargo +nightly fmt --check`（rustfmt.toml 含 nightly-only 选项）、`cargo clippy --all-targets`、`cargo check --all-targets`、`cargo test`"
