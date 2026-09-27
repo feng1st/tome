@@ -114,4 +114,7 @@ operations:
   apply:
     guidance:
       - "严格按域组织规范落位文件，不图一时方便把内容塞进错误的侧面"
+      - "get 纪律：get 只用于可失败查找（返回 Option/Result），对齐 std（HashMap::get）；必然成功的访问器以被取物命名（如 CurrentMap::map），不设 find/get 分工"
+      - "值类型归属：纯值类型一律落 types/，不得寄生在 resource/entity/component 文件里"
+      - "参数命名：参数名取类型的完整蛇形名（terrain_registry、current_map、local_map），不省略、不复数——省略带来泛化歧义与未来同名冲突"
       - "提交前必须全绿（零警告）：`cargo +nightly fmt --check`（rustfmt.toml 含 nightly-only 选项）、`cargo clippy --all-targets`、`cargo check --all-targets`、`cargo test`"
