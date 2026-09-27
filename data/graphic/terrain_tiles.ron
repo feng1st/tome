@@ -1,0 +1,12 @@
+// Terrain-to-tile bindings: how each terrain renders — which tileset,
+// which frame, whether the frame is an autotile block base, how the
+// chunk blends, which height plane. `autotile: true` means tile_index
+// is the first of a 16-frame shoreline block chosen by neighbor mask;
+// `alpha: blend` is for tiles with semi-transparent pixels (shoreline
+// edges). Every terrain here is ground-level: the room's walls read as
+// wall bases and do not occlude actors.
+[
+    ( terrain: "floor", tileset: "tiles0.png", tile_index: 1,  layer: ground ),
+    ( terrain: "wall",  tileset: "tiles0.png", tile_index: 4,  layer: ground ),
+    ( terrain: "water", tileset: "tiles0.png", tile_index: 48, autotile: true, alpha: blend, layer: ground ),
+]

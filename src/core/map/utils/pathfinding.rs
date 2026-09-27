@@ -4,16 +4,29 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use bevy::prelude::*;
 
+use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::types::cell_coord::CellCoord;
-use crate::core::map::types::grid_map::GridMap;
+use crate::core::map::types::local_map::LocalMap;
+use crate::core::map::types::terrain::Terrain;
 
 /// A* over the walkable grid, 8 directions, cost 10 straight / 14 diagonal,
 /// octile-distance heuristic. Diagonal steps only require the target cell to
 /// be walkable (corner cutting allowed).
 ///
 /// Costs are integers scaled by 10 so the heap can stay `i32`.
-pub fn find_path(map: &GridMap, start: CellCoord, goal: CellCoord) -> Option<VecDeque<CellCoord>> {
-    if !map.walkable(start) || !map.walkable(goal) {
+pub fn find_path(
+    local_map: &LocalMap,
+    terrain_registry: &TerrainRegistry,
+    start: CellCoord,
+    goal: CellCoord,
+) -> Option<VecDeque<CellCoord>> {
+    let walkable = |cell: CellCoord| {
+        local_map
+            .get(cell)
+            .and_then(|terrain_index| terrain_registry.get(terrain_index))
+            .is_some_and(Terrain::walkable)
+    };
+    if !walkable(start) || !walkable(goal) {
         return None;
     }
     if start == goal {
@@ -80,7 +93,7 @@ pub fn find_path(map: &GridMap, start: CellCoord, goal: CellCoord) -> Option<Vec
         let g = g_score[&cell];
         for (dir, cost) in DIRS {
             let next = cell + dir;
-            if !map.walkable(next) {
+            if !walkable(next) {
                 continue;
             }
             let next_g = g + cost;
@@ -100,58 +113,130 @@ pub fn find_path(map: &GridMap, start: CellCoord, goal: CellCoord) -> Option<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::map::constants::tile_kind::TileKind;
+    use crate::core::map::resources::current_map::parse_local_map;
+    use crate::core::map::resources::terrain_registry::parse_terrain_registry;
+
+    const TERRAINS: &str = r#"[
+        ( terrain: "floor", flags: ["PASSABLE"] ),
+        ( terrain: "wall",  flags: [] ),
+        ( terrain: "water", flags: ["LIQUID"] ),
+    ]"#;
+
+    fn terrain_registry() -> TerrainRegistry {
+        parse_terrain_registry("test", TERRAINS)
+    }
+
+    fn walkable(local_map: &LocalMap, terrain_registry: &TerrainRegistry, cell: CellCoord) -> bool {
+        local_map
+            .get(cell)
+            .and_then(|terrain_index| terrain_registry.get(terrain_index))
+            .is_some_and(Terrain::walkable)
+    }
+
+    fn map_from(rows: &[&str]) -> LocalMap {
+        let legend = r#"{ '#': "wall", '.': "floor", '~': "water" }"#;
+        let rows = rows
+            .iter()
+            .map(|r| format!("\"{r}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let doc = format!("( legend: {legend}, rows: [ {rows} ], )");
+        parse_local_map("test", &doc, &terrain_registry())
+    }
+
+    /// A walled room with a pool blocking the straight line between its
+    /// left and right halves (4x5 cells).
+    fn room_with_pool() -> LocalMap {
+        let mut rows = vec!["#..............#".to_string(); 8];
+        rows.insert(0, "################".to_string());
+        rows.push("################".to_string());
+        for (y, row) in rows.iter_mut().enumerate() {
+            if (3..8).contains(&y) {
+                row.replace_range(5..9, "~~~~");
+            }
+        }
+        let rows: Vec<&str> = rows.iter().map(String::as_str).collect();
+        map_from(&rows)
+    }
 
     #[test]
     fn path_around_pool() {
-        let map = GridMap::demo_room();
-        // Straight line between these cells crosses the pool (8x5 cells,
-        // slightly below the room center).
-        let start = CellCoord::new(16, 19);
-        let goal = CellCoord::new(32, 19);
-        let path = find_path(&map, start, goal).expect("path exists");
+        let terrain_registry = terrain_registry();
+        let local_map = room_with_pool();
+        // Straight line between these cells crosses the pool.
+        let start = CellCoord::new(2, 5);
+        let goal = CellCoord::new(13, 5);
+        let path = find_path(&local_map, &terrain_registry, start, goal).expect("path exists");
         assert_eq!(*path.back().unwrap(), goal);
+        let water = terrain_registry.get_index("water").unwrap();
         for cell in &path {
-            assert!(map.walkable(*cell), "path steps on walkable cells only");
-            assert!(map.get(*cell) != Some(TileKind::Water));
+            assert!(
+                walkable(&local_map, &terrain_registry, *cell),
+                "path steps on walkable cells only"
+            );
+            assert!(local_map.get(*cell) != Some(water));
         }
-        // A shortest route detours with 6 diagonal steps (3 up, 3 down), so
-        // it keeps the step count at the horizontal distance of 16.
-        assert_eq!(path.len(), 16);
+        // A shortest route detours with 6 diagonal steps (3 up, 3 down),
+        // keeping the step count at the horizontal distance of 11.
+        assert_eq!(path.len(), 11);
     }
 
     #[test]
     fn diagonal_step_only_needs_its_target_walkable() {
-        // A 4x4 grid; walls at (2,1) and (1,2) — the two orthogonal cells
-        // flanking the step — leave the diagonal from (1,1) to (2,2) legal.
-        const W: usize = 4;
-        let mut tiles = vec![TileKind::Floor; W * W];
-        tiles[2 + W] = TileKind::Wall;
-        tiles[1 + 2 * W] = TileKind::Wall;
-        let map = GridMap {
-            width: W,
-            height: W,
-            tiles,
-        };
-        let path = find_path(&map, CellCoord::new(1, 1), CellCoord::new(2, 2))
-            .expect("the diagonal only needs its target walkable");
+        // Walls at (2,1) and (1,2) — the two orthogonal cells flanking
+        // the step — leave the diagonal from (1,1) to (2,2) legal.
+        let terrain_registry = terrain_registry();
+        let local_map = map_from(&["....", "..#.", ".#..", "...."]);
+        let path = find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(1, 1),
+            CellCoord::new(2, 2),
+        )
+        .expect("the diagonal only needs its target walkable");
         assert_eq!(path.len(), 1);
         assert_eq!(path[0], CellCoord::new(2, 2));
     }
 
     #[test]
     fn path_unreachable() {
-        let map = GridMap::demo_room();
-        assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(0, 0)).is_none()); // wall
-        assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(24, 19)).is_none()); // water
-        assert!(find_path(&map, CellCoord::new(5, 5), CellCoord::new(-3, 5)).is_none());
+        let terrain_registry = terrain_registry();
+        let local_map = room_with_pool();
+        assert!(find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(5, 2),
+            CellCoord::new(0, 0)
+        )
+        .is_none()); // wall
+        assert!(find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(5, 2),
+            CellCoord::new(6, 4)
+        )
+        .is_none()); // water
+        assert!(find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(5, 2),
+            CellCoord::new(-3, 2)
+        )
+        .is_none());
         // oob
     }
 
     #[test]
     fn path_start_equals_goal() {
-        let map = GridMap::demo_room();
-        let path = find_path(&map, CellCoord::new(5, 5), CellCoord::new(5, 5)).unwrap();
+        let terrain_registry = terrain_registry();
+        let local_map = room_with_pool();
+        let path = find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(5, 2),
+            CellCoord::new(5, 2),
+        )
+        .unwrap();
         assert!(path.is_empty());
     }
 }

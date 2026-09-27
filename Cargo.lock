@@ -4967,6 +4967,9 @@ name = "tome"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bitflags 2.13.2",
+ "ron",
+ "serde",
 ]
 
 [[package]]

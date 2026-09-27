@@ -32,7 +32,7 @@ impl Appearance {
         }
     }
 
-    /// The clip for `anim`. Appearances define a subset of `AnimKind`
+    /// The clip for `anim`. AppearanceRegistry define a subset of `AnimKind`
     /// (`Idle` is mandatory); undefined anims fall back to `Idle`. When
     /// appearances move to data files, `frames` becomes `Rc<[usize]>`.
     pub fn clip(&self, anim: AnimKind) -> &AnimClip {

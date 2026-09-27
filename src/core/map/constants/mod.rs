@@ -1,4 +1,3 @@
 //! Map constants.
 
-pub mod layout;
-pub mod tile_kind;
+pub mod terrain_flags;

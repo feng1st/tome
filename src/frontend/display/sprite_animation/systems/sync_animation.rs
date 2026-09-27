@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::appearance::resources::appearances::Appearances;
+use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 
@@ -25,7 +25,7 @@ pub struct AnimSyncQuery {
 
 pub fn sync_animation(
     time: Res<Time>,
-    appearances: Res<Appearances>,
+    appearances: Res<AppearanceRegistry>,
     mut query: Query<AnimSyncQuery>,
 ) {
     let elapsed = time.elapsed_secs();
@@ -78,7 +78,7 @@ mod tests {
             HashMap::from([(AnimKind::Idle, IDLE), (AnimKind::Run, RUN)]),
         );
         app.insert_resource(Time::<()>::default())
-            .insert_resource(Appearances(HashMap::from([(
+            .insert_resource(AppearanceRegistry(HashMap::from([(
                 AppearanceKind::Warrior,
                 appearance,
             )])))

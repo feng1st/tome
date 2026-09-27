@@ -6,7 +6,7 @@ use bevy::prelude::*;
 
 use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::map::constants::layout::TILE_SIZE;
+use crate::frontend::display::constants::layout::TILE_SIZE;
 
 /// World-pixel position of a cell-space position. Integer cell coordinates
 /// are cell centers, hence the half-cell offset. Map row 0 is the top row

@@ -6,8 +6,8 @@ use bevy::prelude::*;
 
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::appearance::resources::appearances::Appearances;
-use crate::frontend::display::map::constants::layout::LAYER_ACTOR;
+use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
+use crate::frontend::display::constants::layout::LAYER_ACTOR;
 use crate::frontend::display::map::utils::coords::cell_to_world;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
@@ -20,11 +20,11 @@ use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 /// frame from then on.
 pub fn attach_appearance(
     mut commands: Commands,
-    appearances: Res<Appearances>,
+    appearance_registry: Res<AppearanceRegistry>,
     query: Query<(Entity, &AppearanceKind, &Position), Added<AppearanceKind>>,
 ) {
-    for (entity, kind, pos) in &query {
-        let appearance = appearances.appearance(*kind);
+    for (entity, appearance_kind, pos) in &query {
+        let appearance = appearance_registry.appearance(*appearance_kind);
         let world = cell_to_world(*pos);
         commands.entity(entity).insert((
             Sprite {

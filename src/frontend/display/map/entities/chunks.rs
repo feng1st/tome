@@ -1,42 +1,31 @@
-//! Chunk spawning: loads the tileset and spawns floor/wall tilemap
-//! chunks from the core's GridMap. Rendering detail, fully owned by the
-//! display side.
+//! Chunk spawning: builds the tilemap chunks from the core's map and the
+//! display's tile bindings — one chunk per (tileset, alpha, layer)
+//! group. Rendering detail, fully owned by the display side.
 
-use bevy::image::{ImageArrayLayout, ImageLoaderSettings};
 use bevy::prelude::*;
-use bevy::sprite_render::{AlphaMode2d, TilemapChunk, TilemapChunkTileData};
+use bevy::sprite_render::{TilemapChunk, TilemapChunkTileData};
 
 use crate::core::map::resources::current_map::CurrentMap;
-use crate::frontend::display::map::constants::layout::{LAYER_FLOOR, LAYER_WALL, TILE_SIZE};
+use crate::core::map::resources::terrain_registry::TerrainRegistry;
+use crate::frontend::display::constants::layout::TILE_SIZE;
+use crate::frontend::display::map::resources::terrain_tile_registry::TerrainTileRegistry;
 use crate::frontend::display::map::utils::chunk_data::build_chunk_data;
+use crate::frontend::display::tileset::resources::tileset_registry::TilesetRegistry;
 
-/// Spawn the chunks for the whole room: floor and wall.
+/// Spawn the chunks for the whole local map.
 pub fn spawn_chunks(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    grid_map: Res<CurrentMap>,
+    current_map: Res<CurrentMap>,
+    terrain_registry: Res<TerrainRegistry>,
+    tileset_registry: Res<TilesetRegistry>,
+    terrain_tile_registry: Res<TerrainTileRegistry>,
 ) {
-    // The chunk shader samples texture_2d_array; the loader reinterprets
-    // the grid atlas as array layers at load time (row-major tile order,
-    // matching the tileset frame indices `build_chunk_data` writes).
-    // tiles0.png is loaded at this single point — a second load site
-    // risks diverging array-layout settings.
-    let tileset = asset_server
-        .load_builder()
-        .with_settings(|s: &mut ImageLoaderSettings| {
-            s.array_layout = Some(ImageArrayLayout::GridSize {
-                tile_width_pixels: TILE_SIZE as u32,
-                tile_height_pixels: TILE_SIZE as u32,
-            });
-        })
-        .load("tiles0.png");
-
-    let map = grid_map.map();
+    let local_map = current_map.map();
     // Chunks spawn per `Game` entry; nothing despawns on exit today (the
     // app never leaves `Game`). A rebuild strategy arrives with map
     // switching.
-    let w = map.width;
-    let h = map.height;
+    let w = local_map.width;
+    let h = local_map.height;
     // The chunk transform shifts chunk-local coordinates onto world map
     // coordinates (the Y row flip itself happens in `build_chunk_data`).
     let chunk_transform = Transform::from_xyz(
@@ -45,24 +34,19 @@ pub fn spawn_chunks(
         0.0,
     );
 
-    let chunk = |alpha_mode| TilemapChunk {
-        chunk_size: UVec2::new(w as u32, h as u32),
-        tile_display_size: UVec2::splat(TILE_SIZE as u32),
-        tileset: tileset.clone(),
-        alpha_mode,
-    };
-
-    let (floor_data, wall_data) = build_chunk_data(map);
-
-    // The floor chunk blends: shoreline tiles have semi-transparent pixels.
-    commands.spawn((
-        chunk(AlphaMode2d::Blend),
-        TilemapChunkTileData(floor_data),
-        chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_FLOOR)),
-    ));
-    commands.spawn((
-        chunk(AlphaMode2d::Opaque),
-        TilemapChunkTileData(wall_data),
-        chunk_transform.with_translation(chunk_transform.translation.with_z(LAYER_WALL)),
-    ));
+    for group in build_chunk_data(local_map, &terrain_registry, &terrain_tile_registry) {
+        let tileset = tileset_registry
+            .get(&group.tileset)
+            .expect("tileset referenced by a binding is registered");
+        commands.spawn((
+            TilemapChunk {
+                chunk_size: UVec2::new(w as u32, h as u32),
+                tile_display_size: UVec2::splat(TILE_SIZE as u32),
+                tileset: tileset.texture.clone(),
+                alpha_mode: group.alpha.into(),
+            },
+            TilemapChunkTileData(group.tiles),
+            chunk_transform.with_translation(chunk_transform.translation.with_z(group.layer.z())),
+        ));
+    }
 }

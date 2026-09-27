@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use bevy::sprite_render::AlphaMode2d;
 
 use crate::core::map::resources::current_map::CurrentMap;
-use crate::frontend::display::map::constants::layout::{LAYER_SCROLL, TILE_SIZE};
+use crate::frontend::display::constants::layout::{LAYER_UNDERGROUND, TILE_SIZE};
 use crate::frontend::display::terrain_animation::components::terrain_anim_state::TerrainAnimState;
 use crate::frontend::display::terrain_animation::constants::terrain_anims::WATER_ANIM;
 
@@ -23,13 +23,13 @@ pub fn spawn_anim_layers(
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    grid_map: Res<CurrentMap>,
+    current_map: Res<CurrentMap>,
 ) {
-    let map = grid_map.map();
-    let w = map.width as f32 * TILE_SIZE;
-    let h = map.height as f32 * TILE_SIZE;
+    let local_map = current_map.map();
+    let w = local_map.width as f32 * TILE_SIZE;
+    let h = local_map.height as f32 * TILE_SIZE;
 
-    let anim = WATER_ANIM;
+    let terrain_anim = WATER_ANIM;
     // REPEAT addressing lets the UV scroll wrap.
     let texture = asset_server
         .load_builder()
@@ -40,7 +40,7 @@ pub fn spawn_anim_layers(
                 ..default()
             });
         })
-        .load(anim.texture);
+        .load(terrain_anim.texture);
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::from_size(Vec2::new(w, h)))),
         MeshMaterial2d(materials.add(ColorMaterial {
@@ -48,13 +48,13 @@ pub fn spawn_anim_layers(
             alpha_mode: AlphaMode2d::Blend,
             ..default()
         })),
-        Transform::from_xyz(w / 2.0, -h / 2.0, LAYER_SCROLL),
+        Transform::from_xyz(w / 2.0, -h / 2.0, LAYER_UNDERGROUND),
         TerrainAnimState {
             scale: Vec2::new(
-                w / anim.texture_size.x as f32,
-                h / anim.texture_size.y as f32,
+                w / terrain_anim.texture_size.x as f32,
+                h / terrain_anim.texture_size.y as f32,
             ),
-            velocity: anim.velocity,
+            velocity: terrain_anim.velocity,
         },
     ));
 }

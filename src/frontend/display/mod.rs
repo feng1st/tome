@@ -8,11 +8,13 @@
 
 pub mod appearance;
 pub mod camera;
+pub mod constants;
 pub mod display_phase;
 pub mod map;
 pub mod movement;
 pub mod sprite_animation;
 pub mod terrain_animation;
+pub mod tileset;
 
 use bevy::prelude::*;
 
@@ -22,6 +24,7 @@ use crate::core::game_loop::GameLoop;
 /// Register the display side: every domain's systems and the
 /// display-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
+    tileset::register(app);
     map::register(app);
     movement::register(app);
     appearance::register(app);

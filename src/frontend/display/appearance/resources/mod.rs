@@ -1,3 +1,3 @@
 //! Appearance resources.
 
-pub mod appearances;
+pub mod appearance_registry;

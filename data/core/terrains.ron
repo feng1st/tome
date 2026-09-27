@@ -1,0 +1,7 @@
+// Terrain table: every terrain's name and property flags.
+// Logic queries flags only; terrain identity never appears in code.
+[
+    ( terrain: "floor", flags: ["PASSABLE"] ),
+    ( terrain: "wall",  flags: [] ),
+    ( terrain: "water", flags: ["LIQUID"] ),
+]

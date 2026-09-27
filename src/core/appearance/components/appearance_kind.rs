@@ -7,7 +7,7 @@ use bevy::prelude::*;
 /// derives from class and armor tier, a wolf's from its species, so one
 /// creature kind may wear several looks over its lifetime and several
 /// kinds may share one look. The display side resolves the key through
-/// its `Appearances` registry when it is added to an entity.
+/// its `AppearanceRegistry` registry when it is added to an entity.
 #[derive(Component, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum AppearanceKind {
     /// The unarmored warrior (hero tier 0).

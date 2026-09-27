@@ -7,6 +7,8 @@ use bevy::prelude::*;
 use crate::core::hero::commands::move_to_cell::MoveToCell;
 use crate::core::hero::components::hero::Hero;
 use crate::core::map::resources::current_map::CurrentMap;
+use crate::core::map::resources::terrain_registry::TerrainRegistry;
+use crate::core::map::types::terrain::Terrain;
 use crate::core::map::utils::pathfinding::find_path;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::position::Position;
@@ -18,19 +20,27 @@ pub fn execute(
     mut commands: Commands,
     mut move_commands: MessageReader<MoveToCell>,
     current_map: Res<CurrentMap>,
+    terrain_registry: Res<TerrainRegistry>,
     hero: Query<(Entity, &Position), With<Hero>>,
 ) {
     let Ok((hero_entity, pos)) = hero.single() else {
         return;
     };
-    let map = current_map.map();
+    let local_map = current_map.map();
     for command in move_commands.read() {
         let goal = command.0;
         let start = pos.cell();
-        if goal == start || !map.walkable(goal) {
+        if goal == start {
             continue;
         }
-        let Some(cells) = find_path(map, start, goal) else {
+        let goal_walkable = local_map
+            .get(goal)
+            .and_then(|terrain_index| terrain_registry.get(terrain_index))
+            .is_some_and(Terrain::walkable);
+        if !goal_walkable {
+            continue;
+        }
+        let Some(cells) = find_path(local_map, &terrain_registry, start, goal) else {
             continue;
         };
         commands.entity(hero_entity).insert(Path::new(cells, *pos));
@@ -40,21 +50,56 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::map::constants::layout::MAP_W;
-    use crate::core::map::constants::tile_kind::TileKind;
+    use crate::core::map::resources::current_map::parse_local_map;
+    use crate::core::map::resources::terrain_registry::parse_terrain_registry;
     use crate::core::map::types::cell_coord::CellCoord;
-    use crate::core::map::types::grid_map::GridMap;
+    use crate::core::map::types::local_map::LocalMap;
 
-    fn app_with(map: GridMap) -> App {
+    const TERRAINS: &str = r#"[
+        ( terrain: "floor", flags: ["PASSABLE"] ),
+        ( terrain: "wall",  flags: [] ),
+        ( terrain: "water", flags: ["LIQUID"] ),
+    ]"#;
+
+    fn terrain_registry() -> TerrainRegistry {
+        parse_terrain_registry("test", TERRAINS)
+    }
+
+    /// A walled room with a 4x5 pool slightly below its center, matching
+    /// the test room's proportions at a smaller scale.
+    fn room() -> LocalMap {
+        let rows: Vec<String> = (0..10)
+            .map(|y| {
+                if y == 0 || y == 9 {
+                    "################".to_string()
+                } else {
+                    let mut row = "#..............#".to_string();
+                    if (3..8).contains(&y) {
+                        row.replace_range(5..9, "~~~~");
+                    }
+                    row
+                }
+            })
+            .collect();
+        let rows: Vec<String> = rows.iter().map(|r| format!("\"{r}\"")).collect();
+        let doc = format!(
+            "( legend: {{ '#': \"wall\", '.': \"floor\", '~': \"water\" }}, rows: [ {} ], )",
+            rows.join(", ")
+        );
+        parse_local_map("test", &doc, &terrain_registry())
+    }
+
+    fn app_with(map: LocalMap) -> App {
         let mut app = App::new();
         app.add_message::<MoveToCell>()
+            .insert_resource(terrain_registry())
             .insert_resource(CurrentMap::new(map))
             .add_systems(Update, execute);
         app
     }
 
     fn app() -> App {
-        app_with(GridMap::demo_room())
+        app_with(room())
     }
 
     #[test]
@@ -62,10 +107,10 @@ mod tests {
         let mut app = app();
         let hero = app
             .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(10, 10))))
+            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
             .id();
         app.world_mut()
-            .write_message(MoveToCell(CellCoord::new(24, 19))); // water pool
+            .write_message(MoveToCell(CellCoord::new(6, 4))); // water pool
         app.update();
         assert!(app.world().get::<Path>(hero).is_none());
     }
@@ -75,12 +120,12 @@ mod tests {
         let mut app = app();
         let hero = app
             .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(10, 10))))
+            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
             .id();
         for goal in [
-            CellCoord::new(0, 0),             // wall corner
-            CellCoord::new(-1, 10),           // left of the map
-            CellCoord::new(MAP_W as i32, 10), // right of the map
+            CellCoord::new(0, 0),  // wall corner
+            CellCoord::new(-1, 2), // left of the map
+            CellCoord::new(16, 2), // right of the map
         ] {
             app.world_mut().write_message(MoveToCell(goal));
         }
@@ -92,19 +137,11 @@ mod tests {
     fn unreachable_goal_produces_no_path() {
         // Two chambers split by a full wall column: the goal is walkable
         // but unreachable — a distinct case from an unwalkable target.
-        let mut tiles = vec![TileKind::Floor; 5 * 5];
-        for y in 0..5 {
-            for x in 0..5 {
-                if x == 0 || y == 0 || x == 4 || y == 4 || x == 2 {
-                    tiles[x + y * 5] = TileKind::Wall;
-                }
-            }
-        }
-        let mut app = app_with(GridMap {
-            width: 5,
-            height: 5,
-            tiles,
-        });
+        let doc = r######"(
+            legend: { '#': "wall", '.': "floor" },
+            rows: [ "#####", "#.#.#", "#.#.#", "#.#.#", "#####" ],
+        )"######;
+        let mut app = app_with(parse_local_map("test", doc, &terrain_registry()));
         let hero = app
             .world_mut()
             .spawn((Hero, Position::from(CellCoord::new(1, 1))))
@@ -120,13 +157,13 @@ mod tests {
         let mut app = app();
         let hero = app
             .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(10, 10))))
+            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
             .id();
         app.world_mut()
-            .write_message(MoveToCell(CellCoord::new(12, 10)));
+            .write_message(MoveToCell(CellCoord::new(4, 2)));
         app.update();
         let path = app.world().get::<Path>(hero).expect("path attached");
-        assert_eq!(*path.cells.back().unwrap(), CellCoord::new(12, 10));
+        assert_eq!(*path.cells.back().unwrap(), CellCoord::new(4, 2));
     }
 
     #[test]
@@ -134,21 +171,21 @@ mod tests {
         let mut app = app();
         let hero = app
             .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(10, 10))))
+            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
             .id();
         app.world_mut()
-            .write_message(MoveToCell(CellCoord::new(12, 10)));
+            .write_message(MoveToCell(CellCoord::new(4, 2)));
         app.update();
         // Mid-step: the replacement path must start from where the hero
         // currently is, not from the old path's cell.
-        let mid_step = Position::new(10.5, 10.0);
+        let mid_step = Position::new(2.5, 2.0);
         *app.world_mut().get_mut::<Position>(hero).unwrap() = mid_step;
         app.world_mut()
-            .write_message(MoveToCell(CellCoord::new(14, 10)));
+            .write_message(MoveToCell(CellCoord::new(6, 2)));
         app.update();
         let path = app.world().get::<Path>(hero).expect("path replaced");
         assert_eq!(path.step_from, mid_step);
-        assert_eq!(*path.cells.front().unwrap(), CellCoord::new(12, 10));
-        assert_eq!(*path.cells.back().unwrap(), CellCoord::new(14, 10));
+        assert_eq!(*path.cells.front().unwrap(), CellCoord::new(4, 2));
+        assert_eq!(*path.cells.back().unwrap(), CellCoord::new(6, 2));
     }
 }

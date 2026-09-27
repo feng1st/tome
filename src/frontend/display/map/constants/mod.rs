@@ -1,3 +1,4 @@
 //! Map display constants.
 
-pub mod layout;
+pub mod alpha_mode;
+pub mod chunk_layer;

@@ -11,7 +11,7 @@ use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
 use crate::core::appearance::components::appearance_kind::AppearanceKind;
-use crate::frontend::display::appearance::resources::appearances::Appearances;
+use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 
 #[derive(QueryData)]
@@ -22,7 +22,7 @@ pub struct AnimQuery {
     pub sprite: &'static mut Sprite,
 }
 
-pub fn animate(time: Res<Time>, appearances: Res<Appearances>, mut query: Query<AnimQuery>) {
+pub fn animate(time: Res<Time>, appearances: Res<AppearanceRegistry>, mut query: Query<AnimQuery>) {
     let elapsed = time.elapsed_secs();
     for mut item in &mut query {
         let clip = appearances.appearance(*item.kind).clip(item.state.anim);
