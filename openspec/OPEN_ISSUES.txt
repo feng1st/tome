@@ -1,0 +1,43 @@
+OPEN ISSUES — 延期工作与已知问题登记表
+
+延期的工作与已知的缺陷统一登记在此，不以 FIXME 注释形式散落代码中。
+开新 change 前检查本表；条目修复落地后删除。
+
+======================================================================
+
+1. figure 词表归属 display
+
+现状：形象词表（data/core/figures.ron）、FigureRegistry、FigureIndex 居
+core（src/core/figure/），仅因主角在代码常量中命名形象（spawn_hero 的
+HERO_FIGURE）。形象是显示关切；怪物的形象绑定已按正确划分落在 display
+（data/graphic/monster_figures.ron）。
+
+修复方向：待主角形象绑定离开 core 代码（如开局选职业落地时），词表文件
+迁往 data/graphic/，注册表与句柄组件移入 display 层；appearance spec 的
+相关需求随之修订。怪物的绑定管线无需变动。
+
+涉及位置：src/core/figure/（整个域）、data/core/figures.ron、
+src/core/hero/entities/hero.rs（HERO_FIGURE 常量）。
+
+======================================================================
+
+2. 像素完美渲染管线（图集跨行采样串扰）
+
+现象：小数屏幕映射下，精灵边缘采样越过图集帧边界，采到相邻帧的行——
+老鼠头顶可见一条来自贴图上一行的细线（不足一个放大像素高），精灵上下
+边缘与地面颜色混合。分数显示器缩放（如 150%）下常驻；移动途中相机处于
+小数坐标时瞬态出现。
+
+诊断：素材与切割均正确（rat.png 帧 16×15 精确，两行颜色变体清晰）；
+根因是世界像素到屏幕像素的映射非整数。warrior 未显现仅因其动画帧都在
+贴图首行，上方无行可采。与素材尺寸是否为 2 的幂无关。
+
+修复方向：低分辨率画布离屏渲染 + 最近邻整体上屏（与窗口尺寸、合成器
+缩放解耦）；可选叠加相机像素对齐（参考 bevy examples/2d/pixel_grid_snap.rs）
+或图集帧间 gutter 填充。属 rendering 能力演进，单开 change。
+
+涉及位置：src/frontend/display/camera/entities/camera.rs（2x 投影）、
+src/frontend/display/appearance/resources/appearance_registry.rs 与
+src/frontend/display/tileset/resources/tileset_registry.rs（from_grid 图集构建）。
+
+======================================================================

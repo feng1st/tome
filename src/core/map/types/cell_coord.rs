@@ -1,6 +1,7 @@
 //! Cell coordinates: the map grid's vocabulary type.
 
 use bevy::prelude::*;
+use serde::Deserialize;
 
 /// Integer coordinates of a cell: column `x`, row `y`, row 0 at the top.
 ///
@@ -9,7 +10,10 @@ use bevy::prelude::*;
 /// or other integer vectors. Named `CellCoord` rather than `Cell` — `Cell`
 /// may later denote a cell entity with contents — and distinct from
 /// `Position`, the continuous cell-space position.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+///
+/// `Deserialize` serves map file layouts (spawn entries, …); the type
+/// itself stays a plain value.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize)]
 pub struct CellCoord {
     pub x: i32,
     pub y: i32,

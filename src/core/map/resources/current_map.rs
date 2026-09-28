@@ -9,6 +9,7 @@ use bevy::prelude::*;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::types::local_map::LocalMap;
 use crate::core::map::types::map_file::MapFile;
+use crate::core::map::types::monster_spawn::MonsterSpawn;
 
 /// The fixed map loaded at startup: the test room.
 pub const TEST_ROOM_PATH: &str = "data/maps/test_room.ron";
@@ -76,10 +77,33 @@ pub(crate) fn parse_local_map(
             tiles.push(terrain_index);
         }
     }
+
+    // Spawn entries stay raw (the monster id is not resolved here — the
+    // map domain does not depend on the monster vocabulary); only the
+    // cell needs this domain's knowledge: the map bounds.
+    let spawns = file
+        .monsters
+        .into_iter()
+        .map(|entry| {
+            let cell = entry.cell;
+            assert!(
+                cell.x >= 0 && cell.y >= 0 && cell.x < width as i32 && cell.y < height as i32,
+                "map '{path}': spawn at ({}, {}) is outside the map",
+                cell.x,
+                cell.y
+            );
+            MonsterSpawn {
+                monster: entry.monster,
+                cell,
+            }
+        })
+        .collect();
+
     LocalMap {
         width,
         height,
         tiles,
+        spawns,
     }
 }
 
@@ -152,6 +176,48 @@ mod tests {
         parse_local_map("test", doc, &terrain_registry());
     }
 
+    #[test]
+    fn spawn_entries_parse_to_raw_ids_and_cells() {
+        use crate::core::map::types::cell_coord::CellCoord;
+
+        let doc = r####"(
+            legend: { '#': "wall", '.': "floor" },
+            rows: [ "###", "#.#", "###" ],
+            monsters: [
+                ( monster: "giant_white_rat", cell: ( x: 1, y: 1 ) ),
+            ],
+        )"####;
+        let local_map = parse_local_map("test", doc, &terrain_registry());
+        // The monster id stays the raw file string: the map domain does
+        // not resolve it against the monster vocabulary.
+        assert_eq!(
+            local_map.spawns,
+            [MonsterSpawn {
+                monster: "giant_white_rat".to_string(),
+                cell: CellCoord::new(1, 1),
+            }]
+        );
+    }
+
+    #[test]
+    fn absent_spawn_section_means_no_spawns() {
+        let local_map = parse_local_map("test", MAP, &terrain_registry());
+        assert!(local_map.spawns.is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "spawn at (3, 0) is outside the map")]
+    fn out_of_bounds_spawn_panics() {
+        let doc = r####"(
+            legend: { '#': "wall", '.': "floor" },
+            rows: [ "###", "#.#", "###" ],
+            monsters: [
+                ( monster: "giant_white_rat", cell: ( x: 3, y: 0 ) ),
+            ],
+        )"####;
+        parse_local_map("test", doc, &terrain_registry());
+    }
+
     // Spec-alignment test: the real data files on disk reproduce the
     // test room's spatial contract. CWD of `cargo test` is the crate
     // root, so the production paths work as-is.
@@ -221,5 +287,18 @@ mod tests {
             &terrain_registry,
             CellCoord::new(24, 10)
         ));
+
+        // Two giant white rats spawn on open floor near the hero start.
+        let mut spawn_cells: Vec<CellCoord> =
+            local_map.spawns.iter().map(|spawn| spawn.cell).collect();
+        spawn_cells.sort_by_key(|cell| (cell.x, cell.y));
+        assert_eq!(
+            spawn_cells,
+            [CellCoord::new(24, 13), CellCoord::new(28, 10)]
+        );
+        for spawn in &local_map.spawns {
+            assert_eq!(spawn.monster, "giant_white_rat");
+            assert!(walkable(&local_map, &terrain_registry, spawn.cell));
+        }
     }
 }

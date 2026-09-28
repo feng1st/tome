@@ -357,4 +357,37 @@ mod tests {
         assert_eq!(run.frames, [2, 3, 4, 5, 6, 7]);
         assert_eq!(run.fps, 20.0);
     }
+
+    /// Spec-alignment test: the real data files on disk reproduce the
+    /// established giant white rat presentation.
+    #[test]
+    fn giant_white_rat_appearance_matches_the_reference_presentation() {
+        use crate::core::figure::resources::figure_registry::FIGURE_TABLE_PATH;
+
+        let text = std::fs::read_to_string(FIGURE_TABLE_PATH).unwrap();
+        let figure_registry = parse_figure_registry(FIGURE_TABLE_PATH, &text);
+        figure_registry
+            .get_index("giant_white_rat")
+            .expect("giant_white_rat is a declared figure");
+
+        let text = std::fs::read_to_string(APPEARANCES_PATH).unwrap();
+        let entries = parse_appearance_entries(APPEARANCES_PATH, &text, &figure_registry);
+        let entry = &entries
+            .iter()
+            .find(|(_, e)| e.figure == "giant_white_rat")
+            .expect("giant_white_rat has an appearance entry")
+            .1;
+        assert_eq!(entry.texture, "rat.png");
+        assert_eq!((entry.frame_width, entry.frame_height), (16, 15));
+        assert_eq!((entry.columns, entry.rows), (16, 2));
+        // Only an idle clip: the rat neither walks nor fights yet.
+        assert_eq!(entry.clips.len(), 1);
+        let idle = entry
+            .clips
+            .iter()
+            .find(|c| c.anim == AnimKind::Idle)
+            .unwrap();
+        assert_eq!(idle.frames, [16, 16, 16, 17]);
+        assert_eq!(idle.fps, 2.0);
+    }
 }

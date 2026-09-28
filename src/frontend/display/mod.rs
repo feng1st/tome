@@ -11,6 +11,7 @@ pub mod camera;
 pub mod constants;
 pub mod display_phase;
 pub mod map;
+pub mod monster;
 pub mod movement;
 pub mod sprite_animation;
 pub mod terrain_animation;
@@ -28,6 +29,7 @@ pub fn register(app: &mut App) {
     map::register(app);
     movement::register(app);
     appearance::register(app);
+    monster::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);
     camera::register(app);

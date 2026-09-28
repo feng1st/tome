@@ -28,6 +28,11 @@ pub fn attach_appearance(
     for (entity, figure_index, pos) in &query {
         let appearance = appearance_registry.appearance(*figure_index);
         let world = cell_to_world(*pos);
+        // The phase offset derives from the standing cell: a deterministic
+        // desync for crowds spawned on the same tick (zero would sync
+        // them).
+        let idle_len = appearance.clip(AnimKind::Idle).frames.len();
+        let cell = pos.cell();
         commands.entity(entity).insert((
             Sprite {
                 image: appearance.image.clone(),
@@ -38,11 +43,9 @@ pub fn attach_appearance(
                 ..default()
             },
             Transform::from_xyz(world.x, world.y, LAYER_ACTOR),
-            // A lone creature needs no phase offset; crowds take a random
-            // one to desync.
             AnimState {
                 anim: AnimKind::Idle,
-                frame_offset: 0,
+                frame_offset: (cell.x + cell.y) as usize % idle_len,
             },
         ));
     }

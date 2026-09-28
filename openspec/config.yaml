@@ -97,6 +97,8 @@ context: |
   - 命名考究：风格统一、单复数原则一致、无歧义。
   - 单测与 spec 对齐：spec 的可测 requirement 由对应单测锁定，单测即
     requirement 被满足的证据；行为变更先改 spec，单测同步跟进。
+  - 延期工作与已知问题统一登记在 openspec/OPEN_ISSUES.txt，不以 FIXME
+    注释形式散落代码中；开新 change 前先查该表是否已有相关条目。
 
 # Per-artifact rules
 rules:

@@ -13,6 +13,7 @@ pub mod figure;
 pub mod game_loop;
 pub mod hero;
 pub mod map;
+pub mod monster;
 pub mod movement;
 
 use bevy::prelude::*;
@@ -27,6 +28,7 @@ pub fn register(app: &mut App) {
     map::register(app);
     figure::register(app);
     hero::register(app);
+    monster::register(app);
     movement::register(app);
     app.init_state::<AppState>().configure_sets(
         Update,

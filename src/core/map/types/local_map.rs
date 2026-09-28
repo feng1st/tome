@@ -5,20 +5,24 @@
 //! between cells and world pixels is the display side's job.
 
 use crate::core::map::types::cell_coord::CellCoord;
+use crate::core::map::types::monster_spawn::MonsterSpawn;
 use crate::core::map::types::terrain_index::TerrainIndex;
 
 /// A local map: a row-major array of `width × height` cells, each holding
-/// a terrain handle resolved through `TerrainRegistry`. Row 0 is the top
-/// row; y increases downward, matching the cell-coordinate convention of
-/// `Position`.
+/// a terrain handle resolved through `TerrainRegistry`, plus the monster
+/// spawn table. Row 0 is the top row; y increases downward, matching the
+/// cell-coordinate convention of `Position`.
 ///
 /// The map is a pure container by design: property queries (walkable,
 /// liquid, …) are the caller's three-step composition — cell to
 /// `TerrainIndex`, index to `Terrain`, terrain to the property methods.
+/// Spawns are likewise inert data here; spawning is the monster domain's
+/// job.
 pub struct LocalMap {
     pub width: usize,
     pub height: usize,
     pub tiles: Vec<TerrainIndex>,
+    pub spawns: Vec<MonsterSpawn>,
 }
 
 impl LocalMap {

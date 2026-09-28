@@ -4,4 +4,4 @@
 // data must translate through the id mapping, never store raw handles.
 // A figure id declared here is only a name — everything it needs to
 // render (texture, grid, clips) lives in the appearance table.
-[ "warrior" ]
+[ "warrior", "giant_white_rat" ]
