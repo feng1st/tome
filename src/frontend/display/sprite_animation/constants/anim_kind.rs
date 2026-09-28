@@ -1,15 +1,20 @@
 //! The canonical animation vocabulary: every anim an appearance may
 //! define.
 
+use serde::Deserialize;
+use serde::Serialize;
+
 /// The superset of anims, shared by all appearances. References to
 /// anims originate in code (a `MoveToCell` command implies `Run`, an
 /// attack implies `Attack`), so the key type is an enum, not a string —
-/// data files map these names to frame tables via serde. Each appearance
-/// defines only the subset it supports; lookups fall back to `Idle`.
+/// data files map these names to frame tables via serde (lowercase).
+/// Each appearance defines only the subset it supports; lookups fall
+/// back to `Idle`.
 // The superset is defined ahead of its consumers: combat variants are
 // constructed once attack/hit/death commands land.
 #[allow(dead_code)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AnimKind {
     /// Standing still. Mandatory in every appearance (the fallback target).
     Idle,

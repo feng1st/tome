@@ -10,22 +10,28 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::appearance::components::appearance_kind::AppearanceKind;
+use crate::core::figure::components::figure_index::FigureIndex;
 use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AnimQuery {
-    pub kind: &'static AppearanceKind,
+    pub figure_index: &'static FigureIndex,
     pub state: &'static AnimState,
     pub sprite: &'static mut Sprite,
 }
 
-pub fn animate(time: Res<Time>, appearances: Res<AppearanceRegistry>, mut query: Query<AnimQuery>) {
+pub fn animate(
+    time: Res<Time>,
+    appearance_registry: Res<AppearanceRegistry>,
+    mut query: Query<AnimQuery>,
+) {
     let elapsed = time.elapsed_secs();
     for mut item in &mut query {
-        let clip = appearances.appearance(*item.kind).clip(item.state.anim);
+        let clip = appearance_registry
+            .appearance(*item.figure_index)
+            .clip(item.state.anim);
         let len = clip.frames.len();
         let frame = ((elapsed * clip.fps) as usize + item.state.frame_offset) % len;
         let index = clip.frames[frame];

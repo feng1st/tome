@@ -1,0 +1,21 @@
+// Appearance table: how each declared figure renders — texture, frame
+// grid, and the anim table keyed by anim name. Frame size is per entry
+// (creature sheets are not world-tile sized); frame indices address the
+// row-major grid and must stay inside columns × rows. Every entry must
+// define an `idle` clip; undefined anims fall back to it at playback.
+[
+    (
+        figure: "warrior",
+        texture: "warrior.png",
+        frame_width: 12,
+        frame_height: 15,
+        columns: 21,
+        rows: 8,
+        clips: [
+            // Idle breathes between frames 0 and 1.
+            ( anim: idle, frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0 ),
+            // Run cycles frames 2..7.
+            ( anim: run,  frames: [2, 3, 4, 5, 6, 7],         fps: 20.0 ),
+        ],
+    ),
+]

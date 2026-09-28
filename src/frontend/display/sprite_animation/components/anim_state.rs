@@ -38,10 +38,12 @@ impl AnimState {
 mod tests {
     use super::*;
 
-    const CLIP: AnimClip = AnimClip {
-        frames: &[10, 11, 12, 13],
-        fps: 4.0,
-    };
+    fn clip() -> AnimClip {
+        AnimClip {
+            frames: vec![10, 11, 12, 13],
+            fps: 4.0,
+        }
+    }
 
     fn frame_at(state: &AnimState, clip: &AnimClip, elapsed: f32) -> usize {
         let len = clip.frames.len();
@@ -54,8 +56,8 @@ mod tests {
             anim: AnimKind::Idle,
             frame_offset: 0,
         };
-        state.switch(AnimKind::Run, &CLIP, 3.3);
-        assert_eq!(frame_at(&state, &CLIP, 3.3), 10);
+        state.switch(AnimKind::Run, &clip(), 3.3);
+        assert_eq!(frame_at(&state, &clip(), 3.3), 10);
     }
 
     #[test]
@@ -64,9 +66,9 @@ mod tests {
             anim: AnimKind::Idle,
             frame_offset: 99,
         };
-        state.switch(AnimKind::Run, &CLIP, 1.0); // phase 0
+        state.switch(AnimKind::Run, &clip(), 1.0); // phase 0
         assert_eq!(state.frame_offset, 0);
-        assert_eq!(frame_at(&state, &CLIP, 1.0), 10);
+        assert_eq!(frame_at(&state, &clip(), 1.0), 10);
     }
 
     #[test]
@@ -79,6 +81,6 @@ mod tests {
             anim: AnimKind::Idle,
             frame_offset: 1,
         };
-        assert_ne!(frame_at(&a, &CLIP, 0.0), frame_at(&b, &CLIP, 0.0));
+        assert_ne!(frame_at(&a, &clip(), 0.0), frame_at(&b, &clip(), 0.0));
     }
 }

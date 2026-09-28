@@ -8,8 +8,8 @@
 //! system and order facts never leave the phase enums.
 
 pub mod app_state;
-pub mod appearance;
 pub mod core_phase;
+pub mod figure;
 pub mod game_loop;
 pub mod hero;
 pub mod map;
@@ -25,6 +25,7 @@ use self::game_loop::GameLoop;
 /// core-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
     map::register(app);
+    figure::register(app);
     hero::register(app);
     movement::register(app);
     app.init_state::<AppState>().configure_sets(

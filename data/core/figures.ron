@@ -1,0 +1,7 @@
+// Figure vocabulary: every figure a creature may present, declared as
+// an ordered id list. Load assigns each id a runtime handle in entry order;
+// handles are unstable across loads (entry order decides them), so saved
+// data must translate through the id mapping, never store raw handles.
+// A figure id declared here is only a name — everything it needs to
+// render (texture, grid, clips) lives in the appearance table.
+[ "warrior" ]

@@ -6,7 +6,7 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::appearance::components::appearance_kind::AppearanceKind;
+use crate::core::figure::components::figure_index::FigureIndex;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::position::Position;
 use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
@@ -16,7 +16,7 @@ use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AnimSyncQuery {
-    pub kind: &'static AppearanceKind,
+    pub figure_index: &'static FigureIndex,
     pub path: Option<&'static Path>,
     pub position: &'static Position,
     pub state: &'static mut AnimState,
@@ -25,7 +25,7 @@ pub struct AnimSyncQuery {
 
 pub fn sync_animation(
     time: Res<Time>,
-    appearances: Res<AppearanceRegistry>,
+    appearance_registry: Res<AppearanceRegistry>,
     mut query: Query<AnimSyncQuery>,
 ) {
     let elapsed = time.elapsed_secs();
@@ -36,7 +36,9 @@ pub fn sync_animation(
             AnimKind::Idle
         };
         if item.state.anim != desired {
-            let clip = appearances.appearance(*item.kind).clip(desired);
+            let clip = appearance_registry
+                .appearance(*item.figure_index)
+                .clip(desired);
             item.state.switch(desired, clip, elapsed);
         }
         // Face the horizontal direction of the current step. Cell space has
@@ -61,25 +63,35 @@ mod tests {
     use crate::frontend::display::appearance::types::appearance::Appearance;
     use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
-    const IDLE: AnimClip = AnimClip {
-        frames: &[0],
-        fps: 8.0,
-    };
-    const RUN: AnimClip = AnimClip {
-        frames: &[2],
-        fps: 20.0,
-    };
+    /// The test handle: the unit registry's single appearance.
+    fn figure_index() -> FigureIndex {
+        FigureIndex::from_index(0)
+    }
+
+    fn idle() -> AnimClip {
+        AnimClip {
+            frames: vec![0],
+            fps: 8.0,
+        }
+    }
+
+    fn run() -> AnimClip {
+        AnimClip {
+            frames: vec![2],
+            fps: 20.0,
+        }
+    }
 
     fn app() -> App {
         let mut app = App::new();
         let appearance = Appearance::new(
             Handle::default(),
             Handle::default(),
-            HashMap::from([(AnimKind::Idle, IDLE), (AnimKind::Run, RUN)]),
+            HashMap::from([(AnimKind::Idle, idle()), (AnimKind::Run, run())]),
         );
         app.insert_resource(Time::<()>::default())
-            .insert_resource(AppearanceRegistry(HashMap::from([(
-                AppearanceKind::Warrior,
+            .insert_resource(AppearanceRegistry::new(HashMap::from([(
+                figure_index(),
                 appearance,
             )])))
             .add_systems(Update, sync_animation);
@@ -88,7 +100,7 @@ mod tests {
 
     fn spawn_creature(app: &mut App, anim: AnimKind, path: Option<Path>) -> Entity {
         let mut entity = app.world_mut().spawn((
-            AppearanceKind::Warrior,
+            figure_index(),
             Position::from(CellCoord::new(1, 0)),
             AnimState {
                 anim,
