@@ -21,23 +21,16 @@ src/core/hero/entities/hero.rs（HERO_FIGURE 常量）。
 
 ======================================================================
 
-2. 像素完美渲染管线（图集跨行采样串扰）
+2. 慢于 1 纹素/帧的物体在像素画布下呈步进感
 
-现象：小数屏幕映射下，精灵边缘采样越过图集帧边界，采到相邻帧的行——
-老鼠头顶可见一条来自贴图上一行的细线（不足一个放大像素高），精灵上下
-边缘与地面颜色混合。分数显示器缩放（如 150%）下常驻；移动途中相机处于
-小数坐标时瞬态出现。
+现象：像素完美画布（视野 640×360、整数倍上屏）里，运动以纹素为量子；
+速度低于 1 纹素/帧的物体（未来的慢速怪物、抛物线顶点的投掷物）会
+呈现停停走走的步进。主角速度约 1.78 纹素/帧，不受影响。该限制是
+本路线固有（Celeste 同款，参考 .ref/gdx-mellow-demo 与
+slowrush.dev 的 Pixel Perfect Rendering 文）。
 
-诊断：素材与切割均正确（rat.png 帧 16×15 精确，两行颜色变体清晰）；
-根因是世界像素到屏幕像素的映射非整数。warrior 未显现仅因其动画帧都在
-贴图首行，上方无行可采。与素材尺寸是否为 2 的幂无关。
-
-修复方向：低分辨率画布离屏渲染 + 最近邻整体上屏（与窗口尺寸、合成器
-缩放解耦）；可选叠加相机像素对齐（参考 bevy examples/2d/pixel_grid_snap.rs）
-或图集帧间 gutter 填充。属 rendering 能力演进，单开 change。
-
-涉及位置：src/frontend/display/camera/entities/camera.rs（2x 投影）、
-src/frontend/display/appearance/resources/appearance_registry.rs 与
-src/frontend/display/tileset/resources/tileset_registry.rs（from_grid 图集构建）。
+修复方向：出现时再议。出口是 pixel-art filtering shader（按纹素
+边界距离混合，牺牲严格对齐换全程平滑），属 rendering 能力演进，
+单开 change。
 
 ======================================================================

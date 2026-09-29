@@ -8,6 +8,7 @@
 
 pub mod appearance;
 pub mod camera;
+pub mod canvas;
 pub mod constants;
 pub mod display_phase;
 pub mod map;
@@ -32,6 +33,7 @@ pub fn register(app: &mut App) {
     monster::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);
+    canvas::register(app);
     camera::register(app);
     app.configure_sets(
         Update,

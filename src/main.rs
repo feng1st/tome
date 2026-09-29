@@ -24,7 +24,7 @@ fn main() {
 }
 
 /// Engine plugins with pixel-art settings: nearest-neighbor sampling and a
-/// fixed 1280x720 window.
+/// 1280x720 window (resizable).
 fn engine_plugins() -> PluginGroupBuilder {
     DefaultPlugins
         .set(ImagePlugin::default_nearest())
