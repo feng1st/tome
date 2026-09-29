@@ -1,3 +1,3 @@
-//! Terrain animation entity spawning.
+//! Animated terrain entity spawning.
 
 pub mod anim_layers;

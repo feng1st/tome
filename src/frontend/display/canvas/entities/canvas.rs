@@ -8,7 +8,8 @@ use crate::frontend::display::canvas::resources::canvas_image::CanvasImage;
 
 /// Startup system: spawn the canvas at its texture's natural size. The
 /// follow rig pans it (sub-pixel remainder for smooth scrolling); the
-/// screen camera's fixed projection does the scaling and view cropping.
+/// screen camera's fixed projection does the scaling, and the window
+/// edge crops the margin ring.
 pub fn spawn_canvas(mut commands: Commands, canvas_image: Res<CanvasImage>) {
     commands.spawn((
         Sprite::from_image(canvas_image.handle().clone()),

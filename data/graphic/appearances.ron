@@ -7,8 +7,7 @@
     (
         figure: "warrior",
         texture: "warrior.png",
-        frame_width: 12,
-        frame_height: 15,
+        frame_size: (12, 15),
         columns: 21,
         rows: 8,
         clips: [
@@ -21,8 +20,7 @@
     (
         figure: "giant_white_rat",
         texture: "rat.png",
-        frame_width: 16,
-        frame_height: 15,
+        frame_size: (16, 15),
         columns: 16,
         rows: 2,
         clips: [

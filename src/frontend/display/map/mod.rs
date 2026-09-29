@@ -1,6 +1,5 @@
 //! The map domain's display side: static tilemap rendering — tileset
-//! chunks, layout constants, and cell/pixel conversion. Time-driven
-//! terrain visuals live in `terrain_animation`.
+//! chunks, layout constants, and cell/pixel conversion.
 
 pub mod constants;
 pub mod entities;

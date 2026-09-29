@@ -8,11 +8,9 @@
 /// e.g. texture sizes, casts at the call site).
 pub const TILE_SIZE: f32 = 16.0;
 
-// Fixed z layers. The underground layer (scrolling water) sits beneath
-// the ground plane and shows through the chunks' empty cells; actors
-// render between the ground plane and anything rising overhead; sprites
-// fit inside their tiles, so no per-row sorting is needed.
-pub const LAYER_UNDERGROUND: f32 = -1.0;
+// Fixed z layers: actors render between the ground plane and anything
+// rising overhead; sprites fit inside their tiles, so no per-row
+// sorting is needed.
 pub const LAYER_GROUND: f32 = 0.0;
 /// Actors (hero, and later mobs) render between ground and overhead.
 pub const LAYER_ACTOR: f32 = 2.0;
@@ -20,7 +18,6 @@ pub const LAYER_OVERHEAD: f32 = 3.0;
 
 // The z layers are strictly ordered (compile-time check).
 const _: () = {
-    assert!(LAYER_UNDERGROUND < LAYER_GROUND);
     assert!(LAYER_GROUND < LAYER_ACTOR);
     assert!(LAYER_ACTOR < LAYER_OVERHEAD);
 };

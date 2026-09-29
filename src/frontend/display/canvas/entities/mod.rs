@@ -1,3 +1,3 @@
-//! Canvas entities.
+//! Canvas entity spawning.
 
 pub mod canvas;

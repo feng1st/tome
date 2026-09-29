@@ -1,23 +1,34 @@
-//! The animated terrain layer: one map-sized REPEAT quad beneath the
-//! chunks (the chunks render open water as a fully transparent tile, so
-//! the layer shows through). Hardwired to water for now; multi-kind
-//! support (presence mask + per-cell meshes) is future work.
+//! The animated terrain layers: map-sized quads beneath the canvas
+//! sprite, showing through the canvas's holes for their cells.
+//! Hardwired to water for now; multi-kind support (a table plus
+//! per-cell union meshes) is future work.
 
 use bevy::image::{ImageAddressMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor};
+use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
-use bevy::sprite_render::AlphaMode2d;
 
 use crate::core::map::resources::current_map::CurrentMap;
-use crate::frontend::display::constants::layout::{LAYER_UNDERGROUND, TILE_SIZE};
+use crate::frontend::display::canvas::constants::geometry::SCREEN_LAYERS;
+use crate::frontend::display::constants::layout::TILE_SIZE;
 use crate::frontend::display::terrain_animation::components::terrain_anim_state::TerrainAnimState;
 use crate::frontend::display::terrain_animation::constants::terrain_anims::WATER_ANIM;
 
-/// Spawn the water layer. The quad is map-sized and centered on the map;
-/// which cells reveal it is the chunks' business (transparent open-water
-/// tiles and semi-transparent shoreline pixels). Spawns unconditionally —
-/// a "skip kinds the map lacks" check returns with the multi-kind rework
-/// (as an O(1) presence mask built at map creation, not a per-spawn
-/// scan).
+/// Z in the screen pass: beneath the canvas sprite (which sits at 0).
+const LAYER_TERRAIN_ANIM: f32 = -1.0;
+
+/// Spawn the animated terrain layers (today: the one water layer) on
+/// entering `Game` — the map's spawn path. The quad matches the map
+/// rectangle: world geometry never leaves it, so the void beyond the
+/// map shows the window background through the canvas's transparent
+/// pixels, not water. The follow rig positions it at
+/// `world_anchor − target` (world-locked); the time-driven scroll
+/// rides on top via `uv_transform`. Repeat-space UVs are baked into
+/// the mesh, so playback only writes the translation.
+///
+/// The world pass draws nothing on water cells, leaving alpha-0 holes
+/// in the canvas; premultiplied alpha compositing shows this layer
+/// exactly through them — no mask pass, no shader. The chunk tiles'
+/// semi-transparent shoreline pixels composite over it the same way.
 pub fn spawn_anim_layers(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -26,11 +37,12 @@ pub fn spawn_anim_layers(
     current_map: Res<CurrentMap>,
 ) {
     let local_map = current_map.map();
-    let w = local_map.width as f32 * TILE_SIZE;
-    let h = local_map.height as f32 * TILE_SIZE;
-
+    let size = Vec2::new(
+        local_map.width as f32 * TILE_SIZE,
+        local_map.height as f32 * TILE_SIZE,
+    );
     let terrain_anim = WATER_ANIM;
-    // REPEAT addressing lets the UV scroll wrap.
+    // REPEAT addressing lets the scroll wrap.
     let texture = asset_server
         .load_builder()
         .with_settings(|s: &mut ImageLoaderSettings| {
@@ -41,20 +53,25 @@ pub fn spawn_anim_layers(
             });
         })
         .load(terrain_anim.texture);
+    // Bake repeat-space UVs (one repeat per texture-size screen units).
+    let mut mesh = Mesh::from(Rectangle::from_size(size));
+    let uv_scale = size / terrain_anim.texture_size.as_vec2();
+    if let Some(VertexAttributeValues::Float32x2(uvs)) = mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
+        for uv in uvs.iter_mut() {
+            uv[0] *= uv_scale.x;
+            uv[1] *= uv_scale.y;
+        }
+    }
     commands.spawn((
-        Mesh2d(meshes.add(Rectangle::from_size(Vec2::new(w, h)))),
-        MeshMaterial2d(materials.add(ColorMaterial {
-            texture: Some(texture),
-            alpha_mode: AlphaMode2d::Blend,
-            ..default()
-        })),
-        Transform::from_xyz(w / 2.0, -h / 2.0, LAYER_UNDERGROUND),
+        Mesh2d(meshes.add(mesh)),
+        MeshMaterial2d(materials.add(ColorMaterial::from(texture))),
+        Transform::from_xyz(0.0, 0.0, LAYER_TERRAIN_ANIM),
         TerrainAnimState {
-            scale: Vec2::new(
-                w / terrain_anim.texture_size.x as f32,
-                h / terrain_anim.texture_size.y as f32,
-            ),
-            velocity: terrain_anim.velocity,
+            // Anchored at the map center; the follow rig re-bases it
+            // against the target on its first pass.
+            world_anchor: Vec2::new(size.x / 2.0, -size.y / 2.0),
+            velocity: terrain_anim.velocity / terrain_anim.texture_size.as_vec2(),
         },
+        SCREEN_LAYERS,
     ));
 }

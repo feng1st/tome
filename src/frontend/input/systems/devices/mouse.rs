@@ -31,9 +31,7 @@ pub fn translate(
         return;
     };
     let (camera, camera_transform) = camera.into_inner();
-    let Some(canvas) = window_to_canvas(cursor, window.size()) else {
-        return;
-    };
+    let canvas = window_to_canvas(cursor);
     let Ok(world) = camera.viewport_to_world_2d(camera_transform, canvas) else {
         return;
     };

@@ -87,6 +87,7 @@ mod tests {
         let appearance = Appearance::new(
             Handle::default(),
             Handle::default(),
+            UVec2::new(12, 15),
             HashMap::from([(AnimKind::Idle, idle()), (AnimKind::Run, run())]),
         );
         app.insert_resource(Time::<()>::default())

@@ -1,7 +1,7 @@
-//! Terrain animation: time-driven terrain visuals (today: one scrolling
-//! UV layer per animated terrain kind).
-//! Mechanism-owned — frame-table creature animation lives in
-//! `sprite_animation`; both feed `DisplayPhase::Animate`.
+//! Terrain animation: time-driven terrain visuals — screen-space
+//! layers beneath the canvas sprite, showing through the canvas's
+//! per-kind holes. Mechanism-owned — frame-table creature animation
+//! lives in `sprite_animation`; both feed `DisplayPhase::Animate`.
 
 pub mod components;
 pub mod constants;

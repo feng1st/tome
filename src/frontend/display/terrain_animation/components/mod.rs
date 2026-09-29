@@ -1,3 +1,3 @@
-//! Terrain animation components.
+//! Animated terrain components.
 
 pub mod terrain_anim_state;

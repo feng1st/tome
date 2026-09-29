@@ -6,11 +6,11 @@ use crate::frontend::display::camera::components::screen_camera::ScreenCamera;
 use crate::frontend::display::canvas::constants::geometry::{CANVAS_UPSCALE, SCREEN_LAYERS};
 
 /// Startup system: spawn the camera that presents the canvas. The
-/// projection scale is the constant `1 / CANVAS_UPSCALE`, so the canvas
-/// always presents at the fixed factor; a larger window shows borders,
-/// a smaller one crops — no resize handling needed. Clear color stays
-/// the global default, so borders beyond the canvas match the void
-/// beyond the map.
+/// projection scale is the constant `1 / CANVAS_UPSCALE`, so one canvas
+/// texel always presents as a 2x2 window-pixel block; the view tracks
+/// the window (a resized window shows more or less of the world).
+/// Clear color stays the global default: beyond-map holes in the
+/// canvas show it through, so the void matches the window backdrop.
 pub fn spawn_screen_camera(mut commands: Commands) {
     commands.spawn((
         Camera2d,
@@ -55,10 +55,12 @@ mod tests {
     }
 
     #[test]
-    fn screen_layer_holds_only_the_canvas_presentation() {
+    fn screen_layer_holds_only_the_presentation() {
         // The canvas stores rasterized pixels; presentation must not
         // re-draw from scene elements — the canvas sprite and its camera
-        // are the only entities on the screen layer.
+        // are the only screen-layer entities in this fixture. (The
+        // terrain layers join them in the full app; they carry no scene
+        // information either.)
         let mut app = app_with_presentation();
         let mut on_layer = app.world_mut().query::<&RenderLayers>();
         let count = on_layer

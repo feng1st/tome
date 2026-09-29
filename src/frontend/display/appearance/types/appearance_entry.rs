@@ -1,6 +1,7 @@
 //! Serde layout of the appearance table file
 //! (`data/graphic/appearances.ron`).
 
+use bevy::prelude::*;
 use serde::Deserialize;
 
 use crate::frontend::display::appearance::types::anim_clip_entry::AnimClipEntry;
@@ -14,8 +15,7 @@ use crate::frontend::display::appearance::types::anim_clip_entry::AnimClipEntry;
 pub struct AppearanceEntry {
     pub figure: String,
     pub texture: String,
-    pub frame_width: u32,
-    pub frame_height: u32,
+    pub frame_size: UVec2,
     pub columns: u32,
     pub rows: u32,
     pub clips: Vec<AnimClipEntry>,

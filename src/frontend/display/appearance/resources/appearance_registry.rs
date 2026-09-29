@@ -66,7 +66,7 @@ impl FromWorld for AppearanceRegistry {
         for (figure_index, entry) in entries {
             let image = asset_server.load(entry.texture);
             let layout = layouts.add(TextureAtlasLayout::from_grid(
-                UVec2::new(entry.frame_width, entry.frame_height),
+                entry.frame_size,
                 entry.columns,
                 entry.rows,
                 None,
@@ -85,7 +85,10 @@ impl FromWorld for AppearanceRegistry {
                     )
                 })
                 .collect();
-            appearances.insert(figure_index, Appearance::new(image, layout, clips));
+            appearances.insert(
+                figure_index,
+                Appearance::new(image, layout, entry.frame_size, clips),
+            );
         }
         AppearanceRegistry::new(appearances)
     }
@@ -196,8 +199,7 @@ mod tests {
         (
             figure: "warrior",
             texture: "warrior.png",
-            frame_width: 12,
-            frame_height: 15,
+            frame_size: (12, 15),
             columns: 21,
             rows: 8,
             clips: [
@@ -208,8 +210,7 @@ mod tests {
         (
             figure: "rat",
             texture: "rat.png",
-            frame_width: 16,
-            frame_height: 15,
+            frame_size: (16, 15),
             columns: 4,
             rows: 1,
             clips: [ ( anim: idle, frames: [0, 1], fps: 6.0 ) ],
@@ -224,7 +225,7 @@ mod tests {
         let (figure_index, warrior) = &entries[0];
         assert_eq!(*figure_index, figure_registry.get_index("warrior").unwrap());
         assert_eq!(warrior.texture, "warrior.png");
-        assert_eq!((warrior.frame_width, warrior.frame_height), (12, 15));
+        assert_eq!(warrior.frame_size, UVec2::new(12, 15));
         assert_eq!((warrior.columns, warrior.rows), (21, 8));
         assert_eq!(warrior.clips.len(), 2);
         assert_eq!(warrior.clips[0].anim, AnimKind::Idle);
@@ -257,8 +258,7 @@ mod tests {
         (
             figure: "rat",
             texture: "rat.png",
-            frame_width: 16,
-            frame_height: 15,
+            frame_size: (16, 15),
             columns: 4,
             rows: 1,
             clips: [ ( anim: idle, frames: [0, 1], fps: 6.0 ) ],
@@ -340,7 +340,7 @@ mod tests {
             .expect("warrior has an appearance entry")
             .1;
         assert_eq!(entry.texture, "warrior.png");
-        assert_eq!((entry.frame_width, entry.frame_height), (12, 15));
+        assert_eq!(entry.frame_size, UVec2::new(12, 15));
         assert_eq!((entry.columns, entry.rows), (21, 8));
         let idle = entry
             .clips
@@ -378,7 +378,7 @@ mod tests {
             .expect("giant_white_rat has an appearance entry")
             .1;
         assert_eq!(entry.texture, "rat.png");
-        assert_eq!((entry.frame_width, entry.frame_height), (16, 15));
+        assert_eq!(entry.frame_size, UVec2::new(16, 15));
         assert_eq!((entry.columns, entry.rows), (16, 2));
         // Only an idle clip: the rat neither walks nor fights yet.
         assert_eq!(entry.clips.len(), 1);

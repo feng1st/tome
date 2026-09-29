@@ -8,14 +8,17 @@ use bevy::prelude::*;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
-/// One appearance: sprite sheet, atlas layout, and the anim table. Pure
-/// display data — the core knows only the `FigureIndex` handle. The
-/// handles are cloned onto each instance at spawn (the renderer reads
-/// them off the entity); the anim table is looked up per frame through
-/// `clip()`.
+/// One appearance: sprite sheet, atlas layout, frame size, and the
+/// anim table. Pure display data — the core knows only the
+/// `FigureIndex` handle. The handles are cloned onto each instance at
+/// spawn (the renderer reads them off the entity); the anim table is
+/// looked up per frame through `clip()`.
 pub struct Appearance {
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
+    /// Frame size in texels; the texel-grid anchor derives from it (see
+    /// `attach_appearance`).
+    pub frame_size: UVec2,
     clips: HashMap<AnimKind, AnimClip>,
 }
 
@@ -23,11 +26,13 @@ impl Appearance {
     pub fn new(
         image: Handle<Image>,
         layout: Handle<TextureAtlasLayout>,
+        frame_size: UVec2,
         clips: HashMap<AnimKind, AnimClip>,
     ) -> Self {
         Appearance {
             image,
             layout,
+            frame_size,
             clips,
         }
     }
@@ -65,6 +70,7 @@ mod tests {
         Appearance::new(
             Handle::default(),
             Handle::default(),
+            UVec2::new(12, 15),
             clips.iter().cloned().collect(),
         )
     }
