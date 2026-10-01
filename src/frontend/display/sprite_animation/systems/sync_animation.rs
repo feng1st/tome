@@ -6,13 +6,16 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::figure::components::figure_index::FigureIndex;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::position::Position;
-use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
+use crate::frontend::display::figure::components::figure_index::FigureIndex;
+use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 
+/// One animated entity's sync inputs: the figure handle (for the anim
+/// table lookup on switches), the movement state that implies intent,
+/// and the playback state and sprite to write into.
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AnimSyncQuery {
@@ -23,9 +26,12 @@ pub struct AnimSyncQuery {
     pub sprite: &'static mut Sprite,
 }
 
+/// Derive each entity's playback intent (idle vs. run) from its movement
+/// state and face it along the current step; write `AnimState` only on
+/// switches.
 pub fn sync_animation(
     time: Res<Time>,
-    appearance_registry: Res<AppearanceRegistry>,
+    figure_registry: Res<FigureRegistry>,
     mut query: Query<AnimSyncQuery>,
 ) {
     let elapsed = time.elapsed_secs();
@@ -36,10 +42,8 @@ pub fn sync_animation(
             AnimKind::Idle
         };
         if item.state.anim != desired {
-            let clip = appearance_registry
-                .appearance(*item.figure_index)
-                .clip(desired);
-            item.state.switch(desired, clip, elapsed);
+            let anim = figure_registry.appearance(*item.figure_index).anim(desired);
+            item.state.switch(desired, anim, elapsed);
         }
         // Face the horizontal direction of the current step. Cell space has
         // the same x orientation as world space, so the sign carries over.
@@ -56,55 +60,30 @@ pub fn sync_animation(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, VecDeque};
+    use std::collections::VecDeque;
 
     use super::*;
     use crate::core::map::types::cell_coord::CellCoord;
-    use crate::frontend::display::appearance::types::appearance::Appearance;
-    use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 
-    /// The test handle: the unit registry's single appearance.
+    /// The test handle: the unit registry's single figure.
     fn figure_index() -> FigureIndex {
         FigureIndex::from_index(0)
     }
 
-    fn idle() -> AnimClip {
-        AnimClip {
-            frames: vec![0],
-            fps: 8.0,
-        }
-    }
-
-    fn run() -> AnimClip {
-        AnimClip {
-            frames: vec![2],
-            fps: 20.0,
-        }
-    }
-
     fn app() -> App {
         let mut app = App::new();
-        let appearance = Appearance::new(
-            Handle::default(),
-            Handle::default(),
-            UVec2::new(12, 15),
-            HashMap::from([(AnimKind::Idle, idle()), (AnimKind::Run, run())]),
-        );
         app.insert_resource(Time::<()>::default())
-            .insert_resource(AppearanceRegistry::new(HashMap::from([(
-                figure_index(),
-                appearance,
-            )])))
+            .insert_resource(FigureRegistry::for_test(&["warrior"]))
             .add_systems(Update, sync_animation);
         app
     }
 
-    fn spawn_creature(app: &mut App, anim: AnimKind, path: Option<Path>) -> Entity {
+    fn spawn_creature(app: &mut App, anim_kind: AnimKind, path: Option<Path>) -> Entity {
         let mut entity = app.world_mut().spawn((
             figure_index(),
             Position::from(CellCoord::new(1, 0)),
             AnimState {
-                anim,
+                anim: anim_kind,
                 frame_offset: 0,
             },
             Sprite::default(),

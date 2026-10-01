@@ -47,7 +47,8 @@ context: |
   - 注释粒度：解释“为什么”和不显然的不变量（模型、约束、设计点），
     不复述代码在做什么。分支级一句说决策点；自明的调用不注释。
   - 代码注释自解释，不体现 PD、ToME2 等参考对象的存在（不提及其类名、
-    文件名、"原版"）；与参考对象的对应关系只出现在 SDD 产物里。
+    文件名、"原版"）；与参考对象的对应关系只出现在 SDD（spec-driven
+    development，openspec/ 下）产物里。
   - SDD 产物、注释、代码、测试一律写成最终状态，不带补丁感：
     只描述现在是什么，不得出现“改为 A 而非 B”“不再是 B”这类补丁描述，不得无故强调“A”好像历史实现并不是A一样。
   - config 只放稳定原则，不放具体逻辑——机制名、文件名、域名等
@@ -79,10 +80,13 @@ context: |
     （如 movement、animation）。
   - register：域的 mod.rs 里定义 pub fn register(app: &mut App)（裸函数即 Plugin），
     只做成员注册（资源、消息、系统入集合），不做编排；编排（.chain()、
-    configure_sets、门控）只在侧根与装配层。若将来出现子域，
+    configure_sets、门控）只在侧根（core/、frontend/input/、frontend/display/
+    的 mod.rs）与装配层（main()）。若将来出现子域，
     其 register 由父域的 register 调用。
   - 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
-    归“结果域”，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+    归"结果域"，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+    例：读 core 的身份组件、向前端实体写展示组件的系统，操作多域数据且
+    产出的组件属前端 → 归前端的结果域。
 
   设计原则：
   - 面向终局设计：阶段内容可以少，结构必须对。为已知的演进方向预挖接缝，
@@ -94,6 +98,15 @@ context: |
     依赖相关、顺序相关，必须在侧根（core/、frontend/input/、frontend/display/）
     统一编排，不下放给各域；域/组的 register 只做成员注册（资源、消息、
     系统入集合），不做编排。
+  - 值入组件：游戏基于 ECS。实体运行期所需的一切数值在出生时从内容词表
+    解析进组件（如词表里的速度解析为移动组件的 speed 字段）；运行期
+    系统只读组件，不回查词表注册表。词表注册表的职责封顶于内容的解析、
+    校验与出生期解析。例外：展示侧的共享只读播放数据（如动画帧表）——
+    同类实体共享一份，克隆进组件是浪费，运行期按句柄直查。
+  - 文件即契约：一个数据文件允许多个解析者各读各的部分；解析视图归
+    读取方（本域类型只声明自己读取的字段），共享字段的一致性由跨解析
+    一致性测试锁定。例：怪物词表文件被怪物注册表全条目解析、被 unique
+    注册表只读 unique_id 一列。
   - 命名考究：风格统一、单复数原则一致、无歧义。
   - 单测与 spec 对齐：spec 的可测 requirement 由对应单测锁定，单测即
     requirement 被满足的证据；行为变更先改 spec，单测同步跟进。
@@ -118,5 +131,5 @@ operations:
       - "严格按域组织规范落位文件，不图一时方便把内容塞进错误的侧面"
       - "get 纪律：get 只用于可失败查找（返回 Option/Result），对齐 std（HashMap::get）；必然成功的访问器以被取物命名（如 CurrentMap::map），不设 find/get 分工"
       - "值类型归属：纯值类型一律落 types/，不得寄生在 resource/entity/component 文件里"
-      - "参数命名：参数名取类型的完整蛇形名（terrain_registry、current_map、local_map），不省略、不复数——省略带来泛化歧义与未来同名冲突"
+      - "参数命名：参数名取类型的完整蛇形名（terrain_registry、current_map、local_map），不省略、不复数——省略带来泛化歧义与未来同名冲突。豁免：同类型对称参数（如 heuristic(a, b) 这类比较/几何函数）与引擎原语的语义名（如 cursor: Vec2 不叫 vec2）"
       - "提交前必须全绿（零警告）：`cargo +nightly fmt --check`（rustfmt.toml 含 nightly-only 选项）、`cargo clippy --all-targets`、`cargo check --all-targets`、`cargo test`"

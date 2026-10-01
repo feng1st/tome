@@ -9,7 +9,7 @@
 
 pub mod app_state;
 pub mod core_phase;
-pub mod figure;
+pub mod creature;
 pub mod game_loop;
 pub mod hero;
 pub mod map;
@@ -26,7 +26,7 @@ use self::game_loop::GameLoop;
 /// core-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
     map::register(app);
-    figure::register(app);
+    creature::register(app);
     hero::register(app);
     monster::register(app);
     movement::register(app);

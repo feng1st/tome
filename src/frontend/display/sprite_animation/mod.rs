@@ -1,4 +1,4 @@
-//! Frame animation for sprite entities: clip tables per appearance,
+//! Frame animation for sprite entities: anim tables per figure,
 //! playback instructions derived in Sync, pure playback in Animate.
 
 pub mod components;

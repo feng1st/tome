@@ -19,4 +19,10 @@ impl MonsterIndex {
     pub(crate) fn from_index(index: usize) -> Self {
         MonsterIndex(index as u16)
     }
+
+    /// The registry slot this handle points into. Crate-internal: only
+    /// the issuing registry dereferences handles.
+    pub(crate) fn index(self) -> usize {
+        self.0 as usize
+    }
 }

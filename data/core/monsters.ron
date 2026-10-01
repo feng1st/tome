@@ -1,8 +1,7 @@
 // Monster vocabulary: every monster kind, declared as an ordered entry
-// list. Load assigns each id a runtime handle in entry order; handles
-// are unstable across loads (entry order decides them), so saved data
-// must translate through the id mapping, never store raw handles.
-// A monster id declared here is only a name — kernel fields (speed, hit
-// dice, …) join the entries when game logic first queries them, and how
-// a monster renders lives in the display side's binding table.
-[ ( monster: "giant_white_rat" ) ]
+// list. Each entry names the race the monster is — races live in the
+// creature identity vocabulary; this table is where monster gameplay
+// data grows. Load assigns each id a runtime handle in entry order;
+// handles are unstable across loads (entry order decides them), so saved
+// data must translate through the id mapping, never store raw handles.
+[ ( monster: "giant_white_rat", race: "giant_white_rat" ) ]

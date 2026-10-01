@@ -11,8 +11,11 @@ use crate::frontend::display::constants::layout::TILE_SIZE;
 /// World-pixel position of a cell-space position. Integer cell coordinates
 /// are cell centers, hence the half-cell offset. Map row 0 is the top row
 /// while world Y points up, so world y is negative.
-pub fn cell_to_world(pos: Position) -> Vec2 {
-    Vec2::new((pos.x + 0.5) * TILE_SIZE, -(pos.y + 0.5) * TILE_SIZE)
+pub fn cell_to_world(position: Position) -> Vec2 {
+    Vec2::new(
+        (position.x + 0.5) * TILE_SIZE,
+        -(position.y + 0.5) * TILE_SIZE,
+    )
 }
 
 /// Cell containing a world-pixel position.

@@ -1,4 +1,0 @@
-// Monster-to-figure bindings: which figure each monster kind presents.
-// The figure vocabulary and its appearances live in their own tables;
-// this file only binds. Every declared monster must appear exactly once.
-[ ( monster: "giant_white_rat", figure: "giant_white_rat" ) ]

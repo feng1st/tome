@@ -6,13 +6,13 @@
 //! carry the ordering, and each system's working conditions (`run_if`)
 //! travel with it.
 
-pub mod appearance;
 pub mod camera;
 pub mod canvas;
 pub mod constants;
+pub mod creature;
 pub mod display_phase;
+pub mod figure;
 pub mod map;
-pub mod monster;
 pub mod movement;
 pub mod sprite_animation;
 pub mod terrain_animation;
@@ -29,8 +29,8 @@ pub fn register(app: &mut App) {
     tileset::register(app);
     map::register(app);
     movement::register(app);
-    appearance::register(app);
-    monster::register(app);
+    figure::register(app);
+    creature::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);
     canvas::register(app);

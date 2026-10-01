@@ -1,0 +1,6 @@
+// Race vocabulary: every race a creature may be, declared as an ordered
+// entry list. Load assigns each id a runtime handle in entry order;
+// handles are unstable across loads (entry order decides them), so saved
+// data must translate through the id mapping, never store raw handles.
+// Entry form (a record) leaves room for kernel fields to grow in place.
+[ ( race: "human" ), ( race: "giant_white_rat" ) ]

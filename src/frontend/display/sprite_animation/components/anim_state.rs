@@ -4,7 +4,7 @@
 use bevy::prelude::*;
 
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
-use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
+use crate::frontend::display::sprite_animation::types::anim::Anim;
 
 /// Playback instruction, written by `sync_animation` in
 /// `DisplayPhase::Sync` and consumed by `animate` in
@@ -14,22 +14,22 @@ use crate::frontend::display::sprite_animation::types::anim_clip::AnimClip;
 ///
 /// `frame_offset` serves two purposes: a random value at spawn desyncs
 /// crowds (zero syncs them); re-anchoring on every anim switch makes the
-/// new clip start at frame 0.
+/// new anim start at frame 0.
 #[derive(Component, Clone, Copy, Debug)]
 pub struct AnimState {
     /// The anim to play.
     pub anim: AnimKind,
-    /// Phase anchor into the clip's frame cycle.
+    /// Phase anchor into the anim's frame cycle.
     pub frame_offset: usize,
 }
 
 impl AnimState {
-    /// Switch to `anim`, re-anchoring `frame_offset` against the new
-    /// clip's rate so the first played frame is frame 0.
-    pub fn switch(&mut self, anim: AnimKind, clip: &AnimClip, elapsed: f32) {
-        let len = clip.frames.len();
-        let phase = (elapsed * clip.fps) as usize % len;
-        self.anim = anim;
+    /// Switch to `anim_kind`, re-anchoring `frame_offset` against the new
+    /// anim's rate so the first played frame is frame 0.
+    pub fn switch(&mut self, anim_kind: AnimKind, anim: &Anim, elapsed: f32) {
+        let len = anim.frames.len();
+        let phase = (elapsed * anim.fps) as usize % len;
+        self.anim = anim_kind;
         self.frame_offset = (len - phase) % len;
     }
 }
@@ -38,26 +38,26 @@ impl AnimState {
 mod tests {
     use super::*;
 
-    fn clip() -> AnimClip {
-        AnimClip {
+    fn anim() -> Anim {
+        Anim {
             frames: vec![10, 11, 12, 13],
             fps: 4.0,
         }
     }
 
-    fn frame_at(state: &AnimState, clip: &AnimClip, elapsed: f32) -> usize {
-        let len = clip.frames.len();
-        clip.frames[((elapsed * clip.fps) as usize + state.frame_offset) % len]
+    fn frame_at(state: &AnimState, anim: &Anim, elapsed: f32) -> usize {
+        let len = anim.frames.len();
+        anim.frames[((elapsed * anim.fps) as usize + state.frame_offset) % len]
     }
 
     #[test]
-    fn switch_starts_the_new_clip_at_frame_zero() {
+    fn switch_starts_the_new_anim_at_frame_zero() {
         let mut state = AnimState {
             anim: AnimKind::Idle,
             frame_offset: 0,
         };
-        state.switch(AnimKind::Run, &clip(), 3.3);
-        assert_eq!(frame_at(&state, &clip(), 3.3), 10);
+        state.switch(AnimKind::Run, &anim(), 3.3);
+        assert_eq!(frame_at(&state, &anim(), 3.3), 10);
     }
 
     #[test]
@@ -66,9 +66,9 @@ mod tests {
             anim: AnimKind::Idle,
             frame_offset: 99,
         };
-        state.switch(AnimKind::Run, &clip(), 1.0); // phase 0
+        state.switch(AnimKind::Run, &anim(), 1.0); // phase 0
         assert_eq!(state.frame_offset, 0);
-        assert_eq!(frame_at(&state, &clip(), 1.0), 10);
+        assert_eq!(frame_at(&state, &anim(), 1.0), 10);
     }
 
     #[test]
@@ -81,6 +81,6 @@ mod tests {
             anim: AnimKind::Idle,
             frame_offset: 1,
         };
-        assert_ne!(frame_at(&a, &clip(), 0.0), frame_at(&b, &clip(), 0.0));
+        assert_ne!(frame_at(&a, &anim(), 0.0), frame_at(&b, &anim(), 0.0));
     }
 }

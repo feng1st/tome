@@ -1,6 +1,6 @@
 //! Attaches the camera target: the hero-specific display glue between the
 //! core's `Hero` marker and the camera domain. Generic appearance
-//! (sprite, playback) is the appearance domain's job.
+//! (sprite, playback) is the figure domain's job.
 
 use bevy::prelude::*;
 

@@ -22,8 +22,8 @@ pub const TEST_ROOM_PATH: &str = "data/maps/test_room.ron";
 pub struct CurrentMap(LocalMap);
 
 impl CurrentMap {
-    pub fn new(map: LocalMap) -> Self {
-        CurrentMap(map)
+    pub fn new(local_map: LocalMap) -> Self {
+        CurrentMap(local_map)
     }
 
     /// The active map's data.
@@ -229,9 +229,14 @@ mod tests {
         use crate::core::map::types::terrain::Terrain;
         use crate::core::map::utils::pathfinding::find_path;
 
-        fn walkable(map: &LocalMap, registry: &TerrainRegistry, cell: CellCoord) -> bool {
-            map.get(cell)
-                .and_then(|terrain_index| registry.get(terrain_index))
+        fn walkable(
+            local_map: &LocalMap,
+            terrain_registry: &TerrainRegistry,
+            cell_coord: CellCoord,
+        ) -> bool {
+            local_map
+                .get(cell_coord)
+                .and_then(|terrain_index| terrain_registry.get(terrain_index))
                 .is_some_and(Terrain::walkable)
         }
 

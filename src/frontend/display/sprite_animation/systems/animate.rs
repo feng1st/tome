@@ -10,10 +10,12 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::figure::components::figure_index::FigureIndex;
-use crate::frontend::display::appearance::resources::appearance_registry::AppearanceRegistry;
+use crate::frontend::display::figure::components::figure_index::FigureIndex;
+use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 
+/// One animated entity's playback inputs: the figure handle (for the
+/// anim table lookup), the playback state, and the sprite to write into.
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AnimQuery {
@@ -22,19 +24,17 @@ pub struct AnimQuery {
     pub sprite: &'static mut Sprite,
 }
 
-pub fn animate(
-    time: Res<Time>,
-    appearance_registry: Res<AppearanceRegistry>,
-    mut query: Query<AnimQuery>,
-) {
+/// Advance every animated entity's sprite frame as a pure function of
+/// virtual time; write the atlas index only when the frame changes.
+pub fn animate(time: Res<Time>, figure_registry: Res<FigureRegistry>, mut query: Query<AnimQuery>) {
     let elapsed = time.elapsed_secs();
     for mut item in &mut query {
-        let clip = appearance_registry
+        let anim = figure_registry
             .appearance(*item.figure_index)
-            .clip(item.state.anim);
-        let len = clip.frames.len();
-        let frame = ((elapsed * clip.fps) as usize + item.state.frame_offset) % len;
-        let index = clip.frames[frame];
+            .anim(item.state.anim);
+        let len = anim.frames.len();
+        let frame = ((elapsed * anim.fps) as usize + item.state.frame_offset) % len;
+        let index = anim.frames[frame];
         if let Some(atlas) = &mut item.sprite.texture_atlas {
             if atlas.index != index {
                 atlas.index = index;
