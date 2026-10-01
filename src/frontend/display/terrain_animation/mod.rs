@@ -1,7 +1,7 @@
-//! Terrain animation: time-driven terrain visuals — screen-space
-//! layers beneath the canvas sprite, showing through the canvas's
-//! per-kind holes. Mechanism-owned — frame-table creature animation
-//! lives in `sprite_animation`; both feed `DisplayPhase::Animate`.
+//! Terrain animation: time-driven terrain visuals — world-space layers
+//! beneath the terrain mesh, showing through its per-kind alpha-0
+//! cells. Mechanism-owned — frame-table creature animation lives in
+//! `sprite_animation`; both feed `DisplayPhase::Animate`.
 
 pub mod components;
 pub mod constants;

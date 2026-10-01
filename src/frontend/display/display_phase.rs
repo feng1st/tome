@@ -11,11 +11,13 @@ pub enum DisplayPhase {
     /// Structural assembly: newly spawned entities get their renderable
     /// parts (sprite, camera target) via `Added<>` reactions.
     Attach,
-    /// Core state flows into existing presentation components: transform
-    /// sync, playback intent.
+    /// Core state flows into existing presentation components: playback
+    /// intent.
     Sync,
     /// Sprite and terrain animations advance.
     Animate,
-    /// Camera follows its target.
+    /// The camera snaps onto the screen grid.
     Camera,
+    /// Every presented entity snaps onto the camera's grid.
+    Snap,
 }

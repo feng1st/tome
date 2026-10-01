@@ -1,10 +1,4 @@
-# camera Specification
-
-## Purpose
-
-定义 2D 相机行为：相机跟随主角滚动视野，主角始终保持在画面中心；视野允许超出地图范围，图外区域显示为背景色（与原版 PD 一致）。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 相机跟随
 

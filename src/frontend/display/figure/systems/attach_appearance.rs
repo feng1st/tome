@@ -4,38 +4,23 @@
 //! figure registry and attaches the renderable parts.
 
 use bevy::prelude::*;
-use bevy::sprite::Anchor;
 
 use crate::core::movement::components::position::Position;
+use crate::frontend::display::camera::components::sprite_size::SpriteSize;
 use crate::frontend::display::constants::layout::LAYER_ACTOR;
 use crate::frontend::display::figure::components::figure_index::FigureIndex;
 use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
+use crate::frontend::display::figure::utils::sprite_anchor::sprite_anchor;
 use crate::frontend::display::map::utils::coords::cell_to_world;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
-
-/// Texel-grid discipline for creature frames: a frame with an odd
-/// dimension, centered on an integer position, lands its texel edges
-/// exactly on the canvas's pixel centers — every row/column on that
-/// axis becomes a boundary lottery (rows duplicate or drop). Odd axes
-/// get a half-texel nudge; y nudges down so the feet land flush on the
-/// cell's bottom edge.
-fn texel_aligned_anchor(frame_size: UVec2) -> Anchor {
-    let size = frame_size.as_vec2();
-    let center_shift = Vec2::new(
-        if frame_size.x % 2 == 1 { 0.5 } else { 0.0 },
-        if frame_size.y % 2 == 1 { -0.5 } else { 0.0 },
-    );
-    // Sprite centers sit at `transform − anchor × size`.
-    Anchor(-center_shift / size)
-}
 
 /// Attach sprite, transform and playback state to every entity
 /// presenting a new figure, cloning the registry's handles onto the
 /// instance — the renderer reads them off the entity, resolve-once
 /// style. The anim table stays in the registry and is looked up per
 /// frame. The initial transform carries the actor z layer; x/y are
-/// overwritten by `sync_position` every frame from then on.
+/// rewritten by the presentation snap every frame from then on.
 pub fn attach_appearance(
     mut commands: Commands,
     figure_registry: Res<FigureRegistry>,
@@ -58,7 +43,8 @@ pub fn attach_appearance(
                 }),
                 ..default()
             },
-            texel_aligned_anchor(appearance.frame_size),
+            sprite_anchor(appearance.frame_size),
+            SpriteSize::new(appearance.frame_size.as_vec2()),
             Transform::from_xyz(world.x, world.y, LAYER_ACTOR),
             AnimState {
                 anim: AnimKind::Idle,
@@ -72,30 +58,6 @@ pub fn attach_appearance(
 mod tests {
     use super::*;
 
-    /// The sprite center shift implied by an anchor.
-    fn center_shift(frame_size: UVec2, anchor: Anchor) -> Vec2 {
-        -anchor.0 * frame_size.as_vec2()
-    }
-
-    #[test]
-    fn even_frames_stay_centered() {
-        let shift = center_shift(UVec2::new(16, 16), texel_aligned_anchor(UVec2::new(16, 16)));
-        assert_eq!(shift, Vec2::ZERO);
-    }
-
-    #[test]
-    fn odd_height_nudges_down_half_a_texel() {
-        // The warrior frame is 12x15.
-        let shift = center_shift(UVec2::new(12, 15), texel_aligned_anchor(UVec2::new(12, 15)));
-        assert!((shift - Vec2::new(0.0, -0.5)).length() < 1e-6);
-    }
-
-    #[test]
-    fn odd_width_nudges_half_a_texel() {
-        let shift = center_shift(UVec2::new(13, 16), texel_aligned_anchor(UVec2::new(13, 16)));
-        assert!((shift - Vec2::new(0.5, 0.0)).length() < 1e-6);
-    }
-
     /// Spec-alignment: a new figure handle mounts the sprite, the actor
     /// layer, and the idle playback state.
     #[test]
@@ -103,10 +65,6 @@ mod tests {
         use bevy::ecs::system::RunSystemOnce;
 
         use crate::core::map::types::cell_coord::CellCoord;
-        use crate::core::movement::components::position::Position;
-        use crate::frontend::display::constants::layout::LAYER_ACTOR;
-        use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
-        use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 
         let mut world = World::new();
         world.insert_resource(FigureRegistry::for_test(&["warrior"]));

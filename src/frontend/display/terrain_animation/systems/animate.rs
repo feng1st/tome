@@ -2,9 +2,9 @@
 //! layer's UV offset advances with elapsed time, written into the
 //! material's `uv_transform` — the engine's own color-material shader
 //! applies it. Stateless: the offset is a pure function of global
-//! time, same philosophy as `sprite_animation`. World-locking is the
-//! follow rig's business (it positions the quad); this system only
-//! adds the flow.
+//! time, same philosophy as `sprite_animation`. The layer's position is
+//! fixed at spawn (map-anchored world content); this system only adds
+//! the flow.
 
 use bevy::math::Affine2;
 use bevy::prelude::*;
@@ -48,7 +48,6 @@ mod tests {
         app.world_mut().spawn((
             MeshMaterial2d(material.clone()),
             TerrainAnimState {
-                world_anchor: Vec2::ZERO,
                 velocity: Vec2::new(0.0, -0.5),
             },
         ));

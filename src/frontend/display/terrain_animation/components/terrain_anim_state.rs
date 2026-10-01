@@ -2,12 +2,11 @@
 
 use bevy::prelude::*;
 
-/// Per-instance state of one animated terrain layer: the world anchor
-/// the follow rig locks on (the map's center in world pixels) and the
-/// scroll velocity in repeat units per second that
-/// `systems/animate.rs` integrates into the UV offset.
+/// Per-instance state of one animated terrain layer: the scroll
+/// velocity in repeat units per second that `systems/animate.rs`
+/// integrates into the UV offset. The layer's transform is fixed at
+/// spawn (map-anchored world content); playback never touches it.
 #[derive(Component)]
 pub struct TerrainAnimState {
-    pub world_anchor: Vec2,
     pub velocity: Vec2,
 }

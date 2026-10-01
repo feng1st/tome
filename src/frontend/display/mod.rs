@@ -7,13 +7,11 @@
 //! travel with it.
 
 pub mod camera;
-pub mod canvas;
 pub mod constants;
 pub mod creature;
 pub mod display_phase;
 pub mod figure;
 pub mod map;
-pub mod movement;
 pub mod sprite_animation;
 pub mod terrain_animation;
 pub mod tileset;
@@ -28,12 +26,10 @@ use crate::core::game_loop::GameLoop;
 pub fn register(app: &mut App) {
     tileset::register(app);
     map::register(app);
-    movement::register(app);
     figure::register(app);
     creature::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);
-    canvas::register(app);
     camera::register(app);
     app.configure_sets(
         Update,
@@ -42,6 +38,7 @@ pub fn register(app: &mut App) {
             DisplayPhase::Sync,
             DisplayPhase::Animate,
             DisplayPhase::Camera,
+            DisplayPhase::Snap,
         )
             .chain()
             .in_set(GameLoop::Display),
