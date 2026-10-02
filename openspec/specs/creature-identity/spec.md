@@ -47,7 +47,7 @@ race、class 的词表 SHALL 各自由 core 的数据文件定义：词表文件
 
 ### Requirement: 形象绑定表
 
-creature 到形象的映射 SHALL 由 display 的数据文件定义：每个绑定条目以 unique、race+class、race 三种键形态之一声明身份，并指向一个形象 id。解析 SHALL 按 unique → race+class → race 的顺序取最具体匹配的条目，未命中更具体的键时落回较不具体的键。无 class 个体的种族（动物）SHALL 有 race 键默认条目；成员必带职业的种族（人形）可以只有组合键条目——无"裸"形象。每个声明的 race MUST 至少被一条条目（race 键或组合键）覆盖；一个身份三层均未命中时 SHALL 在挂载时以指明该身份的错误失败。代码 MUST NOT 包含身份到形象的映射。
+creature 到形象的映射 SHALL 由 display 的数据文件定义：每个绑定条目以 unique、race+class、race 三种键形态之一声明身份，并指向一个形象 id。解析 SHALL 按 unique → race+class → race 的顺序取最具体匹配的条目，未命中更具体的键时回退到较不具体的键。无 class 个体的种族（动物）SHALL 有 race 键默认条目；成员必带职业的种族（人形）可以只有组合键条目——无"裸"形象。每个声明的 race MUST 至少被一条条目（race 键或组合键）覆盖；一个身份三层均未命中时 SHALL 在挂载时以指明该身份的错误失败。代码 MUST NOT 包含身份到形象的映射。
 
 #### Scenario: unique 键最优先
 
@@ -59,7 +59,7 @@ creature 到形象的映射 SHALL 由 display 的数据文件定义：每个绑�
 - **WHEN** creature 携带 race 与 class 句柄，绑定表无其 unique 条目、存在以该 (race, class) 为键的条目
 - **THEN** 该实体呈现该组合条目指向的形象
 
-#### Scenario: 落回 race 默认
+#### Scenario: 回退到 race 默认
 
 - **WHEN** creature 无 unique 条目命中且无 (race, class) 条目命中
 - **THEN** 该实体呈现其 race 的 race 键条目指向的形象
