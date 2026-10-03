@@ -12,6 +12,7 @@ pub mod creature;
 pub mod display_phase;
 pub mod figure;
 pub mod map;
+pub mod motion;
 pub mod sprite_animation;
 pub mod terrain_animation;
 pub mod tileset;
@@ -27,6 +28,7 @@ pub fn register(app: &mut App) {
     tileset::register(app);
     map::register(app);
     figure::register(app);
+    motion::register(app);
     creature::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);
@@ -36,6 +38,7 @@ pub fn register(app: &mut App) {
         (
             DisplayPhase::Attach,
             DisplayPhase::Sync,
+            DisplayPhase::Motion,
             DisplayPhase::Animate,
             DisplayPhase::Camera,
             DisplayPhase::Snap,

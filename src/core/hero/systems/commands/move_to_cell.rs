@@ -6,12 +6,12 @@ use bevy::prelude::*;
 
 use crate::core::hero::commands::move_to_cell::MoveToCell;
 use crate::core::hero::components::hero::Hero;
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::types::terrain::Terrain;
 use crate::core::map::utils::pathfinding::find_path;
 use crate::core::movement::components::path::Path;
-use crate::core::movement::components::position::Position;
 
 /// Execute every `MoveToCell` command: an unwalkable or unreachable target
 /// is ignored entirely; a new goal mid-walk re-paths from the cell the
@@ -21,15 +21,14 @@ pub fn execute(
     mut move_commands: MessageReader<MoveToCell>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
-    hero: Query<(Entity, &Position), With<Hero>>,
+    hero: Query<(Entity, &CellCoord), With<Hero>>,
 ) {
-    let Ok((hero_entity, pos)) = hero.single() else {
+    let Ok((hero_entity, &start)) = hero.single() else {
         return;
     };
     let local_map = current_map.map();
     for command in move_commands.read() {
         let goal = command.0;
-        let start = pos.cell();
         if goal == start {
             continue;
         }
@@ -43,16 +42,16 @@ pub fn execute(
         let Some(cells) = find_path(local_map, &terrain_registry, start, goal) else {
             continue;
         };
-        commands.entity(hero_entity).insert(Path::new(cells, *pos));
+        commands.entity(hero_entity).insert(Path::new(cells));
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::map::resources::current_map::parse_local_map;
     use crate::core::map::resources::terrain_registry::parse_terrain_registry;
-    use crate::core::map::types::cell_coord::CellCoord;
     use crate::core::map::types::local_map::LocalMap;
 
     const TERRAINS: &str = r#"[
@@ -105,10 +104,7 @@ mod tests {
     #[test]
     fn unwalkable_goal_produces_no_path() {
         let mut app = app();
-        let hero = app
-            .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
-            .id();
+        let hero = app.world_mut().spawn((Hero, CellCoord::new(2, 2))).id();
         app.world_mut()
             .write_message(MoveToCell(CellCoord::new(6, 4))); // water pool
         app.update();
@@ -118,10 +114,7 @@ mod tests {
     #[test]
     fn wall_and_out_of_bounds_goals_produce_no_path() {
         let mut app = app();
-        let hero = app
-            .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
-            .id();
+        let hero = app.world_mut().spawn((Hero, CellCoord::new(2, 2))).id();
         for goal in [
             CellCoord::new(0, 0),  // wall corner
             CellCoord::new(-1, 2), // left of the map
@@ -142,10 +135,7 @@ mod tests {
             rows: [ "#####", "#.#.#", "#.#.#", "#.#.#", "#####" ],
         )"######;
         let mut app = app_with(parse_local_map("test", doc, &terrain_registry()));
-        let hero = app
-            .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(1, 1))))
-            .id();
+        let hero = app.world_mut().spawn((Hero, CellCoord::new(1, 1))).id();
         app.world_mut()
             .write_message(MoveToCell(CellCoord::new(3, 1)));
         app.update();
@@ -155,10 +145,7 @@ mod tests {
     #[test]
     fn walkable_goal_attaches_path() {
         let mut app = app();
-        let hero = app
-            .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
-            .id();
+        let hero = app.world_mut().spawn((Hero, CellCoord::new(2, 2))).id();
         app.world_mut()
             .write_message(MoveToCell(CellCoord::new(4, 2)));
         app.update();
@@ -169,23 +156,17 @@ mod tests {
     #[test]
     fn new_goal_mid_walk_repaths() {
         let mut app = app();
-        let hero = app
-            .world_mut()
-            .spawn((Hero, Position::from(CellCoord::new(2, 2))))
-            .id();
+        let hero = app.world_mut().spawn((Hero, CellCoord::new(2, 2))).id();
         app.world_mut()
             .write_message(MoveToCell(CellCoord::new(4, 2)));
         app.update();
-        // Mid-step: the replacement path must start from where the hero
-        // currently is, not from the old path's cell.
-        let mid_step = Position::new(2.5, 2.0);
-        *app.world_mut().get_mut::<Position>(hero).unwrap() = mid_step;
+        // Mid-walk: the replacement path starts from the cell the hero
+        // currently stands in (the logical cell flips at each step's start).
         app.world_mut()
             .write_message(MoveToCell(CellCoord::new(6, 2)));
         app.update();
         let path = app.world().get::<Path>(hero).expect("path replaced");
-        assert_eq!(path.step_from, mid_step);
-        assert_eq!(*path.cells.front().unwrap(), CellCoord::new(4, 2));
+        assert_eq!(*path.cells.front().unwrap(), CellCoord::new(3, 2));
         assert_eq!(*path.cells.back().unwrap(), CellCoord::new(6, 2));
     }
 }

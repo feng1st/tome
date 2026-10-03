@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn spawn_entries_parse_to_raw_ids_and_cells() {
-        use crate::core::map::types::cell_coord::CellCoord;
+        use crate::core::map::components::cell_coord::CellCoord;
 
         let doc = r####"(
             legend: { '#': "wall", '.': "floor" },
@@ -223,8 +223,8 @@ mod tests {
     // root, so the production paths work as-is.
     #[test]
     fn test_room_data_reproduces_the_room() {
+        use crate::core::map::components::cell_coord::CellCoord;
         use crate::core::map::resources::terrain_registry::TERRAIN_TABLE_PATH;
-        use crate::core::map::types::cell_coord::CellCoord;
         use crate::core::map::types::local_map::LocalMap;
         use crate::core::map::types::terrain::Terrain;
         use crate::core::map::utils::pathfinding::find_path;

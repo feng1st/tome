@@ -4,8 +4,8 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use bevy::prelude::*;
 
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
-use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::map::types::local_map::LocalMap;
 use crate::core::map::types::terrain::Terrain;
 

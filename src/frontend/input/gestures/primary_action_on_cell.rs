@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::map::types::cell_coord::CellCoord;
+use crate::core::map::components::cell_coord::CellCoord;
 
 /// The user committed the primary action on a map cell — the pointer hit
 /// terrain with nothing hittable on top of it. Which map the cell belongs

@@ -15,7 +15,8 @@ context: |
        发行动（发起行动）、骑像素中心（跨像素中心）、滑动动画（tween）。
     3. 自造压缩词（看不出原义；用时写全称）：
        错采（错误采样）、越阈（越过阈值）、侧根（各侧的 mod.rs 根模块）、
-       照付（照常扣除）、拍空转（该次行动原地不动、行动点照扣）。
+       照付（照常扣除）、拍空转（该次行动原地不动、行动点照扣）、
+       时翻（步完成时翻转）、平费（消耗相等）、照积（照常累积）。
     4. 翻译腔（无视语境和习惯的英文字面翻译）：
        免费得到（自然成立）、权威（以此为准）、游走（随机移动）、
        反压（下游消费过慢导致上游生产停止）、结算（把账结清落实）、
@@ -148,4 +149,5 @@ operations:
       - "get 纪律：get 只用于可失败查找（返回 Option/Result），对齐 std（HashMap::get）；必然成功的访问器以被取物命名（如 CurrentMap::map），不设 find/get 分工"
       - "值类型归属：纯值类型一律落 types/，不得寄生在 resource/entity/component 文件里"
       - "参数命名：参数名取类型的完整蛇形名（terrain_registry、current_map、local_map），不省略、不复数——省略带来泛化歧义与未来同名冲突。豁免：同类型对称参数（如 heuristic(a, b) 这类比较/几何函数）与引擎原语的语义名（如 cursor: Vec2 不叫 vec2）"
+      - "字段与参数顺序：标识（key）字段在前、值字段在后；可变（&mut）参数列在只读参数之后"
       - "提交前必须全绿（零警告）：`cargo +nightly fmt --check`（rustfmt.toml 含 nightly-only 选项）、`cargo clippy --all-targets`、`cargo check --all-targets`、`cargo test`"

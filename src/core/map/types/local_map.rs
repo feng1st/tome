@@ -4,7 +4,7 @@
 //! Pure cell semantics — the core knows nothing about pixels. Converting
 //! between cells and world pixels is the display side's job.
 
-use crate::core::map::types::cell_coord::CellCoord;
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::types::monster_spawn::MonsterSpawn;
 use crate::core::map::types::terrain_index::TerrainIndex;
 

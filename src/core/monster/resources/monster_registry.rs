@@ -8,11 +8,13 @@ use std::fs;
 
 use bevy::prelude::*;
 
+use crate::core::creature::components::speed::Speed;
 use crate::core::creature::resources::class_registry::ClassRegistry;
 use crate::core::creature::resources::race_registry::RaceRegistry;
 use crate::core::monster::components::monster_index::MonsterIndex;
 use crate::core::monster::types::monster_entry::MonsterEntry;
 use crate::core::monster::types::monster_kind::MonsterKind;
+use crate::core::time::constants::action_point_rate::ACTION_POINT_RATES;
 
 /// The monster vocabulary loaded at startup.
 pub const MONSTER_TABLE_PATH: &str = "data/core/monsters.ron";
@@ -96,6 +98,12 @@ pub(crate) fn parse_monster_registry(
                 entry.monster, entry.race
             );
         };
+        assert!(
+            entry.speed < ACTION_POINT_RATES.len(),
+            "monster table '{path}': monster '{}' has speed {} outside the rate table",
+            entry.monster,
+            entry.speed
+        );
         let class_index = entry.class.map(|class| {
             class_registry.get_index(&class).unwrap_or_else(|| {
                 panic!(
@@ -115,6 +123,7 @@ pub(crate) fn parse_monster_registry(
             race: race_index,
             class: class_index,
             unique_id: entry.unique_id,
+            speed: Speed(entry.speed),
         });
     }
     MonsterRegistry {
@@ -143,8 +152,8 @@ mod tests {
     }
 
     const DOC: &str = r#"[
-        ( monster: "giant_white_rat", race: "giant_white_rat" ),
-        ( monster: "grip", race: "dog", class: "warrior", unique_id: "grip" ),
+        ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
+        ( monster: "grip", race: "dog", speed: 110, class: "warrior", unique_id: "grip" ),
     ]"#;
 
     #[test]
@@ -187,8 +196,8 @@ mod tests {
     #[should_panic(expected = "duplicate monster id 'giant_white_rat'")]
     fn duplicate_id_panics() {
         let doc = r#"[
-            ( monster: "giant_white_rat", race: "giant_white_rat" ),
-            ( monster: "giant_white_rat", race: "giant_white_rat" ),
+            ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
+            ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
         ]"#;
         parse_monster_registry("test", doc, &race_registry(), &class_registry());
     }
@@ -198,7 +207,7 @@ mod tests {
     fn empty_id_panics() {
         parse_monster_registry(
             "test",
-            r#"[ ( monster: "", race: "giant_white_rat" ) ]"#,
+            r#"[ ( monster: "", race: "giant_white_rat", speed: 110 ) ]"#,
             &race_registry(),
             &class_registry(),
         );
@@ -209,7 +218,29 @@ mod tests {
     fn unknown_race_panics() {
         parse_monster_registry(
             "test",
-            r#"[ ( monster: "giant_white_rat", race: "wolf" ) ]"#,
+            r#"[ ( monster: "giant_white_rat", race: "wolf", speed: 110 ) ]"#,
+            &race_registry(),
+            &class_registry(),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "not valid RON")]
+    fn missing_speed_panics() {
+        parse_monster_registry(
+            "test",
+            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat" ) ]"#,
+            &race_registry(),
+            &class_registry(),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "outside the rate table")]
+    fn speed_outside_rate_table_panics() {
+        parse_monster_registry(
+            "test",
+            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", speed: 300 ) ]"#,
             &race_registry(),
             &class_registry(),
         );
@@ -220,7 +251,7 @@ mod tests {
     fn unknown_class_panics() {
         parse_monster_registry(
             "test",
-            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", class: "mage" ) ]"#,
+            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110, class: "mage" ) ]"#,
             &race_registry(),
             &class_registry(),
         );
@@ -231,7 +262,7 @@ mod tests {
     fn empty_unique_id_panics() {
         parse_monster_registry(
             "test",
-            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", unique_id: "" ) ]"#,
+            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110, unique_id: "" ) ]"#,
             &race_registry(),
             &class_registry(),
         );

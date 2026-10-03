@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use crate::core::game_loop::GameLoop;
 
 mod core;
+mod diag;
 mod frontend;
 
 fn main() {
@@ -16,6 +17,15 @@ fn main() {
     App::new()
         .add_plugins(engine_plugins())
         .add_plugins((core::register, frontend::register))
+        // TEMP(诊断)
+        .init_resource::<diag::DiagFrame>()
+        .add_systems(PreUpdate, diag::diag_frame_tick)
+        .add_systems(Update, diag::autodrive.in_set(GameLoop::Input))
+        .add_systems(
+            Update,
+            diag::creature_probe
+                .in_set(crate::frontend::display::display_phase::DisplayPhase::Snap),
+        )
         .configure_sets(
             Update,
             (GameLoop::Input, GameLoop::Core, GameLoop::Display).chain(),

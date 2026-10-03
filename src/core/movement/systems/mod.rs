@@ -1,3 +1,3 @@
-//! Movement systems.
+//! Systems of the movement domain.
 
-pub mod follow_path;
+pub mod act_move;

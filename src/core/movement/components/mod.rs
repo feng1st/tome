@@ -1,4 +1,4 @@
 //! Movement components.
 
+pub mod r#move;
 pub mod path;
-pub mod position;

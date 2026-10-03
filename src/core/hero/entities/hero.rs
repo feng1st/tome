@@ -3,11 +3,14 @@
 
 use bevy::prelude::*;
 
+use crate::core::creature::components::speed::Speed;
+use crate::core::creature::constants::standard_speed::STANDARD_SPEED;
 use crate::core::creature::resources::class_registry::ClassRegistry;
 use crate::core::creature::resources::race_registry::RaceRegistry;
 use crate::core::hero::components::hero::Hero;
-use crate::core::map::types::cell_coord::CellCoord;
-use crate::core::movement::components::position::Position;
+use crate::core::map::components::cell_coord::CellCoord;
+use crate::core::time::components::next_turn::NextTurn;
+use crate::core::time::components::world_driver::WorldDriver;
 
 /// Starting cell of the hero in the test room.
 const HERO_START: CellCoord = CellCoord::new(24, 10);
@@ -20,10 +23,11 @@ const HERO_RACE: &str = "human";
 /// class picking at birth lands.
 const HERO_CLASS: &str = "warrior";
 
-/// Spawn the hero as pure game data (marker + race and class handles +
-/// position at the start cell's center, i.e. integer cell coordinates).
-/// Nothing despawns on state exit today (the app never leaves `Game`); a
-/// cleanup/rebuild strategy arrives with map switching.
+/// Spawn the hero as pure game data: marker, identity handles, the start
+/// cell, and standard speed. No occupation yet: the first action is free
+/// to execute at time zero, like everyone else's birth. Nothing despawns
+/// on state exit today (the app never leaves `Game`); a cleanup/rebuild
+/// strategy arrives with map switching.
 pub fn spawn_hero(
     mut commands: Commands,
     race_registry: Res<RaceRegistry>,
@@ -35,7 +39,15 @@ pub fn spawn_hero(
     let class_index = class_registry
         .get_index(HERO_CLASS)
         .expect("warrior is a declared class");
-    commands.spawn((Hero, race_index, class_index, Position::from(HERO_START)));
+    commands.spawn((
+        Hero,
+        race_index,
+        class_index,
+        WorldDriver,
+        HERO_START,
+        Speed(STANDARD_SPEED),
+        NextTurn::default(),
+    ));
 }
 
 #[cfg(test)]
@@ -60,12 +72,22 @@ mod tests {
         world.insert_resource(class_registry);
         world.run_system_once(spawn_hero).unwrap();
 
-        let mut query = world.query::<(&Hero, &RaceIndex, &ClassIndex, &Position)>();
+        let mut query = world.query::<(
+            &Hero,
+            &RaceIndex,
+            &ClassIndex,
+            &WorldDriver,
+            &CellCoord,
+            &Speed,
+            &NextTurn,
+        )>();
         let entities: Vec<_> = query.iter(&world).collect();
         assert_eq!(entities.len(), 1);
-        let (_, race_index, class_index, position) = entities[0];
+        let (_, race_index, class_index, _, cell, speed, next_turn) = entities[0];
         assert_eq!(*race_index, expected_race);
         assert_eq!(*class_index, expected_class);
-        assert_eq!(*position, Position::from(HERO_START));
+        assert_eq!(*cell, HERO_START);
+        assert_eq!(*speed, Speed(STANDARD_SPEED));
+        assert_eq!(next_turn.at, 0, "the first action is free at time zero");
     }
 }

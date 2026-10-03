@@ -1,3 +1,1 @@
-//! Movement pure functions.
-
-pub mod step_duration;
+//! Utilities of the movement domain.

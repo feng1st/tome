@@ -15,6 +15,7 @@ pub mod hero;
 pub mod map;
 pub mod monster;
 pub mod movement;
+pub mod time;
 
 use bevy::prelude::*;
 
@@ -30,9 +31,16 @@ pub fn register(app: &mut App) {
     hero::register(app);
     monster::register(app);
     movement::register(app);
+    time::register(app);
     app.init_state::<AppState>().configure_sets(
         Update,
-        (CorePhase::Sense, CorePhase::Plan, CorePhase::Act)
+        (
+            CorePhase::Advance,
+            CorePhase::PlayerPlan,
+            CorePhase::PlayerAct,
+            CorePhase::WorldPlan,
+            CorePhase::WorldAct,
+        )
             .chain()
             .in_set(GameLoop::Core),
     );

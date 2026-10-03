@@ -3,4 +3,5 @@
 
 pub mod class_index;
 pub mod race_index;
+pub mod speed;
 pub mod unique_index;

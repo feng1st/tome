@@ -5,6 +5,7 @@
 //! like is the display side's business; the core only names identities.
 
 pub mod components;
+pub mod constants;
 pub mod resources;
 pub mod types;
 

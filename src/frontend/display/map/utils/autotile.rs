@@ -7,8 +7,8 @@
 //! transparent open-liquid tile that lets the scrolling layer show
 //! through.
 
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
-use crate::core::map::types::cell_coord::CellCoord;
 use crate::core::map::types::local_map::LocalMap;
 
 /// Tileset frame for the autotile cell at (x, y): base frame + 4-bit

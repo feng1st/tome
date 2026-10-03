@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::map::types::cell_coord::CellCoord;
+use crate::core::map::components::cell_coord::CellCoord;
 
 /// Command: walk the hero to a cell. The core validates walkability and
 /// pathfinds; invalid targets are ignored.

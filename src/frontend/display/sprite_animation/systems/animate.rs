@@ -10,6 +10,7 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
+use crate::diag::DiagFrame;
 use crate::frontend::display::figure::components::figure_index::FigureIndex;
 use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
@@ -26,7 +27,12 @@ pub struct AnimQuery {
 
 /// Advance every animated entity's sprite frame as a pure function of
 /// virtual time; write the atlas index only when the frame changes.
-pub fn animate(time: Res<Time>, figure_registry: Res<FigureRegistry>, mut query: Query<AnimQuery>) {
+pub fn animate(
+    time: Res<Time>,
+    figure_registry: Res<FigureRegistry>,
+    mut query: Query<AnimQuery>,
+    diag: Option<Res<DiagFrame>>, // TEMP(诊断)
+) {
     let elapsed = time.elapsed_secs();
     for mut item in &mut query {
         let anim = figure_registry
@@ -38,6 +44,13 @@ pub fn animate(time: Res<Time>, figure_registry: Res<FigureRegistry>, mut query:
         if let Some(atlas) = &mut item.sprite.texture_atlas {
             if atlas.index != index {
                 atlas.index = index;
+                // TEMP(诊断)
+                if let Some(_diag) = &diag {
+                    println!(
+                        "[DIAG] AFRAME fig={:?} anim={:?} cycle={} idx={} t={:.3}",
+                        item.figure_index, item.state.anim, frame, index, elapsed
+                    );
+                }
             }
         }
     }
