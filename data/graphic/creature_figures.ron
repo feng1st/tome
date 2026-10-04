@@ -1,14 +1,14 @@
-// Creature figure bindings: which figure a creature identity presents.
-// Each entry's present fields decide its key shape — unique alone keys
-// by individual, race+class keys by vocation within a race, race alone
-// keys the race default. Resolution takes the most specific matching
-// key: unique first, then race+class, then race alone. A race with no
-// classless instances (people — always some class) needs no race
-// default; every declared race must still be reachable by at least one
-// entry, and an identity matching nothing fails at attach. The figure
-// vocabulary and its render data live in the figure table; this file
-// only binds.
+// Creature figure bindings: which figure a creature presents. Each
+// entry's present fields decide its key shape — monster alone keys by
+// kind, race+class keys by vocation within a race, race alone keys the
+// race default. Monsters resolve through their kind; humanoid
+// creatures take the most specific matching key (race+class, then
+// race). A race with no classless instances (people — always some
+// class) needs no race default; every declared race and every declared
+// monster must still be reachable by at least one entry, and an
+// identity matching nothing fails at attach. The figure vocabulary and
+// its render data live in the figure table; this file only binds.
 [
     ( race: "human", class: "warrior", figure: "warrior" ),
-    ( race: "giant_white_rat", figure: "giant_white_rat" ),
+    ( monster: "giant_white_rat", figure: "giant_white_rat" ),
 ]

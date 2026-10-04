@@ -8,15 +8,18 @@
 //! system and order facts never leave the phase enums.
 
 pub mod app_state;
+pub mod class;
 pub mod core_phase;
-pub mod creature;
 pub mod display;
 pub mod game_loop;
+pub mod health;
 pub mod map;
 pub mod monster;
 pub mod movement;
 pub mod player;
+pub mod race;
 pub mod speed;
+pub mod stats;
 pub mod world_clock;
 
 use bevy::prelude::*;
@@ -29,7 +32,8 @@ use self::game_loop::GameLoop;
 /// core-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
     map::register(app);
-    creature::register(app);
+    race::register(app);
+    class::register(app);
     player::register(app);
     monster::register(app);
     movement::register(app);

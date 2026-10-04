@@ -8,8 +8,6 @@ use std::fs;
 
 use bevy::prelude::*;
 
-use crate::core::creature::resources::class_registry::ClassRegistry;
-use crate::core::creature::resources::race_registry::RaceRegistry;
 use crate::core::monster::components::monster_index::MonsterIndex;
 use crate::core::monster::types::monster_entry::MonsterEntry;
 use crate::core::monster::types::monster_kind::MonsterKind;
@@ -46,34 +44,30 @@ impl MonsterRegistry {
     pub fn monster_kind(&self, monster_index: MonsterIndex) -> &MonsterKind {
         &self.monster_kinds[monster_index.index()]
     }
-}
 
-impl FromWorld for MonsterRegistry {
-    /// Build from the vocabulary file, resolving races and classes
-    /// against their vocabularies — pulling them into existence if not
-    /// built yet, so registration order never matters.
-    fn from_world(world: &mut World) -> Self {
-        let text = fs::read_to_string(MONSTER_TABLE_PATH)
-            .unwrap_or_else(|e| panic!("cannot read monster table '{MONSTER_TABLE_PATH}': {e}"));
-        world.get_resource_or_init::<RaceRegistry>();
-        world.get_resource_or_init::<ClassRegistry>();
-        // Both dependencies exist now (a pull builds them if missing);
-        // shared reads suffice.
-        let race_registry = world.resource::<RaceRegistry>();
-        let class_registry = world.resource::<ClassRegistry>();
-        parse_monster_registry(MONSTER_TABLE_PATH, &text, race_registry, class_registry)
+    /// All declared monster ids with their handles, in unspecified
+    /// order. Crate-internal: load validation that must cover every
+    /// monster iterates here — coverage checks care about presence, not
+    /// order.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (MonsterIndex, &str)> {
+        self.by_id.iter().map(|(id, index)| (*index, id.as_str()))
     }
 }
 
-/// Parse and validate monster vocabulary text, resolving each entry's
-/// race and class against their vocabularies. Split from file IO
+impl FromWorld for MonsterRegistry {
+    /// Build from the vocabulary file. The registry has no resource
+    /// dependencies; dependent registries pull it via
+    /// `World::get_resource_or_init`.
+    fn from_world(_world: &mut World) -> Self {
+        let text = fs::read_to_string(MONSTER_TABLE_PATH)
+            .unwrap_or_else(|e| panic!("cannot read monster table '{MONSTER_TABLE_PATH}': {e}"));
+        parse_monster_registry(MONSTER_TABLE_PATH, &text)
+    }
+}
+
+/// Parse and validate monster vocabulary text. Split from file IO
 /// (`FromWorld`) so tests can exercise it with inline documents.
-pub(crate) fn parse_monster_registry(
-    path: &str,
-    text: &str,
-    race_registry: &RaceRegistry,
-    class_registry: &ClassRegistry,
-) -> MonsterRegistry {
+pub(crate) fn parse_monster_registry(path: &str, text: &str) -> MonsterRegistry {
     let entries: Vec<MonsterEntry> = ron::Options::default()
         .with_default_extension(ron::extensions::Extensions::IMPLICIT_SOME)
         .from_str(text)
@@ -92,37 +86,13 @@ pub(crate) fn parse_monster_registry(
             "monster table '{path}': duplicate monster id '{}'",
             entry.monster
         );
-        let Some(race_index) = race_registry.get_index(&entry.race) else {
-            panic!(
-                "monster table '{path}': monster '{}' has unknown race '{}'",
-                entry.monster, entry.race
-            );
-        };
         assert!(
             entry.speed < SPEED_RATE_TABLE.len(),
             "monster table '{path}': monster '{}' has speed {} outside the rate table",
             entry.monster,
             entry.speed
         );
-        let class_index = entry.class.map(|class| {
-            class_registry.get_index(&class).unwrap_or_else(|| {
-                panic!(
-                    "monster table '{path}': monster '{}' has unknown class '{}'",
-                    entry.monster, class
-                )
-            })
-        });
-        if let Some(unique_id) = &entry.unique_id {
-            assert!(
-                !unique_id.is_empty(),
-                "monster table '{path}': monster '{}' has an empty unique id",
-                entry.monster
-            );
-        }
         monster_kinds.push(MonsterKind {
-            race: race_index,
-            class: class_index,
-            unique_id: entry.unique_id,
             speed: Speed(entry.speed),
         });
     }
@@ -135,167 +105,75 @@ pub(crate) fn parse_monster_registry(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::creature::resources::class_registry::{
-        parse_class_registry, CLASS_TABLE_PATH,
-    };
-    use crate::core::creature::resources::race_registry::{parse_race_registry, RACE_TABLE_PATH};
-
-    fn race_registry() -> RaceRegistry {
-        parse_race_registry(
-            "test",
-            r#"[ ( race: "dog" ), ( race: "giant_white_rat" ) ]"#,
-        )
-    }
-
-    fn class_registry() -> ClassRegistry {
-        parse_class_registry("test", r#"[ ( class: "warrior" ) ]"#)
-    }
 
     const DOC: &str = r#"[
-        ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
-        ( monster: "grip", race: "dog", speed: 110, class: "warrior", unique_id: "grip" ),
+        ( monster: "giant_white_rat", speed: 110 ),
+        ( monster: "jackal", speed: 120 ),
     ]"#;
 
     #[test]
-    fn ids_resolve_to_handles() {
-        let monster_registry =
-            parse_monster_registry("test", DOC, &race_registry(), &class_registry());
+    fn ids_resolve_to_handles_and_kinds() {
+        let monster_registry = parse_monster_registry("test", DOC);
         let rat = monster_registry.get_index("giant_white_rat").unwrap();
-        let grip = monster_registry.get_index("grip").unwrap();
+        let jackal = monster_registry.get_index("jackal").unwrap();
         // Same id, same handle; different ids, different handles. Concrete
         // values are the internal table index: file order decides them,
         // and logic must never depend on them.
         assert_eq!(rat, monster_registry.get_index("giant_white_rat").unwrap());
-        assert_ne!(rat, grip);
+        assert_ne!(rat, jackal);
         assert!(monster_registry.get_index("wolf").is_none());
+        // The kind a handle points to is the entry's game data.
+        assert_eq!(monster_registry.monster_kind(rat).speed, Speed(110));
+        assert_eq!(monster_registry.monster_kind(jackal).speed, Speed(120));
     }
 
     #[test]
-    fn identities_resolve_per_entry() {
-        let race_registry = race_registry();
-        let class_registry = class_registry();
-        let monster_registry = parse_monster_registry("test", DOC, &race_registry, &class_registry);
-        let rat_kind =
-            monster_registry.monster_kind(monster_registry.get_index("giant_white_rat").unwrap());
-        assert_eq!(
-            rat_kind.race,
-            race_registry.get_index("giant_white_rat").unwrap()
-        );
-        assert_eq!(rat_kind.class, None);
-        assert_eq!(rat_kind.unique_id, None);
-        let grip_kind = monster_registry.monster_kind(monster_registry.get_index("grip").unwrap());
-        assert_eq!(grip_kind.race, race_registry.get_index("dog").unwrap());
-        assert_eq!(
-            grip_kind.class,
-            Some(class_registry.get_index("warrior").unwrap())
-        );
-        assert_eq!(grip_kind.unique_id.as_deref(), Some("grip"));
+    fn iter_covers_every_declared_id() {
+        let monster_registry = parse_monster_registry("test", DOC);
+        let mut ids: Vec<&str> = monster_registry.iter().map(|(_, id)| id).collect();
+        ids.sort_unstable();
+        assert_eq!(ids, ["giant_white_rat", "jackal"]);
     }
 
     #[test]
     #[should_panic(expected = "duplicate monster id 'giant_white_rat'")]
     fn duplicate_id_panics() {
-        let doc = r#"[
-            ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
-            ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
-        ]"#;
-        parse_monster_registry("test", doc, &race_registry(), &class_registry());
+        parse_monster_registry(
+            "test",
+            r#"[
+                ( monster: "giant_white_rat", speed: 110 ),
+                ( monster: "giant_white_rat", speed: 110 ),
+            ]"#,
+        );
     }
 
     #[test]
     #[should_panic(expected = "empty monster id")]
     fn empty_id_panics() {
-        parse_monster_registry(
-            "test",
-            r#"[ ( monster: "", race: "giant_white_rat", speed: 110 ) ]"#,
-            &race_registry(),
-            &class_registry(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "has unknown race 'wolf'")]
-    fn unknown_race_panics() {
-        parse_monster_registry(
-            "test",
-            r#"[ ( monster: "giant_white_rat", race: "wolf", speed: 110 ) ]"#,
-            &race_registry(),
-            &class_registry(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "not valid RON")]
-    fn missing_speed_panics() {
-        parse_monster_registry(
-            "test",
-            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat" ) ]"#,
-            &race_registry(),
-            &class_registry(),
-        );
+        parse_monster_registry("test", r#"[ ( monster: "", speed: 110 ) ]"#);
     }
 
     #[test]
     #[should_panic(expected = "outside the rate table")]
     fn speed_outside_rate_table_panics() {
-        parse_monster_registry(
-            "test",
-            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", speed: 300 ) ]"#,
-            &race_registry(),
-            &class_registry(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "has unknown class 'mage'")]
-    fn unknown_class_panics() {
-        parse_monster_registry(
-            "test",
-            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110, class: "mage" ) ]"#,
-            &race_registry(),
-            &class_registry(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "has an empty unique id")]
-    fn empty_unique_id_panics() {
-        parse_monster_registry(
-            "test",
-            r#"[ ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110, unique_id: "" ) ]"#,
-            &race_registry(),
-            &class_registry(),
-        );
+        parse_monster_registry("test", r#"[ ( monster: "giant_white_rat", speed: 300 ) ]"#);
     }
 
     #[test]
     #[should_panic(expected = "not valid RON")]
     fn malformed_document_panics() {
-        parse_monster_registry(
-            "test",
-            "this is not ron",
-            &race_registry(),
-            &class_registry(),
-        );
+        parse_monster_registry("test", "this is not ron");
     }
 
-    /// Spec-alignment test: the real vocabulary file on disk declares the
-    /// giant white rat, and its race resolves against the real race
-    /// vocabulary.
+    /// Spec-alignment test: the real vocabulary file on disk declares
+    /// the giant white rat at standard speed.
     #[test]
     fn vocabulary_declares_the_giant_white_rat() {
-        let race_text = std::fs::read_to_string(RACE_TABLE_PATH).unwrap();
-        let race_registry = parse_race_registry(RACE_TABLE_PATH, &race_text);
-        let class_text = std::fs::read_to_string(CLASS_TABLE_PATH).unwrap();
-        let class_registry = parse_class_registry(CLASS_TABLE_PATH, &class_text);
         let text = std::fs::read_to_string(MONSTER_TABLE_PATH).unwrap();
-        let monster_registry =
-            parse_monster_registry(MONSTER_TABLE_PATH, &text, &race_registry, &class_registry);
-        let rat_kind =
-            monster_registry.monster_kind(monster_registry.get_index("giant_white_rat").unwrap());
-        assert_eq!(
-            rat_kind.race,
-            race_registry.get_index("giant_white_rat").unwrap()
-        );
+        let monster_registry = parse_monster_registry(MONSTER_TABLE_PATH, &text);
+        let rat = monster_registry
+            .get_index("giant_white_rat")
+            .expect("giant_white_rat is declared");
+        assert_eq!(monster_registry.monster_kind(rat).speed, Speed(110));
     }
 }
