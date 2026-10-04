@@ -161,7 +161,8 @@ mod tests {
             .write_message(MoveToCell(CellCoord::new(4, 2)));
         app.update();
         // Mid-walk: the replacement path starts from the cell the player
-        // currently stands in (the logical cell flips at each step's start).
+        // currently stands in (the cell coordinate is set to the step's
+        // target at each step's start).
         app.world_mut()
             .write_message(MoveToCell(CellCoord::new(6, 2)));
         app.update();

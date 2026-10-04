@@ -6,11 +6,11 @@ use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::r#move::Move;
 
-/// Every entity with a freshly added `Move` flips its logical cell at
-/// once — data first, the display chases. A path follower also pops the
-/// consumed cell; an emptied path is removed (the world driver going
-/// pathless is what parks the world). The action component is consumed
-/// so the next step registers as `Added` again.
+/// Every entity with a freshly added `Move` sets its cell coordinate to
+/// the target at once — data first, the display chases. A path follower
+/// also pops the consumed cell; an emptied path is removed (the world
+/// driver going pathless is what parks the world). The action component
+/// is consumed so the next step registers as `Added` again.
 pub fn act_move(
     mut commands: Commands,
     mut actors: Query<(Entity, &Move, &mut CellCoord, Option<&mut Path>), Added<Move>>,
@@ -40,7 +40,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn move_flips_the_cell_and_is_consumed() {
+    fn move_sets_the_cell_and_is_consumed() {
         let mut world = World::new();
         let rat = world
             .spawn((

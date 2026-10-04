@@ -183,7 +183,7 @@ mod tests {
             ))
             .id();
         advance(&mut app, 0.05);
-        // The logical cell flips again mid-move: the picture retargets
+        // The cell coordinate changes again mid-move: the picture retargets
         // and keeps the same pace — position never returns to zero gap.
         *app.world_mut()
             .entity_mut(rat)
