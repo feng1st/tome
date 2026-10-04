@@ -3,7 +3,6 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::display::components::is_moving::IsMoving;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::r#move::Move;
 use crate::core::speed::components::speed::Speed;
@@ -24,21 +23,20 @@ pub struct PlayerQuery {
     next_turn: &'static mut NextTurn,
 }
 
-/// Create the next step action when three conditions all pass: nothing is
-/// moving anywhere (the world waits for moving pictures — including a
-/// faster creature's interleaved hops), the player's next turn is due,
-/// and a path is queued. Planning spends the turn: `next_turn.at =
-/// now + duration`. No path means no action: the player stands ready
-/// and the world parks on the driver's unspent turn.
+/// Create the next step action when two conditions pass: the player's
+/// next turn is due, and a path is queued. Planning spends the turn:
+/// `next_turn.at = now + duration`. No path means no action: the player
+/// stands ready and the world stops on the driver's unspent turn.
+///
+/// Planning never waits for pictures. A click can land while another
+/// creature's picture is mid-move — the step plans at the frozen tick
+/// all the same and the pictures overlap. Only the tick ledger is
+/// serial; overlapping pictures are a display concern.
 pub fn plan_move(
     mut commands: Commands,
     world_clock: Res<WorldClock>,
-    is_moving: Query<(), With<IsMoving>>,
     mut player: Query<PlayerQuery, With<WorldDriver>>,
 ) {
-    if !is_moving.is_empty() {
-        return;
-    }
     let Ok(mut player) = player.single_mut() else {
         return;
     };
@@ -105,14 +103,25 @@ mod tests {
     }
 
     #[test]
-    fn the_world_waits_for_any_movement() {
+    fn planning_never_waits_for_pictures() {
+        use crate::core::display::components::is_moving::IsMoving;
+
         let mut world = world_with_clock();
         let player = world.spawn(player_bundle()).id();
-        // A faster creature's hop is in flight somewhere: nobody plans.
-        world.spawn((NextTurn { at: 7 }, IsMoving));
+        // Due on the unspent turn at 100, path queued, while a creature
+        // whose turn tied this tick is mid-move. The plan lands at the
+        // frozen tick all the same: pictures may overlap; only the tick
+        // ledger is serial.
+        world.resource_mut::<WorldClock>().now = 100;
+        world.entity_mut(player).insert(NextTurn { at: 100 });
+        world.spawn((NextTurn { at: 140 }, IsMoving));
         world.run_system_once(plan_move).unwrap();
-        assert!(world.get::<Move>(player).is_none());
-        assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0);
+        assert_eq!(
+            world.get::<Move>(player).map(|m| m.to),
+            Some(CellCoord::new(2, 1)),
+            "due with a queued path: planning does not wait for pictures"
+        );
+        assert_eq!(world.get::<NextTurn>(player).unwrap().at, 200);
     }
 
     #[test]

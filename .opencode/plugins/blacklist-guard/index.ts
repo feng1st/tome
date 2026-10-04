@@ -1,7 +1,8 @@
 // Blacklist guard: two jobs.
 // 1. Every model request gets the current language blacklist injected into
 //    its system prompt (~/.agents/language-blacklist.txt, gitignore-style:
-//    bare word = block, !word = allow, # = comment).
+//    bare word = block, !word = allow, # = comment; a trailing （…）or (…)
+//    note on an entry line is stripped).
 // 2. A write/edit whose *replacement* content hits a block word not covered
 //    by an allow word is rejected before the tool runs. An edit's source
 //    (oldString) may contain blacklist words — only the replacement must
@@ -46,7 +47,7 @@ function loadRules(file: string): { block: string[]; allow: string[] } {
   const text = readFileSync(file, "utf8")
   const block: string[] = []
   const allow: string[] = []
-  const firstWord = (line: string) => line.match(/^([^\s（]+)/)?.[1]
+  const firstWord = (line: string) => line.match(/^([^\s（(]+)/)?.[1]
   for (const raw of text.split("\n")) {
     const line = raw.trim()
     if (!line || line.startsWith("#")) continue

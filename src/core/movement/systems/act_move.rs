@@ -9,7 +9,7 @@ use crate::core::movement::components::r#move::Move;
 /// Every entity with a freshly added `Move` sets its cell coordinate to
 /// the target at once — data first, the display chases. A path follower
 /// also pops the consumed cell; an emptied path is removed (the world
-/// driver going pathless is what parks the world). The action component
+/// driver going pathless is what stops the world). The action component
 /// is consumed so the next step registers as `Added` again.
 pub fn act_move(
     mut commands: Commands,

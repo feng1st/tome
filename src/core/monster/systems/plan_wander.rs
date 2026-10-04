@@ -5,7 +5,6 @@ use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::core::display::components::is_moving::IsMoving;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
@@ -19,8 +18,8 @@ use crate::core::world_clock::components::next_turn::NextTurn;
 use crate::core::world_clock::components::world_driver::WorldDriver;
 use crate::core::world_clock::resources::world_clock::WorldClock;
 
-/// A monster's wander-planning state: cell and speed for pricing, the
-/// persistent next turn, and its own moving flag.
+/// A monster's wander-planning state: cell and speed for pricing, and
+/// the persistent next turn.
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct MonsterQuery {
@@ -28,7 +27,6 @@ pub struct MonsterQuery {
     cell: &'static CellCoord,
     speed: &'static Speed,
     next_turn: &'static mut NextTurn,
-    is_moving: Has<IsMoving>,
 }
 
 /// The 8 step directions a wander can pick.
@@ -52,9 +50,12 @@ const RANDOM_ATTEMPTS: usize = 4;
 /// 25% a random direction — up to four independent picks, the first
 /// walkable one wins, and a fully walled-in monster stands. Standing is
 /// an action all the same: the turn is spent either way. The world
-/// starts with the driver's first action; before that, nobody plans. A
-/// monster whose own hop is still in flight waits — cell by cell,
-/// never gliding.
+/// starts with the driver's first action; before that, nobody plans.
+///
+/// The only gate is the clock: while any picture is still moving the
+/// clock is held (by `advance`), and a plan always prices its turn into
+/// the future. Planning never waits for pictures — they may overlap;
+/// only the tick ledger is serial.
 pub fn plan_wander(
     mut commands: Commands,
     world_clock: Res<WorldClock>,
@@ -73,8 +74,8 @@ pub fn plan_wander(
     }
     let mut rng = rand::rng();
     for mut monster in &mut monsters {
-        // Own hop in flight, or the turn is not due yet.
-        if monster.is_moving || world_clock.now < monster.next_turn.at {
+        // The turn is not due yet.
+        if world_clock.now < monster.next_turn.at {
             continue;
         }
         let stands = rng.random_range(0..100) >= 25;
@@ -107,6 +108,7 @@ pub fn plan_wander(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::display::components::is_moving::IsMoving;
     use crate::core::map::resources::current_map::parse_local_map;
     use crate::core::map::resources::terrain_registry::parse_terrain_registry;
     use crate::core::map::types::local_map::LocalMap;
@@ -151,7 +153,14 @@ mod tests {
         app.init_resource::<WorldClock>()
             .insert_resource(parse_terrain_registry("test", TERRAINS))
             .insert_resource(CurrentMap::new(map))
-            .add_systems(Update, plan_wander);
+            .add_systems(
+                Update,
+                (
+                    crate::core::world_clock::systems::advance::advance,
+                    plan_wander,
+                )
+                    .chain(),
+            );
         app
     }
 
@@ -211,13 +220,21 @@ mod tests {
     }
 
     #[test]
-    fn own_hop_in_flight_plans_nothing() {
+    fn hop_in_flight_holds_the_clock_so_no_plan_lands() {
         let mut app = app_with(open_room());
         spawn_started_driver(&mut app);
         let rat = spawn_rat(&mut app, CellCoord::new(2, 2));
+        // A hop in flight: the flag is up and the turn is priced into the
+        // future. `advance` holds the clock for the flag, so the turn can
+        // never come due while the hop runs — the planner needs no flag
+        // of its own.
         app.world_mut().entity_mut(rat).insert(IsMoving);
-        app.update();
-        assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 0);
+        app.world_mut().entity_mut(rat).insert(NextTurn { at: 40 });
+        for _ in 0..5 {
+            app.update();
+        }
+        assert_eq!(app.world().resource::<WorldClock>().now, 0, "clock held");
+        assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 40);
         assert!(app.world().get::<Move>(rat).is_none());
     }
 

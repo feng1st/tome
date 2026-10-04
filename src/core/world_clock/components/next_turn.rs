@@ -1,6 +1,6 @@
 //! NextTurn: the moment this creature may take its next action.
 //! Persistent by design: planning pushes it forward by the action's
-//! cost, and it is never deleted. An unspent future turn is what parks
+//! cost, and it is never deleted. An unspent future turn is what holds
 //! the world on a ready driver, and queued future turns are how a fast
 //! creature's extra actions wait their turn.
 

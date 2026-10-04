@@ -13,7 +13,7 @@ use crate::core::world_clock::resources::world_clock::WorldClock;
 ///    the clock holds still (the world waits for its pictures; queued
 ///    turns wait theirs out as time debts).
 /// 2. Otherwise the clock steps to the nearest next turn. A ready
-///    driver's own future turn is the nearest one, so the world parks on
+///    driver's own future turn is the nearest one, so the world stops on
 ///    it until input produces the next action. Opening the frame with
 ///    the sweep is what lets a turn due this frame plan this same
 ///    frame — no one-frame handshake gap between landing and the next
@@ -66,7 +66,7 @@ mod tests {
     }
 
     #[test]
-    fn an_unspent_future_turn_parks_the_clock() {
+    fn an_unspent_future_turn_holds_the_clock() {
         let mut app = app();
         app.world_mut().spawn(NextTurn { at: 100 });
         app.world_mut().spawn(NextTurn { at: 320 });
@@ -87,7 +87,7 @@ mod tests {
     /// rat (duration 40) takes its interleaved turns. Core-only: no
     /// movement ever freezes the clock, so turns resolve at frame rate.
     #[test]
-    fn the_world_parks_with_a_ready_driver() {
+    fn the_world_stops_with_a_ready_driver() {
         use std::collections::VecDeque;
 
         use crate::core::map::components::cell_coord::CellCoord;
@@ -152,14 +152,14 @@ mod tests {
         assert_eq!(
             app.world().resource::<WorldClock>().now,
             300,
-            "parked on the driver's unspent turn"
+            "held on the driver's unspent turn"
         );
         assert_eq!(app.world().get::<NextTurn>(player).unwrap().at, 300);
         assert_eq!(
             app.world().get::<NextTurn>(rat).unwrap().at,
             320,
             "the rat's cadence is exact: 8 turns at duration 40, the last
-             one waiting beyond the park"
+             one waiting beyond the stop"
         );
         app.update();
         assert_eq!(app.world().resource::<WorldClock>().now, 300, "frozen");
