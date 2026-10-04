@@ -12,8 +12,12 @@ pub enum DisplayPhase {
     /// parts (sprite, camera target) via `Added<>` reactions.
     Attach,
     /// Core state flows into existing presentation components: playback
-    /// intent.
+    /// intent. Runs strictly before Motion, so a just-completed step is
+    /// still seen mid-flight: the intent gap reads zero exactly when
+    /// motion has truly stopped.
     Sync,
+    /// Presentation positions advance: the glide toward the logical cell.
+    Motion,
     /// Sprite and terrain animations advance.
     Animate,
     /// The camera snaps onto the screen grid.

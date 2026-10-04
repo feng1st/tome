@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn spawn_entries_parse_to_raw_ids_and_cells() {
-        use crate::core::map::types::cell_coord::CellCoord;
+        use crate::core::map::components::cell_coord::CellCoord;
 
         let doc = r####"(
             legend: { '#': "wall", '.': "floor" },
@@ -223,8 +223,8 @@ mod tests {
     // root, so the production paths work as-is.
     #[test]
     fn test_room_data_reproduces_the_room() {
+        use crate::core::map::components::cell_coord::CellCoord;
         use crate::core::map::resources::terrain_registry::TERRAIN_TABLE_PATH;
-        use crate::core::map::types::cell_coord::CellCoord;
         use crate::core::map::types::local_map::LocalMap;
         use crate::core::map::types::terrain::Terrain;
         use crate::core::map::utils::pathfinding::find_path;
@@ -285,7 +285,8 @@ mod tests {
             assert!(walkable(&local_map, &terrain_registry, *cell));
         }
 
-        // The hero's starting cell (hero/entities/hero.rs HERO_START) is
+        // The player's starting cell (player/entities/player.rs
+        // PLAYER_START) is
         // walkable.
         assert!(walkable(
             &local_map,
@@ -293,7 +294,7 @@ mod tests {
             CellCoord::new(24, 10)
         ));
 
-        // Two giant white rats spawn on open floor near the hero start.
+        // Two giant white rats spawn on open floor near the player start.
         let mut spawn_cells: Vec<CellCoord> =
             local_map.spawns.iter().map(|spawn| spawn.cell).collect();
         spawn_cells.sort_by_key(|cell| (cell.x, cell.y));

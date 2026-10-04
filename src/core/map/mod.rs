@@ -1,6 +1,7 @@
 //! The map domain's game-data side: local map model, terrain registry,
 //! pathfinding. Rendering (chunks, textures) lives in `frontend::display`.
 
+pub mod components;
 pub mod constants;
 pub mod resources;
 pub mod types;

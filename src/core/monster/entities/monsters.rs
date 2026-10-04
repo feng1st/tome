@@ -6,11 +6,11 @@ use bevy::prelude::*;
 use crate::core::creature::resources::unique_registry::UniqueRegistry;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::monster::resources::monster_registry::MonsterRegistry;
-use crate::core::movement::components::position::Position;
+use crate::core::world_clock::components::next_turn::NextTurn;
 
 /// Spawn every monster declared by the current map's spawn table, as pure
 /// game data (kind handle + race handle + optional class and unique
-/// handles + position at the cell's center). Monster ids resolve here,
+/// handles + the spawn cell). Monster ids resolve here,
 /// not at map load: the map domain does not depend on this vocabulary
 /// (positions flow the other way), so an unknown id surfaces at spawn —
 /// still startup, the same launch. Nothing despawns on state exit today
@@ -33,7 +33,13 @@ pub fn spawn_monsters(
             });
         let monster_kind = monster_registry.monster_kind(monster_index);
         let race_index = monster_kind.race;
-        let mut entity = commands.spawn((monster_index, race_index, Position::from(spawn.cell)));
+        let mut entity = commands.spawn((
+            monster_index,
+            race_index,
+            monster_kind.speed,
+            spawn.cell,
+            NextTurn::default(),
+        ));
         if let Some(class_index) = monster_kind.class {
             entity.insert(class_index);
         }
@@ -57,11 +63,12 @@ mod tests {
     use crate::core::creature::components::unique_index::UniqueIndex;
     use crate::core::creature::resources::class_registry::parse_class_registry;
     use crate::core::creature::resources::race_registry::parse_race_registry;
-    use crate::core::map::types::cell_coord::CellCoord;
+    use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::map::types::local_map::LocalMap;
     use crate::core::map::types::monster_spawn::MonsterSpawn;
     use crate::core::monster::components::monster_index::MonsterIndex;
     use crate::core::monster::resources::monster_registry::parse_monster_registry;
+    use crate::core::speed::components::speed::Speed;
 
     #[test]
     fn spawns_carry_kind_identity_and_position() {
@@ -73,8 +80,8 @@ mod tests {
         let monster_registry = parse_monster_registry(
             "test",
             r#"[
-                ( monster: "giant_white_rat", race: "giant_white_rat" ),
-                ( monster: "grip", race: "dog", class: "warrior", unique_id: "grip" ),
+                ( monster: "giant_white_rat", race: "giant_white_rat", speed: 110 ),
+                ( monster: "grip", race: "dog", speed: 110, class: "warrior", unique_id: "grip" ),
             ]"#,
             &race_registry,
             &class_registry,
@@ -110,10 +117,13 @@ mod tests {
         world.run_system_once(spawn_monsters).unwrap();
 
         // The rat carries kind + race only; the unique carries class and
-        // unique handles on top.
+        // unique handles on top. Both carry speed and the spawn cell as
+        // logical position.
         let mut query = world.query::<(
             &MonsterIndex,
             &RaceIndex,
+            &Speed,
+            &CellCoord,
             Option<&ClassIndex>,
             Option<&UniqueIndex>,
         )>();
@@ -121,10 +131,14 @@ mod tests {
         assert_eq!(entities.len(), 2);
         let rat = entities.iter().find(|(m, ..)| **m == rat_handle).unwrap();
         assert_eq!(*rat.1, expected_rat_race);
-        assert!(rat.2.is_none() && rat.3.is_none());
+        assert_eq!(*rat.2, Speed(110));
+        assert_eq!(*rat.3, CellCoord::new(0, 0));
+        assert!(rat.4.is_none() && rat.5.is_none());
         let grip = entities.iter().find(|(m, ..)| **m == grip_handle).unwrap();
         assert_eq!(*grip.1, expected_grip_race);
-        assert_eq!(grip.2.copied(), Some(expected_class));
-        assert_eq!(grip.3.copied(), Some(expected_unique));
+        assert_eq!(*grip.2, Speed(110));
+        assert_eq!(*grip.3, CellCoord::new(1, 0));
+        assert_eq!(grip.4.copied(), Some(expected_class));
+        assert_eq!(grip.5.copied(), Some(expected_unique));
     }
 }

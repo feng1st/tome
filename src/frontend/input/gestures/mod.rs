@@ -1,6 +1,6 @@
 //! Input gestures: what the pointer hit, typed by target. Frontend-internal
 //! messages from modalities to the resolvers — the core never sees them
-//! (the cross-side protocol is the commands in `core::hero::commands`).
+//! (the cross-side protocol is the commands in `core::player::commands`).
 //!
 //! Design paradigm: one gesture type per hittable target kind. New hittable
 //! things add a new gesture file plus a new resolver; existing code is

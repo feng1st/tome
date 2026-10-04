@@ -1,6 +1,6 @@
 //! A monster spawn parsed out of a fixed map, held by `LocalMap`.
 
-use crate::core::map::types::cell_coord::CellCoord;
+use crate::core::map::components::cell_coord::CellCoord;
 
 /// One monster spawn: which monster, at which cell. The id is still the
 /// raw file string — resolution against the monster vocabulary happens

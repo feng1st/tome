@@ -10,11 +10,14 @@
 pub mod app_state;
 pub mod core_phase;
 pub mod creature;
+pub mod display;
 pub mod game_loop;
-pub mod hero;
 pub mod map;
 pub mod monster;
 pub mod movement;
+pub mod player;
+pub mod speed;
+pub mod world_clock;
 
 use bevy::prelude::*;
 
@@ -27,12 +30,20 @@ use self::game_loop::GameLoop;
 pub fn register(app: &mut App) {
     map::register(app);
     creature::register(app);
-    hero::register(app);
+    player::register(app);
     monster::register(app);
     movement::register(app);
+    world_clock::register(app);
     app.init_state::<AppState>().configure_sets(
         Update,
-        (CorePhase::Sense, CorePhase::Plan, CorePhase::Act)
+        (
+            CorePhase::Advance,
+            CorePhase::Command,
+            CorePhase::PlayerPlan,
+            CorePhase::PlayerAct,
+            CorePhase::WorldPlan,
+            CorePhase::WorldAct,
+        )
             .chain()
             .in_set(GameLoop::Core),
     );

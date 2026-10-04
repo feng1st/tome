@@ -439,7 +439,7 @@ mod tests {
     }
 
     /// Spec-alignment test: the real binding file on disk resolves the
-    /// hero and the rat to their established figures.
+    /// player and the rat to their established figures.
     #[test]
     fn real_bindings_reproduce_the_established_presentation() {
         use crate::core::creature::resources::class_registry::CLASS_TABLE_PATH;
@@ -471,7 +471,7 @@ mod tests {
         let rat = race_registry.get_index("giant_white_rat").unwrap();
         let warrior_figure = figure_registry.get_index("warrior").unwrap();
         let rat_figure = figure_registry.get_index("giant_white_rat").unwrap();
-        // The hero resolves through the race+class key (a classless human has
+        // The player resolves through the race+class key (a classless human has
         // no figure — there is no naked-human art); the rat through its
         // race default.
         assert_eq!(

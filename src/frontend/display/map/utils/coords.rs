@@ -1,20 +1,20 @@
-//! Cell <-> world-pixel conversion. The core counts in continuous cell
-//! coordinates and knows nothing about pixels; these functions are the
-//! display side's only bridge between the two spaces.
+//! Cell <-> world-pixel conversion. The core counts in whole cells and
+//! knows nothing about pixels; these functions are the display side's
+//! only bridge between the two spaces.
 
 use bevy::prelude::*;
 
-use crate::core::map::types::cell_coord::CellCoord;
-use crate::core::movement::components::position::Position;
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::frontend::display::constants::layout::TILE_SIZE;
+use crate::frontend::display::motion::components::curr_position::CurrPosition;
 
 /// World-pixel position of a cell-space position. Integer cell coordinates
 /// are cell centers, hence the half-cell offset. Map row 0 is the top row
 /// while world Y points up, so world y is negative.
-pub fn cell_to_world(position: Position) -> Vec2 {
+pub fn cell_to_world(curr_position: CurrPosition) -> Vec2 {
     Vec2::new(
-        (position.x + 0.5) * TILE_SIZE,
-        -(position.y + 0.5) * TILE_SIZE,
+        (curr_position.x + 0.5) * TILE_SIZE,
+        -(curr_position.y + 0.5) * TILE_SIZE,
     )
 }
 
@@ -33,6 +33,6 @@ mod tests {
     #[test]
     fn cell_world_roundtrip() {
         let cell = CellCoord::new(30, 20);
-        assert_eq!(world_to_cell(cell_to_world(Position::from(cell))), cell);
+        assert_eq!(world_to_cell(cell_to_world(CurrPosition::from(cell))), cell);
     }
 }

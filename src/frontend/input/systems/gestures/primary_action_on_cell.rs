@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::hero::commands::move_to_cell::MoveToCell;
+use crate::core::player::commands::move_to_cell::MoveToCell;
 use crate::frontend::input::gestures::primary_action_on_cell::PrimaryActionOnCell;
 
 /// Today every cell gesture means walking there; target-aware policies

@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use crate::core::map::types::cell_coord::CellCoord;
+use crate::core::map::components::cell_coord::CellCoord;
 
 /// One monster spawn entry in a map file: which monster, at which cell.
 /// The monster id stays a raw string here — the map domain does not

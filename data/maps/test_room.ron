@@ -41,7 +41,7 @@
         "#..............................................#",
         "################################################",
     ],
-    // Monster spawns: two rats on the open floor near the hero start.
+    // Monster spawns: two rats on the open floor near the player start.
     monsters: [
         ( monster: "giant_white_rat", cell: ( x: 28, y: 10 ) ),
         ( monster: "giant_white_rat", cell: ( x: 24, y: 13 ) ),

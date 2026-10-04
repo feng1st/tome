@@ -5,13 +5,14 @@
 
 use bevy::prelude::*;
 
-use crate::core::movement::components::position::Position;
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::frontend::display::camera::components::sprite_size::SpriteSize;
 use crate::frontend::display::constants::layout::LAYER_ACTOR;
 use crate::frontend::display::figure::components::figure_index::FigureIndex;
 use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
 use crate::frontend::display::figure::utils::sprite_anchor::sprite_anchor;
 use crate::frontend::display::map::utils::coords::cell_to_world;
+use crate::frontend::display::motion::components::curr_position::CurrPosition;
 use crate::frontend::display::sprite_animation::components::anim_state::AnimState;
 use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 
@@ -24,17 +25,19 @@ use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 pub fn attach_appearance(
     mut commands: Commands,
     figure_registry: Res<FigureRegistry>,
-    query: Query<(Entity, &FigureIndex, &Position), Added<FigureIndex>>,
+    query: Query<(Entity, &FigureIndex, &CellCoord), Added<FigureIndex>>,
 ) {
-    for (entity, figure_index, pos) in &query {
+    for (entity, figure_index, cell) in &query {
         let appearance = figure_registry.appearance(*figure_index);
-        let world = cell_to_world(*pos);
+        let cell = *cell;
+        let curr_position = CurrPosition::from(cell);
+        let world = cell_to_world(curr_position);
         // The phase offset derives from the standing cell: a deterministic
         // desync for crowds spawned on the same tick (zero would sync
         // them).
         let idle_len = appearance.anim(AnimKind::Idle).frames.len();
-        let cell = pos.cell();
         commands.entity(entity).insert((
+            curr_position,
             Sprite {
                 image: appearance.image.clone(),
                 texture_atlas: Some(TextureAtlas {
@@ -64,15 +67,12 @@ mod tests {
     fn new_figure_handle_mounts_sprite_and_playback_state() {
         use bevy::ecs::system::RunSystemOnce;
 
-        use crate::core::map::types::cell_coord::CellCoord;
+        use crate::core::map::components::cell_coord::CellCoord;
 
         let mut world = World::new();
         world.insert_resource(FigureRegistry::for_test(&["warrior"]));
         let entity = world
-            .spawn((
-                FigureIndex::from_index(0),
-                Position::from(CellCoord::new(2, 3)),
-            ))
+            .spawn((FigureIndex::from_index(0), CellCoord::new(2, 3)))
             .id();
         world.run_system_once(attach_appearance).unwrap();
 
@@ -82,5 +82,10 @@ mod tests {
         assert_eq!(transform.translation.z, LAYER_ACTOR);
         let state = world.get::<AnimState>(entity).expect("playback mounted");
         assert_eq!(state.anim, AnimKind::Idle);
+        // The current position mounts from the spawn cell.
+        assert_eq!(
+            world.get::<CurrPosition>(entity).copied(),
+            Some(CurrPosition::from(CellCoord::new(2, 3)))
+        );
     }
 }

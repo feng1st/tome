@@ -1,5 +1,5 @@
 //! Attaches a creature's figure. The core spawns creatures as pure game
-//! data (identity handles + `Position`); this system resolves the
+//! data (identity handles + `CellCoord`); this system resolves the
 //! identity through the binding registry and inserts the figure handle,
 //! which the figure domain then renders — it stays identity-agnostic.
 
