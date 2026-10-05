@@ -32,6 +32,9 @@ context: |
   - .ref/PD-classes/ — PD 引擎层 (noosa) 反编译类，渲染/动画底层机制参考。
   - .ref/tome2/ — ToME2 C 源码，词汇与机制考证参考（地形定义、生物词汇等
     roguelike 传统惯例）。
+  - .ref/tome2-specs/ — ToME2 全量现状 spec 语料（对 .ref/tome2 的完整分析产物：
+    91 个 capability 的 OpenSpec 规格，每条结论带 .ref/tome2 源码行号锚点）。
+    按源文件定位 spec 用 00-inventory.md；机制与数值细节不复抄，以锚点处源码为准。
   - .ref/bevy/ — Bevy 官方仓库本地 checkout (v0.19.1 tag)，重点参考 examples/
     (2d/sprite_animation.rs, 2d/2d_viewport_to_world.rs, 2d/pixel_grid_snap.rs 等)。
     注意: 工程依赖用 crates.io 的 bevy，本地 checkout 仅供读代码。
