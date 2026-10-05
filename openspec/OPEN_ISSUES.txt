@@ -24,19 +24,23 @@ HitPoints。这是"六维+玩家 HP"的怪物镜像；落完后怪物成为可�
 落地内容：
 - 骰式工具（本条第 1 部分；也可单独切成更小的变更）：解析 NdM
   （tome2 数据只有这种形态，无修正项），掷骰 = N 个 dM 之和；上限函数
-  （N*M）等 FORCE_MAXHP 旗标进词表时再落（tome2 的 maxroll，
-  src/z-rand.c:337-349）。解析错误带出错文件与条目 id。建议独立小域
-  （消费者横跨怪物与战斗）。
+  （N*M）等 FORCE_MAXHP 旗标进词表时再落（tome2 的 maxroll）。掷骰语义：
+  randint 出 1..M、rand_int 出 0..M-1、magik 是百分比判定
+  （src/z-rand.h:30-62；damroll/maxroll 在 src/z-rand.c:337-343、
+  349-352）。解析错误带出错文件与条目 id。建议独立小域（消费者横跨
+  怪物与战斗）。
 - 词表新字段（建议现代命名）：hit_points（骰式字符串）、armor_class
   （整数）、level（整数）、blows（列表，元素含 method 与 damage 骰式）。
   speed 保留。
 - 出生：掷 hit_points 得上限，挂 HitPoints { current: max, max }。
 - 巨白鼠数据（tome2 lib/edit/r_info.txt:1338-1352）：
-  I:110:2d2:8:7:30 -> speed 110、生命骰 2d2、视野 8、护甲 7、警觉 30；
+  I:110:2d2:8:7:30 -> speed 110、生命骰 2d2、感知范围 8（aaf）、
+  护甲 7、睡眠（警觉）30；
   W:4:1:200:1 -> 等级 4、稀有度 1、尸体重量 200、经验 1；
   B:BITE:POISON:1d3 -> 咬击、中毒、1d3。
-- 本变更暂不落：experience（等成长变更）、视野/警觉/稀有度/掉落/装备
-  槽/法术/旗标（各自后续）。
+- 本变更暂不落：experience（等成长变更）、感知/睡眠/稀有度/掉落/装备
+  槽/法术/旗标（各自后续）；非 unique 的出生速度扰动也不落（tome2 有，
+  src/monster2.c:2593-2652；本项目速度由词表定值）。
 
 tome2 参考：
 - 词表格式说明 lib/edit/r_info.txt:122-186（I 字段 = speed:hit points:
@@ -46,6 +50,10 @@ tome2 参考：
   src/init1.c:7919-7936（W 字段）、src/init1.c:7942（B 字段）。
 - 出生掷生命 src/monster2.c:2594-2605（maxhp = damroll(hdice,hside)，
   hp = maxhp；随后 2614-2615 把 r_ptr->ac 与 level 抄进个体）。
+- 攻击 method/effect 的名称表在 src/init1.c:46-123，B 行解析在
+  src/init1.c:7941-8000，未知名拒绝。
+- 语料库交叉：.ref/tome2-specs/specs/monster/spec.md（词表格式）、
+  rng/spec.md（掷骰）、monster-generation/spec.md（出生抄录）。
 
 验证：坏骰式与护甲越界拒绝启动且错误信息含文件与 id；出生生命落在骰式
 范围（2d2 -> 2..4）；巨白鼠条目逐值对齐。
@@ -81,7 +89,12 @@ src/core/health/constants/constitution_hp_bonus.rs 的 38 项表）；没有
 - 合成：to_h = (adj_str_th - 128) + (adj_dex_th - 128)；
   to_d = adj_str_td - 128；to_a = adj_dex_ta - 128
   （src/xtra1.c:3482-3491）。
-- 攻击值：chance = 命中技能项 + to_h * 3（src/cmd1.c:2644；
+- 风格修正项 to_h_melee/to_d_melee：装备同种武器时武器掌握类技能值
+  全量加到 to_h_melee、一半加到 to_d_melee；徒手时函数返回 0 号技能槽
+  （恒为 0），两项均为 0（src/xtra1.c:3740-3746、2331-2372）。战斗技能
+  按 scale(10) 加 to_d，1 级战士为 0（src/xtra1.c:3748-3754）。攻击品质
+  bonus = to_h + to_h_melee（+武器 to_h，暂无）。
+- 攻击值：chance = 命中技能项 + bonus * 3（src/cmd1.c:2640-2644；
   BTH_PLUS_ADJ = 3，src/defines.h:367）。
 - 命中技能项：tome2 用 skill_thn（src/xtra1.c:3903：
   50 * ((7*战斗风格 + 3*战斗) / 10) / 10），技能域不在本项目。变更
@@ -89,7 +102,8 @@ src/core/health/constants/constitution_hp_bonus.rs 的 38 项表）；没有
   Combat 基数 2000、Weaponmastery 1000（lib/edit/p_info.txt:80-81 的
   C:k；原始值除以 1000 得技能值，src/defines.h:4573-4574 与
   src/skills.c:114），默认风格取武器掌握（src/skills.c:728-745），得
-  50 * ((7*1 + 3*2) / 10) / 10 = 5。
+  50 * ((7*1 + 3*2) / 10) / 10 = 5。语料库把公式合并记为
+  50*(7*风格+3*战斗)/100；以源码的逐步整数除法为准（得 5 而非 6）。
 - 徒手伤害：武器掌握风格 + 空手时固定 1 点（src/cmd1.c:2665），加 to_d
   后负值截 0（src/cmd1.c:2846-2853）；空手不掷武器骰、不参与暴击
   （暴击只在武器分支，src/cmd1.c:2743）。首版伤害 = 1 + to_d。
@@ -98,6 +112,13 @@ src/core/health/constants/constitution_hp_bonus.rs 的 38 项表）；没有
 - 玩家护甲：怪物命中玩家读 ac + to_a（src/melee1.c:1394）；无装备时
   ac = 0，to_a 来自敏捷表。
 - 出生接入：在 spawn_player 算好（挂组件或按需算，design 裁）。
+- 暂不落：站姿表（tactic）与移动姿态表（move）各 9 档，会改
+  to_hit/to_dam/to_ac/to_speed（src/tables.c:2875-2965）；首版固定默认
+  档。暴击五档（2d+5 / 2d+10 / 3d+15 / 3d+20 / 7d/2+25，
+  src/cmd1.c:123-186）随装备一起落。
+
+语料库交叉：.ref/tome2-specs/specs/player-derive/spec.md、
+tables/spec.md、player-melee/spec.md。
 
 验证：四张表逐值测试；出生后的 to_h/to_d/to_a 手算一致；徒手伤害负
 修正截 0。
@@ -126,8 +147,13 @@ MainMenu/Game（src/core/app_state.rs）。
 - 死亡判定为严格负值：怪物 hp -= dam，hp < 0 才死（src/xtra2.c:4550-
   4553）；主角 chp -= damage，chp < 0 才死（src/spells1.c:1368-1380）。
   即 0 点仍活着。
-- 怪物死亡：实体移除（tome2 在 monster_death 收尾时 delete_monster_idx，
-  src/xtra2.c:3917 与 4819）；经验、掉落、尸体押后（经验归成长变更）。
+- 怪物死亡：实体移除（tome2 由 mon_take_hit 收尾时 delete_monster_idx
+  移除，src/xtra2.c:4819；掉落与尸体由 monster_death 管，
+  src/xtra2.c:3917-4501）；经验、掉落、尸体押后（经验归成长变更）。
+- 暂不落：怪物存活后的恐惧掷点（mon_take_hit 尾部，src/xtra2.c:4830-
+  4880；恐惧驱动逃跑，随感知/追击的 AI 变更）；经验发放（mexp*level/
+  max_plv 带分数累积，src/xtra2.c:4622-4640）；主角死亡收尾（墓碑等，
+  src/files.c:5220-5337；表现归条目 6）。
 - 主角死亡：Dead 状态或标记 + 停收命令（tome2 置 death/leaving）；表现
   留给条目 6。
 - 不变量：current 不高于 max；负值合法。
@@ -138,6 +164,9 @@ MainMenu/Game（src/core/app_state.rs）。
 
 待裁决：入口形状（消息还是直接系统）；主角死后就地停住还是切状态
 （AppState 已预留 MainMenu）。
+
+语料库交叉：.ref/tome2-specs/specs/monster-death/spec.md、
+death-score/spec.md（墓碑与收尾）。
 
 ======================================================================
 
@@ -158,10 +187,11 @@ player-attacks。
 - 攻击与时钟：tome2 出手与移动同为 100 基准（撞怪出手在
   src/cmd2.c:1213-1226；移动在 src/cmd1.c:4672）；项目走现有
   action_duration（src/core/speed/utils/action_duration.rs）。
-- 命中：chance = 玩家攻击值 + to_h * 3（条目 2 已就位）；判定照搬
+- 命中：chance = 命中技能项 + bonus * 3（条目 2 已就位）；判定照搬
   test_hit_norm（src/cmd1.c:52-75）：先掷 0..99，小于 10 时按小于 5
-  定必中或必失；chance <= 0 必失；否则 rand_int(chance) < ac*3/4 判失。
-  项目没有隐身与幸运：视为可见、去掉 luck 项（design 记录）。
+  定必中或必失；chance <= 0 必失；否则 rand_int(chance) < ac*3/4 判失
+  （rand_int 出 0..chance-1，src/z-rand.h:30-62）。项目没有隐身与幸运：
+  视为可见、去掉 luck 项（design 记录）。
 - 伤害：徒手 1 + to_d，负值截 0（src/cmd1.c:2665、2846-2853）；怪物方
   扣血与死亡走条目 3。
 - 最小反馈：怪物消失即可；动画由条目 6 补。
@@ -172,6 +202,8 @@ player-attacks。
 条款更新为"怪物阻挡玩家"语义。
 
 依赖：条目 1、2、3。
+
+语料库交叉：.ref/tome2-specs/specs/player-melee/spec.md。
 
 ======================================================================
 
@@ -193,11 +225,27 @@ player-attacks。
 - 伤害：掷 blow 骰（巨白鼠 1d3）；tome2 怪物伤害就是骰值，无属性修正。
 - 扣血与死亡：走条目 3；主角死后停收命令。
 - 相邻判定：CellCoord 与主角格比较（tome2 用 (ny,nx)==(py,px)）。
+- 护甲减伤：HURT/SHATTER 家族的命中伤害按护甲折减（护甲封顶 150，
+  折减比率 = 护甲/250，src/melee1.c:1886-1887，同款共 4 处）；POISON
+  家族不走折减。与条目 1 的 effect 裁决联动：首版按哪一家处理决定
+  折减是否生效。
+- 豁免链不做：闪避、神力、护符（src/melee1.c:1565-1636）；无闪避技能
+  时 dodge_chance = 0，等价为无。
+- 命中暴击不做：割伤/击碎转流血/眩晕的暴击表随状态效果押后
+  （src/melee1.c:2837-2916）。
+- AI 上下文：tome2 怪物回合顺序为睡眠/唤醒、目标选择、方向随机化、
+  移动、挡路出手（process_monster，src/melee2.c:6322-7543）。其 RAND_25
+  是"追击方向以 25% 概率随机"，与本项目现行 wander（75% 站住、25%
+  随机移动）语义不同；感知/睡眠/追击留给后续 AI 变更，本变更只加相邻
+  出手分支。
 
 验证：相邻必出手；不相邻仍走原随机移动；必中/必失边界；伤害区间；
 主角生命变负后停收命令。
 
 依赖：条目 1、2、3；与条目 4 合起来才是最小闭环。
+
+语料库交叉：.ref/tome2-specs/specs/monster-melee/spec.md、
+monster-ai/spec.md（回合顺序与挡路出手）。
 
 ======================================================================
 
@@ -220,6 +268,10 @@ player-attacks。
 - 生命显示：主角 HUD 与怪物头顶小血条（数据来自条目 1 与既有玩家
   生命）。
 - 战斗消息：tome2 是文字行，PD 用漂浮数字；做哪一种或并存，design 裁。
+- tome2 侧的措辞档位可作参考：玩家伤害按占目标上限比例分五档
+  （src/cmd1.c:2106-2148），怪物死亡措辞 slain/destroyed/killed
+  （src/xtra2.c:4570-4595 前后），怪物受创措辞见语料库
+  monster-generation/spec.md 的 Pain Messages 条目。
 
 依赖：事件源来自条目 4、5；帧素材与显示组件可提前做。
 
