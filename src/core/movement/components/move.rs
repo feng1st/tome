@@ -7,8 +7,8 @@ use crate::core::map::components::cell_coord::CellCoord;
 
 /// One step to an adjacent cell, created in Plan and executed in Act of
 /// the same frame (via `Added<Move>`), then removed. Shared by every
-/// species: the world driver steps along its path, monsters step into
-/// their rolled direction.
+/// species: the world driver steps along its ordered route, monsters
+/// step into their rolled direction.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
     pub to: CellCoord,

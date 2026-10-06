@@ -13,58 +13,15 @@ OPEN ISSUES — 延期工作与已知问题登记表
 （回收顶替值的扩展条目见第二部分）。
 
 已存在的支撑系统（取材依据）：六维与出身修正、玩家生命派生、
-HitPoints 组件、伤害通道与死亡处理（damage-and-death）、速度域与
-世界时钟、移动管线、怪物词表与出生、怪物随机移动、前端动画槽位
-（Attack/Hit/Die 已预留）。
+HitPoints 组件、伤害通道与死亡处理（damage-and-death）、站立指令与
+玩家攻击解析（player-attacks）、速度域与世界时钟、移动管线、怪物词
+表与出生、怪物随机移动、前端动画槽位（Attack/Hit/Die 已预留）。
 不存在的支撑系统（本次一律不取）：技能、装备、状态、effect 家族、
 旗标、感知 AI、经验/成长、消息。
 
-顺序理由：条目 4、5 互不依赖，可任意先后；条目 1、2、3 已分别以
-monster-combat-profile、combat-bonuses、damage-and-death 落地并从本表
-删除；6 收尾。
-
-=====================================================================
-
-4. 半环甲：玩家攻击怪物（顺序 4/6）
-
-目标：撞向怪物格即攻击；命中、伤害、扣血、怪物死亡；玩家能打死老鼠
-（怪物尚不还手）。与条目 5 合起来才是最小闭环。变更命名建议：
-player-attacks。
-
-现状与改动：
-- 移动管线：MoveToCell 命令（src/core/player/commands/move_to_cell.rs）
-  -> 执行器校验并寻路（src/core/player/systems/commands/move_to_cell.rs）
-  -> Path 逐格 -> plan_move 计划 Move（src/core/player/systems/
-  plan_move.rs）-> act_move 改格（src/core/movement/systems/act_move.rs）。
-- 现行 monster spec 明说"怪物不阻碍移动、主角可穿行怪物格"
-  （openspec/specs/monster/spec.md 的"主角穿行怪物所在格"场景）；
-  本变更必须改这条：目标格有怪物时解析为攻击。
-- 攻击是独立行动（不是移动的副产品），归属域由 design 裁（建议独立
-  combat 域：生产者横跨玩家与怪物）；定价走现有 action_duration
-  （src/core/speed/utils/action_duration.rs），与移动同基准（tome2
-  出手与移动同为 100，src/cmd2.c:1213-1226、src/cmd1.c:4672）。
-- 命中判定骨架（基础项，照搬 test_hit_norm，src/cmd1.c:52-75）：
-  先掷 0..99，小于 10 时按小于 5 定必中或必失；chance <= 0 必失；
-  否则 rand_int(chance) < ac*3/4 判失（rand_int 出 0..chance-1，
-  src/z-rand.h:30-62）。chance = 命中技能顶替值 + to_h * 3
-  （combat-bonuses，已落地）；ac = 怪物 armor_class（monster-combat-profile，已落地）。隐身与幸运系统不存在：
-  视为可见、无 luck 项（design 记录）。
-- 伤害：1 + to_d，负值截 0（combat-bonuses）；扣血与死亡已落地
-  （damage-and-death）。
-- 长路径撞上怪物：停下攻击还是绕行，design 裁（点击移动模型特有；
-  tome2 逐格操作没有这个问题）。
-- 最小反馈：怪物消失即可；动画由条目 6 补。
-
-不做（支撑系统不存在）：武器骰与暴击（见条目 9）、多击（见条目 8、
-9）、伤害措辞档位（见条目 14）。
-
-验证：撞怪不改格；固定必中/必失边界；伤害区间；死亡移除；现行 spec
-条款更新为"怪物阻挡玩家"语义。
-
-依赖：无；monster-combat-profile、combat-bonuses 与 damage-and-death
-已落地。
-
-语料库交叉：.ref/tome2-specs/specs/player-melee/spec.md。
+顺序理由：条目 5 落地后由 6 收尾；条目 1、2、3、4 已分别以
+monster-combat-profile、combat-bonuses、damage-and-death、
+player-attacks 落地并从本表删除。
 
 =====================================================================
 
@@ -74,8 +31,9 @@ player-attacks。
 合拢。变更命名建议：monster-attacks。
 
 现状与改动：
-- src/core/monster/systems/plan_wander.rs 现在 75% 站住、25% 随机移动；
-  本变更加最高优先分支"相邻主角 -> 攻击"，出手同样消耗一次行动
+- src/core/monster/systems/plan_wander.rs 现在 75% 站住、25% 随机移动
+  （已避开占位格，含主角格——player-attacks 随行落地）；本变更加最高
+  优先分支"相邻主角 -> 攻击"，出手同样消耗一次行动
   （next_turn.at = now + action_duration(...)）。tome2 对应决策：怪物
   要走进主角所在格时不移动、出手、算一回合（src/melee2.c:7138-7152）。
 - 怪物命中判定骨架（基础项，照搬 check_hit，src/melee1.c:60-81）：
@@ -101,8 +59,8 @@ player-attacks。
 验证：相邻必出手；不相邻仍走原随机移动；必中/必失边界；伤害区间；
 主角生命变负后停收命令。
 
-依赖：无；monster-combat-profile、combat-bonuses 与 damage-and-death
-已落地；与条目 4 合起来才是最小闭环。
+依赖：无；monster-combat-profile、combat-bonuses、damage-and-death 与
+player-attacks 已落地；本条合拢最小闭环。
 
 语料库交叉：.ref/tome2-specs/specs/monster-melee/spec.md。
 
@@ -126,13 +84,14 @@ player-attacks。
 - 伤害数字上浮（PD 风格）。
 - 生命显示：主角 HUD 与怪物头顶小血条（数据来自 monster-combat-profile 与既有
   玩家生命）。
-- 事件源：攻击/受击/死亡须能被前端观察——伤害入口已以消息落地
-  （damage-and-death），但缓冲被破坏式排干，展示侧读不到；条目 4、5
-  的攻击行动须另发展示事件。
+- 事件源：攻击/受击/死亡须能被前端观察——伤害通道已落地
+  （damage-and-death），但缓冲被破坏式排干，展示侧读不到；玩家的
+  攻击已随 player-attacks 落地、怪物的攻击待条目 5，两者的展示事
+  件由本条一并发展。
 
 不做（支撑系统不存在）：文字消息行与措辞档位（消息系统，见条目 14）。
 
-依赖：事件源来自条目 4、5；帧素材与显示组件可提前做。
+依赖：事件源来自条目 5；帧素材与显示组件可提前做。
 
 待裁决：动画帧素材来源。
 
@@ -153,7 +112,9 @@ player-attacks。
   现存于 combat/utils/attack.rs；替换的形式与位置由技能系统的设计
   决定，utils 只承载顶替值、不承载替代实现；src/xtra1.c:3903）；
   to_h_melee/to_d_melee 进攻击品质（src/xtra1.c:3740-3746、
-  2331-2372）；战斗技能按 scale(10) 加 to_d（src/xtra1.c:3748-3754）；
+  2331-2372）——攻击品质顶替值（含武器掌握的 to_h_melee 与基础武
+  器 to_h，现存 combat/utils/attack.rs）随本条与条目 9 落地删除；
+  战斗技能按 scale(10) 加 to_d（src/xtra1.c:3748-3754）；
   闪避豁免链（dodge_chance，src/melee1.c:1565-1636）；武器掌握的
   多击加成（src/xtra1.c:3642-3643）。
 - 语料库交叉：skills/spec.md、skill/spec.md、player-derive/spec.md。
@@ -161,8 +122,8 @@ player-attacks。
 9. 装备系统（战斗侧回收）
 - 等：装备/物品系统。
 - 回收：武器骰与武器 to_h/to_d 进攻击品质与伤害（src/cmd1.c:2640-
-  2846）；暴击五档（2d+5 / 2d+10 / 3d+15 / 3d+20 / 7d/2+25，
-  src/cmd1.c:123-186）；多击 num_blow 与 blows_table
+  2846）——武器 to_h 的顶替份额随本条与条目 8 一并删除；暴击五档
+  （2d+5 / 2d+10 / 3d+15 / 3d+20 / 7d/2+25，src/cmd1.c:123-186）；多击 num_blow 与 blows_table
   （src/xtra1.c:3600-3660、src/tables.c 的 blows 表）；玩家护甲 ac 的
   装备来源——combat/utils/armor_class.rs 的装备基数 0 为顶替值，替换
   的形式与位置由装备系统的设计决定，utils 只承载顶替值、不承载替代

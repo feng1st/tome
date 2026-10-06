@@ -7,7 +7,7 @@ use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
 use crate::core::map::components::cell_coord::CellCoord;
-use crate::core::movement::components::path::Path;
+use crate::core::player::components::order::Order;
 use crate::frontend::display::figure::components::figure_index::FigureIndex;
 use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
 use crate::frontend::display::motion::components::curr_position::CurrPosition;
@@ -17,24 +17,25 @@ use crate::frontend::display::sprite_animation::constants::anim_kind::AnimKind;
 
 /// One animated entity's sync inputs: the figure handle (for the anim
 /// table lookup on switches), the positions whose gap implies motion,
-/// and the playback state and sprite to write into.
+/// the standing order that keeps the run looping, and the playback
+/// state and sprite to write into.
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AnimSyncQuery {
     pub figure_index: &'static FigureIndex,
     pub cell: &'static CellCoord,
     pub curr_position: &'static CurrPosition,
-    pub path: Option<&'static Path>,
+    pub order: Option<&'static Order>,
     pub state: &'static mut AnimState,
     pub sprite: &'static mut Sprite,
 }
 
 /// Derive each entity's playback intent (idle vs. run) and facing. The
-/// run animation ties to the action queue, not to the instant position:
-/// a queued route keeps the run looping even while the picture waits
-/// for a faster creature, and a gap away from the logical cell means
-/// moving too. Write `AnimState` only on switches — a replay would
-/// restart the frame timing, so the write is a guarded switch.
+/// run animation ties to the standing order, not to the instant
+/// position: an order keeps the run looping even while the picture
+/// waits for a faster creature, and a gap away from the logical cell
+/// means moving too. Write `AnimState` only on switches — a replay
+/// would restart the frame timing, so the write is a guarded switch.
 pub fn sync_animation(
     time: Res<Time>,
     figure_registry: Res<FigureRegistry>,
@@ -42,7 +43,7 @@ pub fn sync_animation(
 ) {
     let elapsed = time.elapsed_secs();
     for mut item in &mut query {
-        let is_moving = item.path.is_some() || is_moving(*item.curr_position, *item.cell);
+        let is_moving = item.order.is_some() || is_moving(*item.curr_position, *item.cell);
         let desired = if is_moving {
             AnimKind::Run
         } else {

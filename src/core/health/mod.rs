@@ -12,16 +12,16 @@ pub mod utils;
 use bevy::prelude::*;
 
 use self::messages::damage::Damage;
-use self::systems::settle_damage::settle_damage;
+use self::systems::apply_damage::apply_damage;
 use crate::core::core_phase::CorePhase;
 
 /// Register the health domain: the damage message exists, and the
-/// settle system runs once per resolve phase — one instance after the
+/// apply system runs once per resolve phase — one instance after the
 /// driver's action, one after the world's. The destructive drain makes
 /// the twin registrations safe: exactly the instance that follows the
 /// writer applies each request.
 pub fn register(app: &mut App) {
     app.add_message::<Damage>()
-        .add_systems(Update, settle_damage.in_set(CorePhase::PlayerResolve))
-        .add_systems(Update, settle_damage.in_set(CorePhase::WorldResolve));
+        .add_systems(Update, apply_damage.in_set(CorePhase::PlayerResolve))
+        .add_systems(Update, apply_damage.in_set(CorePhase::WorldResolve));
 }

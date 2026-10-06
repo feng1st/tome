@@ -1,4 +1,5 @@
-//! Tile-step movement on the grid: paths and logical positions.
+//! Tile-step movement on the grid: the step action and logical
+//! positions. Route computation is the planning side's business.
 //! Pure game logic — no rendering types, no real time involved.
 
 pub mod components;

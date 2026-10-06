@@ -61,3 +61,57 @@ pub fn register(app: &mut App) {
             .in_set(GameLoop::Core),
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::map::components::cell_coord::CellCoord;
+    use crate::core::monster::components::monster_index::MonsterIndex;
+    use crate::core::player::commands::target_cell::TargetCell;
+    use crate::core::rng::resources::game_rng::GameRng;
+
+    /// Boot the real core assembly on a seed and target the first rat
+    /// until it dies or the budget runs out; `true` when it is slain.
+    /// The target is re-issued as the one-order-one-strike loop
+    /// resolves — the rhythm a player re-targets at.
+    fn slay_first_rat(seed: u64) -> bool {
+        let mut app = App::new();
+        app.add_plugins(bevy::state::app::StatesPlugin);
+        register(&mut app);
+        app.insert_resource(GameRng::seeded(seed));
+        for _ in 0..5 {
+            app.update();
+        }
+        let (rat, cell) = {
+            let world = app.world_mut();
+            let mut q = world.query::<(Entity, &MonsterIndex, &CellCoord)>();
+            let (rat, _, cell) = q.iter(world).next().expect("a rat spawned");
+            (rat, *cell)
+        };
+        app.world_mut().write_message(TargetCell(cell));
+        for i in 0..400 {
+            if i % 4 == 3 {
+                let current = app.world().get::<CellCoord>(rat).copied();
+                if let Some(c) = current {
+                    app.world_mut().write_message(TargetCell(c));
+                }
+            }
+            app.update();
+            if app.world().get_entity(rat).is_err() {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// The full core assembly, headless: the real registers, data, and
+    /// phase chain spawn the player and the rats, and targeting a rat
+    /// pursues and slays it. A seed sweep rather than a pinned seed —
+    /// draw-order shifts move individual seeds, but a viable loop slays
+    /// across the sweep.
+    #[test]
+    fn the_real_assembly_slays_a_rat() {
+        let slain = (0..30u64).filter(|seed| slay_first_rat(*seed)).count();
+        assert!(slain >= 15, "only {slain} of 30 seeds slew the rat");
+    }
+}

@@ -15,7 +15,7 @@ use bevy::prelude::*;
 /// One iteration of the game loop, chained by the assembly layer.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameLoop {
-    /// Core commands are produced from gestures.
+    /// Core commands are produced from raw input.
     Input,
     /// Core game logic: command execution, movement, world state.
     Core,

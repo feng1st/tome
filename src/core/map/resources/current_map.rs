@@ -109,6 +109,8 @@ pub(crate) fn parse_local_map(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
     use crate::core::map::resources::terrain_registry::parse_terrain_registry;
 
@@ -279,7 +281,7 @@ mod tests {
             &terrain_registry,
             CellCoord::new(24, 19)
         )); // pool center
-        let path = find_path(&local_map, &terrain_registry, start, goal)
+        let path = find_path(&local_map, &terrain_registry, start, goal, &HashSet::new())
             .expect("a detour around the pool exists");
         for cell in &path {
             assert!(walkable(&local_map, &terrain_registry, *cell));

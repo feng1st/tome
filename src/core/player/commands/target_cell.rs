@@ -7,7 +7,8 @@ use bevy::prelude::*;
 
 use crate::core::map::components::cell_coord::CellCoord;
 
-/// Command: walk the player to a cell. The core validates walkability and
-/// pathfinds; invalid targets are ignored.
+/// Command: the player targeted a cell. The core decides what the target
+/// means — a strike when a living monster stands there, a walk otherwise
+/// — and ignores invalid cells.
 #[derive(Message, Clone, Copy, Debug)]
-pub struct MoveToCell(pub CellCoord);
+pub struct TargetCell(pub CellCoord);

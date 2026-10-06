@@ -7,10 +7,10 @@ use bevy::prelude::*;
 /// application subtracts without a floor, so the target may end
 /// negative — only strictly negative values are dead, and exactly zero
 /// stays alive. Consumers drain the buffer destructively
-/// (`Messages::drain`), never through a `MessageReader`: the settle
+/// (`Messages::drain`), never through a `MessageReader`: the apply
 /// system registers once per resolve phase, and reader state is per
 /// system instance, so two readers would apply every request twice.
-#[derive(Message, Clone, Copy, Debug)]
+#[derive(Message, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Damage {
     pub target: Entity,
     pub amount: i32,

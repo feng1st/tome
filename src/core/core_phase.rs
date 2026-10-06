@@ -1,10 +1,10 @@
 //! The headless turn pipeline: system sets chained inside Bevy's
 //! `Update` schedule, each side running the same plan → act → resolve
 //! arc. The frame opens with the clock sweep, so due turns are
-//! plannable in the same frame they come due; queued commands settle
+//! plannable in the same frame they come due; queued commands land
 //! right after, so planning always reads landed state; the driver's
-//! action settles before the world plans, so a slain monster never
-//! plans or acts again; the world's action settles before the next
+//! action resolves before the world plans, so a slain monster never
+//! plans or acts again; the world's action resolves before the next
 //! frame opens, so a slain driver never plans another step; every
 //! phase boundary is a command flush point.
 
@@ -20,15 +20,15 @@ pub enum CorePhase {
     /// reads it: change-driven derivation systems keep derived
     /// components fresh at frame open.
     Derive,
-    /// Queued commands execute: validation and pathfinding settle here,
-    /// so the planning phases read landed state.
+    /// Queued commands execute: target validation and order dispatch
+    /// land here, so the planning phases read landed state.
     Command,
-    /// The world driver plans from queued input: at most one action per
-    /// due turn.
+    /// The driver plans its action from the standing order: at most one
+    /// action per due turn.
     PlayerPlan,
     /// The driver's action executes and modifies the world.
     PlayerAct,
-    /// The driver's effects settle before the world plans: damage
+    /// The driver's effects resolve before the world plans: damage
     /// applies and death is handled, so a slain monster never plans or
     /// acts again.
     PlayerResolve,
@@ -37,7 +37,7 @@ pub enum CorePhase {
     WorldPlan,
     /// The world's actions execute and modify the world.
     WorldAct,
-    /// The world's effects settle before the next frame opens: damage
+    /// The world's effects resolve before the next frame opens: damage
     /// applies and death is handled, so a slain driver never plans
     /// another step.
     WorldResolve,

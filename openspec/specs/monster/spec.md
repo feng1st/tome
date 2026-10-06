@@ -6,13 +6,16 @@ Monster kinds and spawning: a core data file declares the monster
 vocabulary and assigns runtime handles (a kind is the monster's
 identity — an entry carries its speed and combat profile: hit dice,
 armor class, level, and blows); map files declare what spawns where.
-Monsters spawn as pure game data and do not block movement; their
-visual presentation is the creature-identity capability's business.
+Monsters spawn as pure game data and block the player: their cells are
+obstacles to the player's orders. Their visual presentation is the
+creature-identity capability's business; what targeting one means is
+the combat capability's.
 
 怪物种类的定义与出生：core 的数据文件声明怪物词表并分配运行时句柄
 （kind 即身份，条目携带速度与战斗档案——生命骰、护甲、等级、攻击），
-地图文件声明出生内容；怪物以纯游戏数据出生、不阻碍移动；形象呈现由
-creature-identity 能力承接。
+地图文件声明出生内容。怪物以纯游戏数据出生并阻挡主角：怪物格是主
+角指令路上的障碍。形象呈现由 creature-identity 能力承接；以怪物为
+目标意味着什么由 combat 能力承接。
 
 ## Requirements
 
@@ -98,19 +101,22 @@ SHALL fail startup, the error naming that id.
 - **WHEN** a spawn entry produces a monster entity | 一个出生条目生成怪物实体时
 - **THEN** the entity carries the hit-point component, the current value equal to the ceiling, and the ceiling within the entry's hit-dice range (dice count to dice count × face count, both ends included) | 实体携带生命值组件，当前值等于上限，且上限落在该条目生命骰的值域内（骰数到骰数×面数，含两端）
 
-### Requirement: Monster Presentation and Non-Blocking | 怪物呈现与占位
+### Requirement: Monster Presentation and Blocking | 怪物呈现与阻挡
 
 A monster SHALL present the figure bound to its kind key and play the
 idle animation. When several monsters spawn on the same frame, their
 idle playback start frames SHALL derive from their own spawn cells
-rather than synchronizing at zero. Monsters MUST NOT block movement:
-pathfinding and target-cell checks read terrain only, and the player
-may move onto a monster's cell.
+rather than synchronizing at zero. Monsters SHALL block the player:
+the player's movement MUST NOT step onto a cell holding a living
+monster — a click on such a cell issues an attack order instead (see
+the combat capability), and a move order's route treats monster cells
+as obstacles.
 
-怪物 SHALL 按其 kind 键绑定的形象呈现并播放 idle 动画。多只怪物同帧出
-生时，它们的 idle 播放起始帧 SHALL 由各自出生格坐标派生，而非全零同
-步。怪物 MUST NOT 阻碍移动：寻路与目标格判定只读地形，主角可移动到怪
-物所在格。
+怪物 SHALL 按其 kind 键绑定的形象呈现并播放 idle 动画。多只怪物同
+帧出生时，它们的 idle 播放起始帧 SHALL 由各自出生格坐标派生，而
+非全零同步。怪物 SHALL 阻挡主角：主角的移动 MUST NOT 踏上持有活
+怪物的格子——点击这样的格子改为发出攻击指令（见 combat 能力），
+移动指令的路线把怪物格视为障碍。
 
 #### Scenario: Presenting and idling from birth | 出生即呈现并播放 idle
 
@@ -122,10 +128,15 @@ may move onto a monster's cell.
 - **WHEN** two monsters whose spawn-cell coordinates sum differently spawn on the same frame | 两只出生格坐标之和不同的怪物同帧出生时
 - **THEN** their idle playback start frames differ | 它们的 idle 播放起始帧不同
 
-#### Scenario: The player walks through a monster's cell | 主角穿行怪物所在格
+#### Scenario: A monster's cell blocks the player | 怪物格阻挡主角
 
-- **WHEN** the player targets a move at a monster's cell | 主角以怪物所在格为目标移动时
-- **THEN** pathfinding and movement are unaffected by the monster, and the player arrives and stays on that cell | 寻路与移动不受怪物影响，主角到达并停留于该格
+- **WHEN** the player targets a move at a monster's cell | 主角以怪物所在格为移动目标时
+- **THEN** the player never steps onto that cell — the click becomes an attack order | 主角永不踏上该格——该点击成为攻击指令
+
+#### Scenario: A move route goes around monsters | 移动路线绕开怪物
+
+- **WHEN** a monster stands between the player and the move target | 怪物站在主角与移动目标之间时
+- **THEN** the player's steps go around the monster's cell | 主角的步伐绕开怪物所在格
 
 ### Requirement: Giant White Rat Data | 巨白鼠数据
 
@@ -156,20 +167,21 @@ hit_points: "2d2", armor_class: 7, level: 4, blows: [ ( damage: "1d3" ) ]
 On each of its due turns a monster SHALL plan one action: 75% of the
 time it stays put; 25% of the time it redraws an independent random
 direction among the eight up to four times and steps into the first
-passable target cell, staying put if all four fail. The turn SHALL be
-spent as usual whether the monster moves or not. The world starts
-running from the player's first action: monsters MUST NOT plan while
-the player's next-turn slot is still zero; a monster MUST NOT plan
-while its own picture is moving. When the action takes effect, the
-monster's cell coordinate changes to the target cell at once; the
-presentation position is caught up by the display side.
+target cell that is passable and holds no living creature, staying
+put if all four fail. The turn SHALL be spent as usual whether the
+monster moves or not. The world starts running from the player's
+first action: monsters MUST NOT plan while the player's next-turn
+slot is still zero; a monster MUST NOT plan while its own picture is
+moving. When the action takes effect, the monster's cell coordinate
+changes to the target cell at once; the presentation position is
+caught up by the display side.
 
-怪物 SHALL 在自己的到期回合规划一次行动：75% 原地不动；25% 从 8 个方
-向中独立随机重选至多四次，第一个可通行的目标格即走入，四次皆不可通行
-则原地不动。无论是否移动，该回合 SHALL 照常消耗。世界自主角的首个行
-动开始运转：主角的回合槽仍为零时怪物 MUST NOT 规划；怪物自己的画面仍
-在移动时 MUST NOT 规划。行动生效时，怪物的格坐标立即修改为目标格；呈
-现位置由画面层追上。
+怪物 SHALL 在自己的到期回合规划一次行动：75% 原地不动；25% 从 8 个
+方向中独立随机重选至多四次，第一个“可通行且无活物”的目标格即走
+入，四次皆失败则原地不动。无论是否移动，该回合 SHALL 照常消耗。
+世界自主角的首个行动开始运转：主角的回合槽仍为零时怪物 MUST NOT
+规划；怪物自己的画面仍在移动时 MUST NOT 规划。行动生效时，怪物的
+格坐标立即修改为目标格；呈现位置由画面层追上。
 
 #### Scenario: No planning before the world starts | 世界未启动不规划
 
@@ -190,3 +202,8 @@ presentation position is caught up by the display side.
 
 - **WHEN** a monster whose four neighbors are all impassable rolls a move | 一只四邻皆不可通行的怪物掷出移动时
 - **THEN** it stays put that turn, and the turn is spent as usual | 该回合原地不动，回合照常消耗
+
+#### Scenario: Occupied cells count as blocked | 占位格视同不可走
+
+- **WHEN** a wandering roll picks a cell holding the living player or another monster | 随机移动选中持有存活主角或其他怪物的格子时
+- **THEN** that pick fails and the next independent direction is drawn | 该次选取失败，重抽下一个独立方向

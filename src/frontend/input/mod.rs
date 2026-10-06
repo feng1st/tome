@@ -1,28 +1,15 @@
-//! Input: devices translate raw input (PC mouse today) into
-//! display-independent gestures, then resolvers interpret gestures into
-//! core commands. Message registration lives in `gestures/`; system
-//! registration sinks to each group (phases carry the ordering); the root
-//! only orchestrates the phase chain.
+//! Input: raw device input translated into core commands. A mouse press
+//! becomes the core command `TargetCell`; what the target means — a walk
+//! or a strike — is the core's decision.
 
-pub mod gestures;
-pub mod input_phase;
 pub mod systems;
 
 use bevy::prelude::*;
 
-use self::input_phase::InputPhase;
 use crate::core::game_loop::GameLoop;
 
-/// Register the input domain: gesture message types, both system groups,
-/// and the phase ordering (translate before resolve, inside
-/// `GameLoop::Input`).
+/// Register the input domain: the translation systems land in the
+/// core-owned `GameLoop::Input` stage.
 pub fn register(app: &mut App) {
-    gestures::register(app);
-    systems::register(app);
-    app.configure_sets(
-        Update,
-        (InputPhase::Translate, InputPhase::Resolve)
-            .chain()
-            .in_set(GameLoop::Input),
-    );
+    app.add_systems(Update, systems::mouse::translate.in_set(GameLoop::Input));
 }

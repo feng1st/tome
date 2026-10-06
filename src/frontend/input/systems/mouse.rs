@@ -1,27 +1,27 @@
 //! Mouse device translation: every mouse control (buttons today, wheel and
 //! double-click later) is translated here, so click/double-click
-//! disambiguation and other device-level timing stay in one place.
-//! Modalities report what the pointer hit; they never decide what it means.
+//! disambiguation and other device-level timing stay in one place. The
+//! pointer reports what it hit; it never decides what it means.
 
 use bevy::prelude::*;
 
+use crate::core::player::commands::target_cell::TargetCell;
 use crate::frontend::display::camera::components::main_camera::MainCamera;
 use crate::frontend::display::camera::utils::coords::window_to_world;
 use crate::frontend::display::map::utils::coords::world_to_cell;
-use crate::frontend::input::gestures::primary_action_on_cell::PrimaryActionOnCell;
 
 /// Control bindings are literals today (left button = primary action); when
 /// the bindings table lands they become lookups, and this system's path and
 /// signature stay unchanged. The world renders straight to the window, so
 /// the cursor converts window -> world -> cell: `window_to_world` (the
 /// camera domain owns the rule). The ground is the only hittable target
-/// today, so every press becomes `PrimaryActionOnCell`; sprite-mask hit
-/// testing (a picking backend) arrives with the first clickable monster.
+/// today, so every press becomes `TargetCell` and the core derives what
+/// it means — a walk or a strike.
 pub fn translate(
     buttons: Res<ButtonInput<MouseButton>>,
     window: Single<&Window>,
     camera: Single<&Transform, With<MainCamera>>,
-    mut gestures: MessageWriter<PrimaryActionOnCell>,
+    mut targets: MessageWriter<TargetCell>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
         return;
@@ -30,5 +30,5 @@ pub fn translate(
         return;
     };
     let world = window_to_world(cursor, &window, camera.translation.truncate());
-    gestures.write(PrimaryActionOnCell(world_to_cell(world)));
+    targets.write(TargetCell(world_to_cell(world)));
 }

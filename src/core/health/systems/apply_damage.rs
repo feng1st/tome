@@ -1,4 +1,4 @@
-//! Damage application and death handling: the one settle pass.
+//! Damage application and death handling: the one apply pass.
 
 use bevy::prelude::*;
 
@@ -6,6 +6,7 @@ use crate::core::health::components::dead::Dead;
 use crate::core::health::components::hit_points::HitPoints;
 use crate::core::health::messages::damage::Damage;
 use crate::core::monster::components::monster_index::MonsterIndex;
+use crate::core::player::components::order::Order;
 use crate::core::world_clock::components::world_driver::WorldDriver;
 
 /// Apply every pending damage request, then handle the deaths it left
@@ -18,6 +19,10 @@ use crate::core::world_clock::components::world_driver::WorldDriver;
 /// `Messages::drain` empties the buffer: whichever instance runs after
 /// a request was written applies it, and the other finds nothing left.
 ///
+/// A landed hit interrupts: applying damage strips the target's
+/// standing order, so whatever the creature was doing is dropped and
+/// (for the driver) the world waits for fresh input.
+///
 /// Death is strictly negative hit points; zero is alive. A dead monster
 /// is despawned — its entity leaves the world, presentation included. A
 /// dead driver gains the `Dead` marker and stays: commands and planning
@@ -25,7 +30,7 @@ use crate::core::world_clock::components::world_driver::WorldDriver;
 /// driver's never-spent turn. A negative entity that is neither species
 /// is left untouched — no third species exists. A request naming a
 /// despawned target is dropped.
-pub fn settle_damage(
+pub fn apply_damage(
     mut commands: Commands,
     mut damage_messages: ResMut<Messages<Damage>>,
     mut creatures: Query<(
@@ -44,6 +49,10 @@ pub fn settle_damage(
             // No floor: negative results are legal. The current value
             // only decreases, so the ceiling invariant needs no clamp.
             hit_points.current -= damage.amount;
+            // Being hit interrupts: a landed hit strips the target's
+            // standing order. A target without an order (every monster)
+            // is a harmless no-op.
+            commands.entity(damage.target).remove::<Order>();
         }
     }
     for (entity, hit_points, monster, driver) in &mut creatures {
@@ -64,12 +73,13 @@ mod tests {
     use super::*;
     use crate::core::health;
     use crate::core::health::components::hit_points::HitPoints;
+    use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::monster::components::monster_index::MonsterIndex;
 
     fn app() -> App {
         let mut app = App::new();
         app.add_message::<Damage>()
-            .add_systems(Update, settle_damage);
+            .add_systems(Update, apply_damage);
         app
     }
 
@@ -185,7 +195,7 @@ mod tests {
     fn two_instances_apply_each_request_once() {
         let mut app = App::new();
         app.add_message::<Damage>()
-            .add_systems(Update, (settle_damage, settle_damage).chain());
+            .add_systems(Update, (apply_damage, apply_damage).chain());
         let rat = spawn_monster(&mut app, 12, 19);
         app.world_mut().write_message(Damage {
             target: rat,
@@ -224,5 +234,42 @@ mod tests {
         });
         app.update();
         assert_eq!(hit_points(&app, rat), 7);
+    }
+
+    /// A landed hit interrupts: the struck driver drops its standing
+    /// order along with the hit points.
+    #[test]
+    fn a_hit_strips_the_target_s_standing_order() {
+        let mut app = app();
+        let driver = spawn_driver(&mut app, 12, 19);
+        app.world_mut()
+            .entity_mut(driver)
+            .insert(Order::Attack { target: driver });
+        app.world_mut().write_message(Damage {
+            target: driver,
+            amount: 5,
+        });
+        app.update();
+        assert_eq!(hit_points(&app, driver), 7);
+        assert!(app.world().entity(driver).get::<Order>().is_none());
+    }
+
+    /// No damage, no interruption: an undamaged driver keeps its
+    /// orders, and a monster (which holds none) is a harmless no-op.
+    #[test]
+    fn an_undamaged_creature_keeps_its_orders() {
+        let mut app = app();
+        let driver = spawn_driver(&mut app, 12, 19);
+        app.world_mut().entity_mut(driver).insert(Order::Move {
+            target: CellCoord::new(3, 3),
+        });
+        let rat = spawn_monster(&mut app, 12, 19);
+        app.world_mut().write_message(Damage {
+            target: rat,
+            amount: 5,
+        });
+        app.update();
+        let driver_entity = app.world().entity(driver);
+        assert!(driver_entity.get::<Order>().is_some());
     }
 }

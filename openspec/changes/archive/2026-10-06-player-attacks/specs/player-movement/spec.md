@@ -1,46 +1,6 @@
-# player-movement Specification | player-movement 规格
+# player-movement Specification (delta) | player-movement 规格（增量）
 
-## Purpose
-
-The player's cell-based movement: a mouse click picks the target cell
-and issues a standing order, each due turn plans one step along a
-freshly computed A* route (8 directions, corner cutting allowed), and
-the presentation position moves continuously; the target may be
-re-picked mid-move.
-
-定义主角的格子化移动行为：鼠标点击选取目标格并发出站立指令，每个
-到期回合沿即时计算的 A* 路线（8 方向、允许切角）策划一步，呈现位
-置连续移动；移动途中可重新选取目标。
-
-## Requirements
-
-### Requirement: Click Picks the Target | 鼠标点击选目标
-
-The game SHALL translate a left mouse button click's screen
-coordinates into the cell under that world position and take it as the
-command target; clicking an impassable cell MUST NOT produce any
-order; clicking a cell holding a living monster MUST NOT produce a
-move order (it issues an attack order — see the combat capability).
-
-游戏 SHALL 将鼠标左键点击的屏幕坐标转换为世界坐标对应的格子，作
-为命令目标；点击不可通行格 MUST NOT 产生任何指令；点击持有活怪
-物的格子 MUST NOT 产生移动指令（它发出攻击指令——见 combat 能
-力）。
-
-#### Scenario: Clicking a walkable floor cell | 点击可通行地板格
-
-- **WHEN** the player left-clicks a walkable floor cell holding no monster | 玩家左键点击一个没有怪物的可通行地板格时
-- **THEN** the player starts moving toward that cell | 主角开始向该格移动
-
-#### Scenario: Clicking a wall or water cell | 点击墙格或水格
-
-- **WHEN** the player left-clicks an impassable wall or water cell | 玩家左键点击不可通行的墙格或水格时
-- **THEN** the player does not move and keeps the current state | 主角不移动，保持当前状态
-
-#### Scenario: Clicking a monster's cell | 点击怪物所在格
-
-- **WHEN** the player left-clicks a cell holding a living monster | 玩家左键点击持有活怪物的格子时
-- **THEN** no move order is issued | 不产生移动指令
+## ADDED Requirements
 
 ### Requirement: Standing Move Order | 站立移动指令
 
@@ -71,6 +31,41 @@ target while a monster stands on the target clears it.
 - **WHEN** the player clicks a new walkable target while an order stands | 指令存续期间玩家点击新的可走目标时
 - **THEN** the old order is replaced and the next step heads for the new target | 旧指令被替换，下一步朝新目标走出
 
+## RENAMED Requirements
+
+- FROM: `### Requirement: Commands Settle Before Planning | 命令先于规划落盘`
+  TO: `### Requirement: Commands Land Before Planning | 命令先于规划落盘`
+
+## MODIFIED Requirements
+
+### Requirement: Click Picks the Target | 鼠标点击选目标
+
+The game SHALL translate a left mouse button click's screen
+coordinates into the cell under that world position and take it as the
+command target; clicking an impassable cell MUST NOT produce any
+order; clicking a cell holding a living monster MUST NOT produce a
+move order (it issues an attack order — see the combat capability).
+
+游戏 SHALL 将鼠标左键点击的屏幕坐标转换为世界坐标对应的格子，作
+为命令目标；点击不可通行格 MUST NOT 产生任何指令；点击持有活怪
+物的格子 MUST NOT 产生移动指令（它发出攻击指令——见 combat 能
+力）。
+
+#### Scenario: Clicking a walkable floor cell | 点击可通行地板格
+
+- **WHEN** the player left-clicks a walkable floor cell holding no monster | 玩家左键点击一个没有怪物的可通行地板格时
+- **THEN** the player starts moving toward that cell | 主角开始向该格移动
+
+#### Scenario: Clicking a wall or water cell | 点击墙格或水格
+
+- **WHEN** the player left-clicks an impassable wall or water cell | 玩家左键点击不可通行的墙格或水格时
+- **THEN** the player does not move and keeps the current state | 主角不移动，保持当前状态
+
+#### Scenario: Clicking a monster's cell | 点击怪物所在格
+
+- **WHEN** the player left-clicks a cell holding a living monster | 玩家左键点击持有活怪物的格子时
+- **THEN** no move order is issued | 不产生移动指令
+
 ### Requirement: A* Pathfinding | A* 寻路
 
 The game SHALL pathfind over walkable cells with the A* algorithm,
@@ -83,7 +78,7 @@ unreachable target MUST NOT produce movement.
 游戏 SHALL 使用 A* 算法在可通行格上寻路，支持 8 方向（含对角）移
 动；对角移动 MUST 只在目标对角格可通行时通过。为站立指令寻路
 时，持有活怪物的格子 SHALL 视为障碍，路线目的格本身除外。目标不
-可达时 MUST NOT 不产生移动。
+可达时 MUST NOT 产生移动。
 
 #### Scenario: Pathfinding around the pool | 绕过水池寻路
 

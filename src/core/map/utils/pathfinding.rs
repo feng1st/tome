@@ -10,8 +10,10 @@ use crate::core::map::types::local_map::LocalMap;
 use crate::core::map::types::terrain::Terrain;
 
 /// A* over the walkable grid, 8 directions, cost 10 straight / 14 diagonal,
-/// octile-distance heuristic. Diagonal steps only require the target cell to
-/// be walkable (corner cutting allowed).
+/// octile-distance heuristic. Cells in `obstacles` are impassable, except
+/// the destination: a route may end on an occupied goal, and the caller
+/// decides what the final step means. Diagonal steps only require the
+/// target cell to be walkable (corner cutting allowed).
 ///
 /// Costs are integers scaled by 10 so the heap can stay `i32`.
 pub fn find_path(
@@ -19,6 +21,7 @@ pub fn find_path(
     terrain_registry: &TerrainRegistry,
     start: CellCoord,
     goal: CellCoord,
+    obstacles: &HashSet<CellCoord>,
 ) -> Option<VecDeque<CellCoord>> {
     let walkable = |cell: CellCoord| {
         local_map
@@ -29,6 +32,10 @@ pub fn find_path(
     if !walkable(start) || !walkable(goal) {
         return None;
     }
+    // The destination is exempt from the obstacle overlay: a route may
+    // end on an occupied goal, and the order's planning decides on the
+    // final step.
+    let blocked = |cell: CellCoord| cell != goal && obstacles.contains(&cell);
     if start == goal {
         return Some(VecDeque::new());
     }
@@ -93,7 +100,7 @@ pub fn find_path(
         let g = g_score[&cell];
         for (dir, cost) in DIRS {
             let next = cell + dir;
-            if !walkable(next) {
+            if !walkable(next) || blocked(next) {
                 continue;
             }
             let next_g = g + cost;
@@ -166,7 +173,8 @@ mod tests {
         // Straight line between these cells crosses the pool.
         let start = CellCoord::new(2, 5);
         let goal = CellCoord::new(13, 5);
-        let path = find_path(&local_map, &terrain_registry, start, goal).expect("path exists");
+        let path = find_path(&local_map, &terrain_registry, start, goal, &HashSet::new())
+            .expect("path exists");
         assert_eq!(*path.back().unwrap(), goal);
         let water = terrain_registry.get_index("water").unwrap();
         for cell in &path {
@@ -192,6 +200,7 @@ mod tests {
             &terrain_registry,
             CellCoord::new(1, 1),
             CellCoord::new(2, 2),
+            &HashSet::new(),
         )
         .expect("the diagonal only needs its target walkable");
         assert_eq!(path.len(), 1);
@@ -206,21 +215,24 @@ mod tests {
             &local_map,
             &terrain_registry,
             CellCoord::new(5, 2),
-            CellCoord::new(0, 0)
+            CellCoord::new(0, 0),
+            &HashSet::new(),
         )
         .is_none()); // wall
         assert!(find_path(
             &local_map,
             &terrain_registry,
             CellCoord::new(5, 2),
-            CellCoord::new(6, 4)
+            CellCoord::new(6, 4),
+            &HashSet::new(),
         )
         .is_none()); // water
         assert!(find_path(
             &local_map,
             &terrain_registry,
             CellCoord::new(5, 2),
-            CellCoord::new(-3, 2)
+            CellCoord::new(-3, 2),
+            &HashSet::new(),
         )
         .is_none());
         // oob
@@ -235,8 +247,55 @@ mod tests {
             &terrain_registry,
             CellCoord::new(5, 2),
             CellCoord::new(5, 2),
+            &HashSet::new(),
         )
         .unwrap();
         assert!(path.is_empty());
+    }
+
+    #[test]
+    fn path_routes_around_an_obstacle() {
+        let terrain_registry = terrain_registry();
+        let local_map = map_from(&[".....", ".....", "....."]);
+        let mut obstacles = HashSet::new();
+        obstacles.insert(CellCoord::new(2, 1)); // the straight line's middle
+        let path = find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(0, 1),
+            CellCoord::new(4, 1),
+            &obstacles,
+        )
+        .expect("a detour around the obstacle exists");
+        assert_eq!(*path.back().unwrap(), CellCoord::new(4, 1));
+        assert!(
+            !path.contains(&CellCoord::new(2, 1)),
+            "the obstacle cell is avoided"
+        );
+        for cell in &path {
+            assert!(walkable(&local_map, &terrain_registry, *cell));
+        }
+    }
+
+    #[test]
+    fn an_occupied_goal_still_resolves_a_route() {
+        // The destination is exempt from the overlay: the route may end
+        // on the occupied goal — the order's planning decides on the
+        // final step.
+        let terrain_registry = terrain_registry();
+        let local_map = map_from(&[".....", ".....", "....."]);
+        let goal = CellCoord::new(4, 1);
+        let mut obstacles = HashSet::new();
+        obstacles.insert(goal);
+        let path = find_path(
+            &local_map,
+            &terrain_registry,
+            CellCoord::new(0, 1),
+            goal,
+            &obstacles,
+        )
+        .expect("the goal's own obstacle does not block the route");
+        assert_eq!(*path.back().unwrap(), goal);
+        assert!(path.iter().take(path.len() - 1).all(|cell| *cell != goal));
     }
 }

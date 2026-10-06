@@ -88,25 +88,27 @@ mod tests {
     /// movement ever freezes the clock, so turns resolve at frame rate.
     #[test]
     fn the_world_stops_with_a_ready_driver() {
-        use std::collections::VecDeque;
-
         use crate::core::map::components::cell_coord::CellCoord;
         use crate::core::map::resources::current_map::{parse_local_map, CurrentMap};
         use crate::core::map::resources::terrain_registry::parse_terrain_registry;
         use crate::core::monster::components::monster_index::MonsterIndex;
         use crate::core::monster::systems::plan_wander::plan_wander;
-        use crate::core::movement::components::path::Path;
         use crate::core::movement::systems::act_move::act_move;
-        use crate::core::player::systems::plan_move::plan_move;
+        use crate::core::player::components::order::Order;
+        use crate::core::player::systems::plan_action::plan_action;
         use crate::core::rng::resources::game_rng::GameRng;
         use crate::core::speed::components::speed::Speed;
         use crate::core::world_clock::components::world_driver::WorldDriver;
 
-        let terrains =
-            parse_terrain_registry("test", r#"[ ( terrain: "floor", flags: ["PASSABLE"] ) ]"#);
+        let terrains = parse_terrain_registry(
+            "test",
+            r#"[ ( terrain: "floor", flags: ["PASSABLE"] ), ( terrain: "wall", flags: [] ) ]"#,
+        );
+        // The rat wanders in a sealed row below the wall: its cadence is
+        // exact, and it can never interfere with the driver's walk.
         let map = parse_local_map(
             "test",
-            r#"( legend: { '.': "floor" }, rows: [ "......", ], )"#,
+            r#"( legend: { '.': "floor", 'x': "wall" }, rows: [ "......", "xxxxxx", "......", ], )"#,
             &terrains,
         );
         let mut app = App::new();
@@ -116,7 +118,7 @@ mod tests {
             .insert_resource(CurrentMap::new(map))
             .add_systems(
                 Update,
-                (advance, plan_move, act_move, plan_wander, act_move).chain(),
+                (advance, plan_action, act_move, plan_wander, act_move).chain(),
             );
         let player = app
             .world_mut()
@@ -125,11 +127,9 @@ mod tests {
                 CellCoord::new(1, 0),
                 Speed(110),
                 NextTurn::default(),
-                Path::new(VecDeque::from([
-                    CellCoord::new(2, 0),
-                    CellCoord::new(3, 0),
-                    CellCoord::new(4, 0),
-                ])),
+                Order::Move {
+                    target: CellCoord::new(4, 0),
+                },
             ))
             .id();
         let rat = app
@@ -137,7 +137,7 @@ mod tests {
             .spawn((
                 MonsterIndex::from_index(0),
                 Speed(125),
-                CellCoord::new(5, 0),
+                CellCoord::new(5, 2),
                 NextTurn::default(),
             ))
             .id();
@@ -150,7 +150,10 @@ mod tests {
             app.world().get::<CellCoord>(player).unwrap(),
             &CellCoord::new(4, 0)
         );
-        assert!(app.world().get::<Path>(player).is_none(), "path consumed");
+        assert!(
+            app.world().get::<Order>(player).is_none(),
+            "arrival cleared the order"
+        );
         assert_eq!(
             app.world().resource::<WorldClock>().now,
             300,
