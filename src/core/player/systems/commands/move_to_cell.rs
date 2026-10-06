@@ -2,8 +2,10 @@
 //! and pathfinding live here in the core — the frontend asks, the core
 //! decides.
 
+use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
+use crate::core::health::components::dead::Dead;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
@@ -13,19 +15,28 @@ use crate::core::movement::components::path::Path;
 use crate::core::player::commands::move_to_cell::MoveToCell;
 use crate::core::player::components::player::Player;
 
+/// The command executor's player view: identity and position.
+#[derive(QueryData)]
+pub struct PlayerCellQuery {
+    entity: Entity,
+    cell: &'static CellCoord,
+}
+
 /// Execute every `MoveToCell` command: an unwalkable or unreachable target
 /// is ignored entirely; a new goal mid-walk re-paths from the cell the
-/// player currently stands in.
+/// player currently stands in. Commands to a dead driver are ignored —
+/// the query filters the death marker out.
 pub fn execute(
     mut commands: Commands,
     mut move_commands: MessageReader<MoveToCell>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
-    player: Query<(Entity, &CellCoord), With<Player>>,
+    player: Query<PlayerCellQuery, (With<Player>, Without<Dead>)>,
 ) {
-    let Ok((player_entity, &start)) = player.single() else {
+    let Ok(player) = player.single() else {
         return;
     };
+    let start = *player.cell;
     let local_map = current_map.map();
     for command in move_commands.read() {
         let goal = command.0;
@@ -42,7 +53,7 @@ pub fn execute(
         let Some(cells) = find_path(local_map, &terrain_registry, start, goal) else {
             continue;
         };
-        commands.entity(player_entity).insert(Path::new(cells));
+        commands.entity(player.entity).insert(Path::new(cells));
     }
 }
 
@@ -151,6 +162,21 @@ mod tests {
         app.update();
         let path = app.world().get::<Path>(player).expect("path attached");
         assert_eq!(*path.cells.back().unwrap(), CellCoord::new(4, 2));
+    }
+
+    /// A dead driver's commands are ignored: no path forms even for a
+    /// walkable goal.
+    #[test]
+    fn a_dead_driver_ignores_commands() {
+        let mut app = app();
+        let player = app
+            .world_mut()
+            .spawn((Player, Dead, CellCoord::new(2, 2)))
+            .id();
+        app.world_mut()
+            .write_message(MoveToCell(CellCoord::new(4, 2)));
+        app.update();
+        assert!(app.world().get::<Path>(player).is_none());
     }
 
     #[test]

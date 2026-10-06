@@ -7,11 +7,8 @@ use bevy::prelude::*;
 /// alike; the current value MUST NOT exceed the ceiling.
 #[derive(Component)]
 pub struct HitPoints {
-    // Read from the systems that spend and restore hit points as the
-    // combat loop lands; birth writes both values today.
-    #[allow(dead_code)]
     pub current: i32,
-    #[allow(dead_code)]
+    #[allow(dead_code)] // consumed by life display and restorative channels
     pub max: i32,
 }
 

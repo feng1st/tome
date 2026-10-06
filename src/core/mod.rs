@@ -42,6 +42,7 @@ pub fn register(app: &mut App) {
     monster::register(app);
     movement::register(app);
     world_clock::register(app);
+    health::register(app);
     combat::register(app);
     app.init_state::<AppState>().configure_sets(
         Update,
@@ -51,8 +52,10 @@ pub fn register(app: &mut App) {
             CorePhase::Command,
             CorePhase::PlayerPlan,
             CorePhase::PlayerAct,
+            CorePhase::PlayerResolve,
             CorePhase::WorldPlan,
             CorePhase::WorldAct,
+            CorePhase::WorldResolve,
         )
             .chain()
             .in_set(GameLoop::Core),

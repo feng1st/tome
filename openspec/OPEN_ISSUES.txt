@@ -18,46 +18,9 @@ HitPoints 组件、速度域与世界时钟、移动管线、怪物词表与出�
 不存在的支撑系统（本次一律不取）：技能、装备、状态、effect 家族、
 旗标、感知 AI、经验/成长、消息。
 
-顺序理由：条目 3 无前置，先于 4、5；条目 1、2 已分别以
-monster-combat-profile、combat-bonuses 落地并从本表删除；6 收尾。
-
-=====================================================================
-
-3. 伤害通道与死亡（顺序 3/6）
-
-目标：一条"对任意生物施加伤害"的通道与归零处理，让扣血、怪物移除、
-主角死亡可独立测试；生产者由条目 4、5 接入。变更命名建议：
-damage-and-death。
-
-现状：HitPoints { current, max } 已存在
-（src/core/health/components/hit_points.rs；当前不变量只有
-current <= max）；没有伤害系统；应用状态只有 MainMenu/Game
-（src/core/app_state.rs）。
-
-落地内容：
-- 施加伤害入口（消息或直接系统，形状由 design 定）：current -= damage；
-  不夹到 0，允许负值（照搬 tome2）。
-- 死亡判定为严格负值：怪物 hp < 0 才死（src/xtra2.c:4550-4553）；
-  主角 chp < 0 才死（src/spells1.c:1368-1380）。即 0 点仍活着。
-- 怪物死亡：实体移除（tome2 由 mon_take_hit 收尾时 delete_monster_idx
-  移除，src/xtra2.c:4819）。
-- 主角死亡：Dead 状态或标记 + 停收命令（tome2 置 death/leaving）；
-  表现留给条目 6。
-- 不变量：current 不高于 max；负值合法。
-
-不做（支撑系统不存在）：经验（见条目 12）、掉落与尸体（见条目 13）、
-怪物恐惧掷点（见条目 11）、墓碑与收尾（见条目 13）。
-
-验证：扣减正确；0 不死；负 1 死；怪物实体被移除；主角死后命令不再
-执行。
-
-依赖：无前置；是条目 4、5 的前置。
-
-待裁决：入口形状（消息还是直接系统）；主角死后就地停住还是切状态
-（AppState 已预留 MainMenu）。
-
-语料库交叉：.ref/tome2-specs/specs/monster-death/spec.md、
-death-score/spec.md（墓碑与收尾）。
+顺序理由：条目 4、5 互不依赖，可任意先后；条目 1、2、3 已分别以
+monster-combat-profile、combat-bonuses、damage-and-death 落地并从本表
+删除；6 收尾。
 
 =====================================================================
 
@@ -85,7 +48,8 @@ player-attacks。
   src/z-rand.h:30-62）。chance = 命中技能顶替值 + to_h * 3
   （combat-bonuses，已落地）；ac = 怪物 armor_class（monster-combat-profile，已落地）。隐身与幸运系统不存在：
   视为可见、无 luck 项（design 记录）。
-- 伤害：1 + to_d，负值截 0（combat-bonuses）；扣血与死亡走条目 3。
+- 伤害：1 + to_d，负值截 0（combat-bonuses）；扣血与死亡已落地
+  （damage-and-death）。
 - 长路径撞上怪物：停下攻击还是绕行，design 裁（点击移动模型特有；
   tome2 逐格操作没有这个问题）。
 - 最小反馈：怪物消失即可；动画由条目 6 补。
@@ -96,7 +60,8 @@ player-attacks。
 验证：撞怪不改格；固定必中/必失边界；伤害区间；死亡移除；现行 spec
 条款更新为"怪物阻挡玩家"语义。
 
-依赖：条目 3；monster-combat-profile 与 combat-bonuses 已落地。
+依赖：无；monster-combat-profile、combat-bonuses 与 damage-and-death
+已落地。
 
 语料库交叉：.ref/tome2-specs/specs/player-melee/spec.md。
 
@@ -123,7 +88,8 @@ player-attacks。
   仅作参考，不入数据）。由条目 10 回收顶替值。
 - 伤害：掷 blow 伤害骰（老鼠 1d3，monster-combat-profile）；无属性修正、无 effect
   附加。
-- 扣血与死亡：走条目 3；主角死后停收命令。
+- 扣血与死亡：已落地（damage-and-death）；主角死后停收命令已随该条
+  落地。
 - 相邻判定：CellCoord 与主角格比较（tome2 用 (ny,nx)==(py,px)）。
 
 不做（支撑系统不存在）：effect 附加如中毒、护甲折减（挂在 effect
@@ -134,8 +100,8 @@ player-attacks。
 验证：相邻必出手；不相邻仍走原随机移动；必中/必失边界；伤害区间；
 主角生命变负后停收命令。
 
-依赖：条目 3；monster-combat-profile 与 combat-bonuses 已落地；与条目 4
-合起来才是最小闭环。
+依赖：无；monster-combat-profile、combat-bonuses 与 damage-and-death
+已落地；与条目 4 合起来才是最小闭环。
 
 语料库交叉：.ref/tome2-specs/specs/monster-melee/spec.md。
 
@@ -159,8 +125,9 @@ player-attacks。
 - 伤害数字上浮（PD 风格）。
 - 生命显示：主角 HUD 与怪物头顶小血条（数据来自 monster-combat-profile 与既有
   玩家生命）。
-- 事件源：攻击/受击/死亡须能被前端观察——若条目 3 的伤害入口选了
-  直接系统形状，条目 4、5 的攻击行动须另发展示事件；统一由 design 裁。
+- 事件源：攻击/受击/死亡须能被前端观察——伤害入口已以消息落地
+  （damage-and-death），但缓冲被破坏式排干，展示侧读不到；条目 4、5
+  的攻击行动须另发展示事件。
 
 不做（支撑系统不存在）：文字消息行与措辞档位（消息系统，见条目 14）。
 

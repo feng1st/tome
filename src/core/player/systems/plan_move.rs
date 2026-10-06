@@ -3,6 +3,7 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
+use crate::core::health::components::dead::Dead;
 use crate::core::movement::components::path::Path;
 use crate::core::movement::components::r#move::Move;
 use crate::core::speed::components::speed::Speed;
@@ -26,7 +27,10 @@ pub struct PlayerQuery {
 /// Create the next step action when two conditions pass: the player's
 /// next turn is due, and a path is queued. Planning spends the turn:
 /// `next_turn.at = now + duration`. No path means no action: the player
-/// stands ready and the world stops on the driver's unspent turn.
+/// stands ready and the world stops on the driver's unspent turn. A
+/// dead driver plans nothing: the query filters the death marker out,
+/// so the due turn is never spent, the clock pins there, and the world
+/// freezes.
 ///
 /// Planning never waits for pictures. A click can land while another
 /// creature's picture is mid-move — the step plans at the frozen tick
@@ -35,7 +39,7 @@ pub struct PlayerQuery {
 pub fn plan_move(
     mut commands: Commands,
     world_clock: Res<WorldClock>,
-    mut player: Query<PlayerQuery, With<WorldDriver>>,
+    mut player: Query<PlayerQuery, (With<WorldDriver>, Without<Dead>)>,
 ) {
     let Ok(mut player) = player.single_mut() else {
         return;
@@ -138,5 +142,51 @@ mod tests {
         world.run_system_once(plan_move).unwrap();
         assert!(world.get::<Move>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0);
+    }
+
+    /// A dead driver plans nothing: the queued path is never spent, so
+    /// the clock pins at the driver's due turn and a monster whose turn
+    /// lies beyond never comes due — the world freezes.
+    #[test]
+    fn a_dead_driver_freezes_the_world_on_its_unspent_turn() {
+        use crate::core::world_clock::systems::advance::advance;
+
+        let mut app = App::new();
+        app.init_resource::<WorldClock>()
+            .add_systems(Update, (advance, plan_move).chain());
+        let player = app
+            .world_mut()
+            .spawn((
+                WorldDriver,
+                CellCoord::new(1, 1),
+                Speed(110),
+                NextTurn { at: 10 },
+                Path::new(VecDeque::from([CellCoord::new(2, 1)])),
+                Dead,
+            ))
+            .id();
+        let monster = app
+            .world_mut()
+            .spawn((CellCoord::new(3, 3), NextTurn { at: 50 }))
+            .id();
+        for _ in 0..3 {
+            app.update();
+        }
+        assert_eq!(
+            app.world().resource::<WorldClock>().now,
+            10,
+            "clock pinned at the driver's unspent turn"
+        );
+        assert!(app.world().get::<Move>(player).is_none());
+        assert_eq!(
+            app.world().get::<NextTurn>(player).unwrap().at,
+            10,
+            "the turn is never spent"
+        );
+        assert_eq!(
+            app.world().get::<NextTurn>(monster).unwrap().at,
+            50,
+            "the monster never comes due"
+        );
     }
 }
