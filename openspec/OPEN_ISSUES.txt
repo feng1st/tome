@@ -18,58 +18,8 @@ HitPoints 组件、速度域与世界时钟、移动管线、怪物词表与出�
 不存在的支撑系统（本次一律不取）：技能、装备、状态、effect 家族、
 旗标、感知 AI、经验/成长、消息。
 
-顺序理由：条目 1 与 3 互不依赖，都先于 4、5；条目 2 已以 combat-bonuses
-落地并从本表删除；6 收尾。
-
-=====================================================================
-
-1. 怪物战斗档案与骰子工具（顺序 1/6）
-
-目标：怪物词表从"只有 speed"扩展出战斗档案，出生时掷出生命上限并挂
-HitPoints。消费者：条目 4、5、6。变更命名建议：monster-combat-profile。
-
-现状：
-- data/core/monsters.ron 目前只有 speed 一词；文件注释已写明生命骰、
-  护甲、攻击组会在这里生长。
-- src/core/monster/types/monster_entry.rs 是词表布局；
-  src/core/monster/resources/monster_registry.rs 是加载与校验（风格照
-  race/class 注册表：错误信息带文件与条目 id）。
-- src/core/monster/entities/monsters.rs 的 spawn_monsters 现在只挂 kind、
-  speed、格坐标、NextTurn；health 的 HitPoints 组件已通用，但只有主角挂
-  （src/core/player/entities/player.rs）。
-
-落地内容：
-- 骰子工具（可单独切成更小的变更）：解析 NdM（tome2 数据只有这种形态，
-  无修正项），掷骰 = N 个 dM 之和。解析错误带出错文件与条目 id。建议
-  独立小域（消费者横跨怪物与战斗）。上限函数不做——FORCE_MAXHP 属旗标
-  系统，不存在（见条目 7）。
-- 词表新字段（建议现代命名）：hit_points（骰子格式字符串）、armor_class
-  （整数）、level（整数）、blows（列表，元素先只含 damage 骰子格式）。
-  speed 保留。blows 元素是否给 method/effect 预留空位由 design 裁
-  （tome2 是 method:effect:damage 三元组；effect 家族见条目 10）。
-- 出生：掷 hit_points 得上限，挂 HitPoints { current: max, max }。
-- 巨白鼠数据（tome2 lib/edit/r_info.txt:1338-1352）：
-  I:110:2d2:8:7:30 -> 取 speed 110（已有）、生命骰 2d2、护甲 7；
-  W:4:1:200:1 -> 取等级 4；
-  B:BITE:POISON:1d3 -> 只取伤害骰 1d3，effect（POISON）不入数据
-  （effect 家族不存在，见条目 10）。
-  感知 8（aaf）、睡眠 30 不入表（见条目 11）；稀有度不入表（见条目 7）；
-  尸体重量、经验 1 不入表（见条目 13、12）。
-
-tome2 参考：
-- 词表格式说明 lib/edit/r_info.txt:122-186。
-- 词表解析 src/init1.c:7862-7874（I 字段，2d2 拆成 hdice/hside）、
-  src/init1.c:7919-7936（W 字段）、src/init1.c:7941-8000（B 字段）。
-- 出生掷生命 src/monster2.c:2594-2605（maxhp = damroll(hdice,hside)，
-  hp = maxhp；随后 2614-2615 把 r_ptr->ac 与 level 抄进个体）。
-- damroll 在 src/z-rand.c:337-343。
-- 语料库交叉：.ref/tome2-specs/specs/monster/spec.md（词表格式）、
-  rng/spec.md（掷骰）、monster-generation/spec.md（出生抄录）。
-
-验证：坏骰子格式拒绝启动且错误信息含文件与 id；出生生命落在掷骰范围
-（2d2 -> 2..4）；巨白鼠条目逐值对齐。
-
-依赖：无前置；是条目 4、5、6 的前置。
+顺序理由：条目 3 无前置，先于 4、5；条目 1、2 已分别以
+monster-combat-profile、combat-bonuses 落地并从本表删除；6 收尾。
 
 =====================================================================
 
@@ -133,7 +83,7 @@ player-attacks。
   先掷 0..99，小于 10 时按小于 5 定必中或必失；chance <= 0 必失；
   否则 rand_int(chance) < ac*3/4 判失（rand_int 出 0..chance-1，
   src/z-rand.h:30-62）。chance = 命中技能顶替值 + to_h * 3
-  （combat-bonuses，已落地）；ac = 怪物 armor_class（条目 1）。隐身与幸运系统不存在：
+  （combat-bonuses，已落地）；ac = 怪物 armor_class（monster-combat-profile，已落地）。隐身与幸运系统不存在：
   视为可见、无 luck 项（design 记录）。
 - 伤害：1 + to_d，负值截 0（combat-bonuses）；扣血与死亡走条目 3。
 - 长路径撞上怪物：停下攻击还是绕行，design 裁（点击移动模型特有；
@@ -146,7 +96,7 @@ player-attacks。
 验证：撞怪不改格；固定必中/必失边界；伤害区间；死亡移除；现行 spec
 条款更新为"怪物阻挡玩家"语义。
 
-依赖：条目 1、3；combat-bonuses 已落地。
+依赖：条目 3；monster-combat-profile 与 combat-bonuses 已落地。
 
 语料库交叉：.ref/tome2-specs/specs/player-melee/spec.md。
 
@@ -165,13 +115,13 @@ player-attacks。
 - 怪物命中判定骨架（基础项，照搬 check_hit，src/melee1.c:60-81）：
   先掷 0..99，小于 10 时按小于 5 定必中或必失；i = power + level*3；
   randint(i) > ac*3/4 则命中（randint 出 1..M，src/z-rand.h:30-62）；
-  ac = 玩家 ac + to_a（combat-bonuses），level = 怪物 level（条目 1）。
+  ac = 玩家 ac + to_a（combat-bonuses），level = 怪物 level（monster-combat-profile，已落地）。
   luck 项不存在，去掉。
 - power 顶替值：终局来源是 effect 威力表（RBE_HURT=60、RBE_POISON=5，
   src/melee1.c:1416-1565），effect 家族系统不存在 -> 固定值顶替，
   design 定并记录映射（参考：基础家族 HURT=60；老鼠原版 effect 值 5
   仅作参考，不入数据）。由条目 10 回收顶替值。
-- 伤害：掷 blow 伤害骰（老鼠 1d3，条目 1）；无属性修正、无 effect
+- 伤害：掷 blow 伤害骰（老鼠 1d3，monster-combat-profile）；无属性修正、无 effect
   附加。
 - 扣血与死亡：走条目 3；主角死后停收命令。
 - 相邻判定：CellCoord 与主角格比较（tome2 用 (ny,nx)==(py,px)）。
@@ -184,7 +134,8 @@ player-attacks。
 验证：相邻必出手；不相邻仍走原随机移动；必中/必失边界；伤害区间；
 主角生命变负后停收命令。
 
-依赖：条目 1、3；combat-bonuses 已落地；与条目 4 合起来才是最小闭环。
+依赖：条目 3；monster-combat-profile 与 combat-bonuses 已落地；与条目 4
+合起来才是最小闭环。
 
 语料库交叉：.ref/tome2-specs/specs/monster-melee/spec.md。
 
@@ -206,8 +157,8 @@ player-attacks。
 落地内容（可分批）：
 - 攻击动作：前冲-回弹，不必新帧；受击帧或闪烁；死亡帧或淡出。
 - 伤害数字上浮（PD 风格）。
-- 生命显示：主角 HUD 与怪物头顶小血条（数据来自条目 1 与既有玩家
-  生命）。
+- 生命显示：主角 HUD 与怪物头顶小血条（数据来自 monster-combat-profile 与既有
+  玩家生命）。
 - 事件源：攻击/受击/死亡须能被前端观察——若条目 3 的伤害入口选了
   直接系统形状，条目 4、5 的攻击行动须另发展示事件；统一由 design 裁。
 
