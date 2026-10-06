@@ -7,8 +7,10 @@ use rand::Rng;
 /// point of modifier is one point of statistic; from 18 up the merge
 /// moves in larger steps (random draws on the default birth path), and
 /// a negative modifier drains to 18 faster than it drops below it. The
-/// floor is 3: no statistic drains below the scale's bottom.
-pub fn adjust_stat(value: i32, modifier: i32) -> i32 {
+/// floor is 3: no statistic drains below the scale's bottom. The
+/// random source is injected: the caller draws from the central
+/// generator.
+pub fn adjust_stat(value: i32, modifier: i32, rng: &mut impl Rng) -> i32 {
     let mut value = value;
     if modifier < 0 {
         for _ in 0..(-modifier) {
@@ -21,7 +23,6 @@ pub fn adjust_stat(value: i32, modifier: i32) -> i32 {
             }
         }
     } else if modifier > 0 {
-        let mut rng = rand::rng();
         for _ in 0..modifier {
             if value < 18 {
                 value += 1;
@@ -39,12 +40,22 @@ pub fn adjust_stat(value: i32, modifier: i32) -> i32 {
 
 #[cfg(test)]
 mod tests {
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
+
     use super::*;
+
+    /// One pinned source for the no-draw paths; its draws (if any were
+    /// taken) would only show up above 18.
+    fn test_rng() -> StdRng {
+        StdRng::seed_from_u64(42)
+    }
 
     #[test]
     fn zero_modifier_keeps_the_base() {
-        assert_eq!(adjust_stat(13, 0), 13);
-        assert_eq!(adjust_stat(17, 0), 17);
+        let mut rng = test_rng();
+        assert_eq!(adjust_stat(13, 0, &mut rng), 13);
+        assert_eq!(adjust_stat(17, 0, &mut rng), 17);
     }
 
     #[test]
@@ -53,7 +64,8 @@ mod tests {
         // lands in.
         for base in [3, 10, 17] {
             for modifier in 1..=6 {
-                assert!(adjust_stat(base, modifier) >= base + modifier);
+                let mut rng = test_rng();
+                assert!(adjust_stat(base, modifier, &mut rng) >= base + modifier);
             }
         }
     }
@@ -61,9 +73,11 @@ mod tests {
     #[test]
     fn crossing_eighteen_moves_in_larger_steps() {
         // The second and later points above 18 each add at least six.
-        let merged = adjust_stat(17, 2);
+        let mut rng = test_rng();
+        let merged = adjust_stat(17, 2, &mut rng);
         assert!(merged >= 24, "17 +2 merged to {merged}, below 24");
-        let merged = adjust_stat(17, 5);
+        let mut rng = test_rng();
+        let merged = adjust_stat(17, 5, &mut rng);
         assert!(merged >= 42, "17 +5 merged to {merged}, below 42");
     }
 
@@ -71,18 +85,28 @@ mod tests {
     fn negative_modifier_never_exceeds_the_base() {
         for base in [5, 12, 20, 40] {
             for modifier in 1..=5 {
-                assert!(adjust_stat(base, -modifier) <= base);
+                let mut rng = test_rng();
+                assert!(adjust_stat(base, -modifier, &mut rng) <= base);
             }
         }
     }
 
     #[test]
     fn negative_drains_to_the_floor() {
-        assert_eq!(adjust_stat(5, -10), 3);
+        let mut rng = test_rng();
+        assert_eq!(adjust_stat(5, -10, &mut rng), 3);
+        let mut rng = test_rng();
         assert_eq!(
-            adjust_stat(20, -10),
+            adjust_stat(20, -10, &mut rng),
             9,
             "20 snaps to 18 on the first point, then drains by one"
         );
+    }
+
+    #[test]
+    fn the_source_decides_the_merge() {
+        let a = adjust_stat(17, 5, &mut StdRng::seed_from_u64(42));
+        let b = adjust_stat(17, 5, &mut StdRng::seed_from_u64(42));
+        assert_eq!(a, b);
     }
 }

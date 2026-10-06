@@ -8,7 +8,9 @@ use std::fs;
 
 use bevy::prelude::*;
 
+use crate::core::dice::utils::parse::parse_dice;
 use crate::core::monster::components::monster_index::MonsterIndex;
+use crate::core::monster::types::monster_blow::MonsterBlow;
 use crate::core::monster::types::monster_entry::MonsterEntry;
 use crate::core::monster::types::monster_kind::MonsterKind;
 use crate::core::speed::components::speed::Speed;
@@ -92,8 +94,31 @@ pub(crate) fn parse_monster_registry(path: &str, text: &str) -> MonsterRegistry 
             entry.monster,
             entry.speed
         );
+        let hit_points = parse_dice(&entry.hit_points).unwrap_or_else(|e| {
+            panic!(
+                "monster table '{path}': monster '{}' has an invalid hit_points field: {e}",
+                entry.monster
+            )
+        });
+        let blows = entry
+            .blows
+            .into_iter()
+            .map(|blow| {
+                let damage = parse_dice(&blow.damage).unwrap_or_else(|e| {
+                    panic!(
+                        "monster table '{path}': monster '{}' has an invalid blow damage: {e}",
+                        entry.monster
+                    )
+                });
+                MonsterBlow { damage }
+            })
+            .collect();
         monster_kinds.push(MonsterKind {
             speed: Speed(entry.speed),
+            hit_points,
+            armor_class: entry.armor_class,
+            level: entry.level,
+            blows,
         });
     }
     MonsterRegistry {
@@ -105,10 +130,25 @@ pub(crate) fn parse_monster_registry(path: &str, text: &str) -> MonsterRegistry 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::dice::types::dice::Dice;
 
     const DOC: &str = r#"[
-        ( monster: "giant_white_rat", speed: 110 ),
-        ( monster: "jackal", speed: 120 ),
+        (
+            monster: "giant_white_rat",
+            speed: 110,
+            hit_points: "2d2",
+            armor_class: 7,
+            level: 4,
+            blows: [ ( damage: "1d3" ) ],
+        ),
+        (
+            monster: "jackal",
+            speed: 120,
+            hit_points: "1d4",
+            armor_class: 4,
+            level: 2,
+            blows: [ ( damage: "1d2" ) ],
+        ),
     ]"#;
 
     #[test]
@@ -122,9 +162,34 @@ mod tests {
         assert_eq!(rat, monster_registry.get_index("giant_white_rat").unwrap());
         assert_ne!(rat, jackal);
         assert!(monster_registry.get_index("wolf").is_none());
-        // The kind a handle points to is the entry's game data.
+        // The kind a handle points to is the entry's game data: speed
+        // plus the combat profile.
         assert_eq!(monster_registry.monster_kind(rat).speed, Speed(110));
+        assert_eq!(
+            monster_registry.monster_kind(rat).hit_points,
+            Dice { n: 2, m: 2 }
+        );
+        assert_eq!(monster_registry.monster_kind(rat).armor_class, 7);
+        assert_eq!(monster_registry.monster_kind(rat).level, 4);
+        assert_eq!(
+            monster_registry.monster_kind(rat).blows,
+            vec![MonsterBlow {
+                damage: Dice { n: 1, m: 3 }
+            }]
+        );
         assert_eq!(monster_registry.monster_kind(jackal).speed, Speed(120));
+        assert_eq!(
+            monster_registry.monster_kind(jackal).hit_points,
+            Dice { n: 1, m: 4 }
+        );
+        assert_eq!(monster_registry.monster_kind(jackal).armor_class, 4);
+        assert_eq!(monster_registry.monster_kind(jackal).level, 2);
+        assert_eq!(
+            monster_registry.monster_kind(jackal).blows,
+            vec![MonsterBlow {
+                damage: Dice { n: 1, m: 2 }
+            }]
+        );
     }
 
     #[test]
@@ -141,8 +206,22 @@ mod tests {
         parse_monster_registry(
             "test",
             r#"[
-                ( monster: "giant_white_rat", speed: 110 ),
-                ( monster: "giant_white_rat", speed: 110 ),
+                (
+                    monster: "giant_white_rat",
+                    speed: 110,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+                (
+                    monster: "giant_white_rat",
+                    speed: 110,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
             ]"#,
         );
     }
@@ -150,19 +229,130 @@ mod tests {
     #[test]
     #[should_panic(expected = "empty monster id")]
     fn empty_id_panics() {
-        parse_monster_registry("test", r#"[ ( monster: "", speed: 110 ) ]"#);
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "",
+                    speed: 110,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+            ]"#,
+        );
     }
 
     #[test]
     #[should_panic(expected = "outside the rate table")]
     fn speed_outside_rate_table_panics() {
-        parse_monster_registry("test", r#"[ ( monster: "giant_white_rat", speed: 300 ) ]"#);
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "giant_white_rat",
+                    speed: 300,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+            ]"#,
+        );
     }
 
     #[test]
     #[should_panic(expected = "not valid RON")]
     fn malformed_document_panics() {
         parse_monster_registry("test", "this is not ron");
+    }
+
+    #[test]
+    #[should_panic(expected = "missing field named `speed`")]
+    fn missing_speed_is_a_format_error() {
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "giant_white_rat",
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+            ]"#,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "missing field named `hit_points`")]
+    fn missing_combat_field_is_a_format_error() {
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "giant_white_rat",
+                    speed: 110,
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+            ]"#,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "missing field named `blows`")]
+    fn missing_blows_is_a_format_error() {
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "giant_white_rat",
+                    speed: 110,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                ),
+            ]"#,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "invalid hit_points field")]
+    fn invalid_hit_dice_panics_with_the_entry_id() {
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "giant_white_rat",
+                    speed: 110,
+                    hit_points: "2D2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+            ]"#,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "invalid blow damage")]
+    fn invalid_blow_dice_panics_with_the_entry_id() {
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "giant_white_rat",
+                    speed: 110,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "0d3" ) ],
+                ),
+            ]"#,
+        );
     }
 
     /// Spec-alignment test: the real vocabulary file on disk declares
@@ -174,6 +364,16 @@ mod tests {
         let rat = monster_registry
             .get_index("giant_white_rat")
             .expect("giant_white_rat is declared");
-        assert_eq!(monster_registry.monster_kind(rat).speed, Speed(110));
+        let rat_kind = monster_registry.monster_kind(rat);
+        assert_eq!(rat_kind.speed, Speed(110));
+        assert_eq!(rat_kind.hit_points, Dice { n: 2, m: 2 });
+        assert_eq!(rat_kind.armor_class, 7);
+        assert_eq!(rat_kind.level, 4);
+        assert_eq!(
+            rat_kind.blows,
+            vec![MonsterBlow {
+                damage: Dice { n: 1, m: 3 }
+            }]
+        );
     }
 }

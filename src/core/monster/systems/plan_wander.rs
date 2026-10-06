@@ -11,6 +11,7 @@ use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::types::terrain::Terrain;
 use crate::core::monster::components::monster_index::MonsterIndex;
 use crate::core::movement::components::r#move::Move;
+use crate::core::rng::resources::game_rng::GameRng;
 use crate::core::speed::components::speed::Speed;
 use crate::core::speed::constants::action_duration::STANDARD_ACTION_DURATION;
 use crate::core::speed::utils::action_duration::action_duration;
@@ -61,6 +62,7 @@ pub fn plan_wander(
     world_clock: Res<WorldClock>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
+    mut game_rng: ResMut<GameRng>,
     world_driver: Query<&NextTurn, With<WorldDriver>>,
     mut monsters: Query<MonsterQuery, (With<MonsterIndex>, Without<WorldDriver>)>,
 ) {
@@ -72,7 +74,7 @@ pub fn plan_wander(
     if world_driver_next_turn.at == 0 {
         return;
     }
-    let mut rng = rand::rng();
+    let rng = &mut game_rng.rng;
     for mut monster in &mut monsters {
         // The turn is not due yet.
         if world_clock.now < monster.next_turn.at {
@@ -107,6 +109,9 @@ pub fn plan_wander(
 
 #[cfg(test)]
 mod tests {
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+
     use super::*;
     use crate::core::display::components::is_moving::IsMoving;
     use crate::core::map::resources::current_map::parse_local_map;
@@ -151,6 +156,7 @@ mod tests {
     fn app_with(map: LocalMap) -> App {
         let mut app = App::new();
         app.init_resource::<WorldClock>()
+            .init_resource::<GameRng>()
             .insert_resource(parse_terrain_registry("test", TERRAINS))
             .insert_resource(CurrentMap::new(map))
             .add_systems(
@@ -249,5 +255,33 @@ mod tests {
             app.world().get::<Move>(rat).is_none(),
             "no walkable neighbor: stand, not a wasted step"
         );
+    }
+
+    /// A seeded source predicts the plan exactly: an independent
+    /// generator on the same seed, replaying the same draw order (one
+    /// stand roll, then direction picks), must land on the same plan.
+    #[test]
+    fn seeded_source_predicts_the_plan() {
+        for seed in 1..=20u64 {
+            let mut replay = StdRng::seed_from_u64(seed);
+            let stands = replay.random_range(0..100) >= 25;
+            let expected = if stands {
+                None
+            } else {
+                // The open room's every neighbor is walkable: the
+                // first direction pick lands.
+                let direction = DIRECTIONS[replay.random_range(0..DIRECTIONS.len())];
+                Some(CellCoord::new(2, 2) + direction)
+            };
+
+            let mut app = app_with(open_room());
+            app.insert_resource(GameRng::seeded(seed));
+            spawn_started_driver(&mut app);
+            let rat = spawn_rat(&mut app, CellCoord::new(2, 2));
+            app.update();
+
+            let observed = app.world().get::<Move>(rat).map(|m| m.to);
+            assert_eq!(observed, expected, "seed {seed}");
+        }
     }
 }

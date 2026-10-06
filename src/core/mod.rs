@@ -10,6 +10,7 @@
 pub mod app_state;
 pub mod class;
 pub mod core_phase;
+pub mod dice;
 pub mod display;
 pub mod game_loop;
 pub mod health;
@@ -18,6 +19,7 @@ pub mod monster;
 pub mod movement;
 pub mod player;
 pub mod race;
+pub mod rng;
 pub mod speed;
 pub mod stats;
 pub mod world_clock;
@@ -31,6 +33,7 @@ use self::game_loop::GameLoop;
 /// Register the mode protocol and all core domains, then orchestrate the
 /// core-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
+    rng::register(app);
     map::register(app);
     race::register(app);
     class::register(app);

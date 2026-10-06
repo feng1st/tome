@@ -135,6 +135,19 @@ sequenceDiagram
 - Bevy Resource/FromWorld：.ref/bevy-website/content/learn/quick-start/
   getting-started/（config context 摘要）。
 
+### D7 必填字段为纯类型，缺失交由格式层报错
+
+词表必填字段一律以纯类型声明：缺失由 RON 反序列化报错（文件、字段名、
+位置），加载校验只判值——骰式合法性、越界——错误带条目 id。曾以
+"全字段 Option + require_field"换取缺失错误带条目 id，否决：serde 对
+缺失字段没有携带条目上下文的钩子，带 id 的唯一路径就是全字段 Option，
+必填字段在类型上说谎；词表小而人手编辑，serde 的位置信息足以定位。
+格式层语义可选的字段（形象绑定的键、地图的 monsters、autotile 等）
+仍用 Option/default——那是可选语义，不是管道。词表格式内嵌套节点
+（如 blow 条目）与布局文件同文件是**特例而非先例**：拆才是默认
+（一个值类型一个文件），同文件须同时满足两个条件——它是该格式线
+格式的节点、格式之外无任何消费者；缺一即拆。
+
 ## Risks / Trade-offs
 
 - [StdRng 与 tome2 生成器算法不同，序列不可逐点对拍] → 游戏行为不可观察；

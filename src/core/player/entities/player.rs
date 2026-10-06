@@ -9,6 +9,7 @@ use crate::core::health::utils::hp::max_hit_points;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::player::components::player::Player;
 use crate::core::race::resources::race_registry::RaceRegistry;
+use crate::core::rng::resources::game_rng::GameRng;
 use crate::core::speed::components::speed::Speed;
 use crate::core::speed::constants::speed::STANDARD_SPEED;
 use crate::core::stats::components::stats::Stats;
@@ -42,6 +43,7 @@ pub fn spawn_player(
     mut commands: Commands,
     race_registry: Res<RaceRegistry>,
     class_registry: Res<ClassRegistry>,
+    mut game_rng: ResMut<GameRng>,
 ) {
     let race_index = race_registry
         .get_index(PLAYER_RACE)
@@ -51,11 +53,11 @@ pub fn spawn_player(
         .expect("warrior is a declared class");
     let race_kind = race_registry.race_kind(race_index);
     let class_kind = class_registry.class_kind(class_index);
-    let mut values = roll_base_stats();
+    let mut values = roll_base_stats(&mut game_rng.rng);
     for stat in Stat::ALL {
         let modifier =
             race_kind.stat_modifiers[stat.index()] + class_kind.stat_modifiers[stat.index()];
-        values[stat.index()] = adjust_stat(values[stat.index()], modifier);
+        values[stat.index()] = adjust_stat(values[stat.index()], modifier, &mut game_rng.rng);
     }
     let hit_die = i32::from(race_kind.hit_die) + i32::from(class_kind.hit_die);
     let max = max_hit_points(hit_die, values[Stat::Constitution.index()]);
@@ -116,6 +118,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(race_registry);
         world.insert_resource(class_registry);
+        world.insert_resource(GameRng::seeded(42));
         world.run_system_once(spawn_player).unwrap();
 
         let mut query = world.query::<(

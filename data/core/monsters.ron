@@ -1,9 +1,19 @@
 // Monster vocabulary: every monster kind, declared as an ordered entry
 // list. The kind is the monster's identity — there is no separate
 // race, class, or individual id. Each entry carries the kind's speed
-// (an index into the speed rate table); this table is where monster
-// gameplay data (hit dice, armor, blows) grows. Load assigns each id a
-// runtime handle in entry order; handles are unstable across loads
-// (entry order decides them), so saved data must translate through the
-// id mapping, never store raw handles.
-[ ( monster: "giant_white_rat", speed: 110 ) ]
+// (an index into the speed rate table) and its combat profile: hit
+// dice (NdM), armor class, level, and blows (a damage die each). Load
+// parses and validates the dice and assigns each id a runtime handle
+// in entry order; handles are unstable across loads (entry order
+// decides them), so saved data must translate through the id mapping,
+// never store raw handles.
+[
+    (
+        monster: "giant_white_rat",
+        speed: 110,
+        hit_points: "2d2",
+        armor_class: 7,
+        level: 4,
+        blows: [ ( damage: "1d3" ) ],
+    ),
+]

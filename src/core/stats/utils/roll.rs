@@ -10,11 +10,11 @@ fn roll_stat(rng: &mut impl Rng) -> i32 {
 
 /// Roll the six base statistics. A roll is kept only while the six
 /// total strictly between 42 and 57; weak or heroic outliers reroll as
-/// a whole set.
-pub fn roll_base_stats() -> [i32; 6] {
-    let mut rng = rand::rng();
+/// a whole set. The random source is injected: the caller draws from
+/// the central generator, so a seeded source reproduces the same set.
+pub fn roll_base_stats(rng: &mut impl Rng) -> [i32; 6] {
     loop {
-        let stats: [i32; 6] = std::array::from_fn(|_| roll_stat(&mut rng));
+        let stats: [i32; 6] = std::array::from_fn(|_| roll_stat(rng));
         let total: i32 = stats.into_iter().sum();
         if total > 42 && total < 57 {
             return stats;
@@ -24,13 +24,17 @@ pub fn roll_base_stats() -> [i32; 6] {
 
 #[cfg(test)]
 mod tests {
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
+
     use super::*;
     use crate::core::stats::constants::stat::Stat;
 
     #[test]
     fn every_stat_within_the_die_range() {
-        for _ in 0..200 {
-            let stats = roll_base_stats();
+        for seed in 1..=200 {
+            let mut rng = StdRng::seed_from_u64(seed);
+            let stats = roll_base_stats(&mut rng);
             for stat in Stat::ALL {
                 let value = stats[stat.index()];
                 assert!(
@@ -43,13 +47,23 @@ mod tests {
 
     #[test]
     fn total_within_the_kept_band() {
-        for _ in 0..200 {
-            let stats = roll_base_stats();
+        for seed in 1..=200 {
+            let mut rng = StdRng::seed_from_u64(seed);
+            let stats = roll_base_stats(&mut rng);
             let total: i32 = stats.into_iter().sum();
             assert!(
                 total > 42 && total < 57,
                 "total {total} outside the kept band"
             );
+        }
+    }
+
+    #[test]
+    fn the_source_decides_the_set() {
+        for seed in 1..=20 {
+            let a = roll_base_stats(&mut StdRng::seed_from_u64(seed));
+            let b = roll_base_stats(&mut StdRng::seed_from_u64(seed));
+            assert_eq!(a, b, "seed {seed} must reproduce one set");
         }
     }
 }

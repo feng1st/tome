@@ -201,7 +201,19 @@ mod tests {
     }
 
     fn monster_registry() -> MonsterRegistry {
-        parse_monster_registry("test", r#"[ ( monster: "rat", speed: 110 ) ]"#)
+        parse_monster_registry(
+            "test",
+            r#"[
+                (
+                    monster: "rat",
+                    speed: 110,
+                    hit_points: "2d2",
+                    armor_class: 7,
+                    level: 4,
+                    blows: [ ( damage: "1d3" ) ],
+                ),
+            ]"#,
+        )
     }
 
     fn figure_registry() -> FigureRegistry {

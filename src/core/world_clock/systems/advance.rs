@@ -98,6 +98,7 @@ mod tests {
         use crate::core::movement::components::path::Path;
         use crate::core::movement::systems::act_move::act_move;
         use crate::core::player::systems::plan_move::plan_move;
+        use crate::core::rng::resources::game_rng::GameRng;
         use crate::core::speed::components::speed::Speed;
         use crate::core::world_clock::components::world_driver::WorldDriver;
 
@@ -110,6 +111,7 @@ mod tests {
         );
         let mut app = App::new();
         app.init_resource::<WorldClock>()
+            .init_resource::<GameRng>()
             .insert_resource(terrains)
             .insert_resource(CurrentMap::new(map))
             .add_systems(

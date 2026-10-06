@@ -32,7 +32,7 @@ unique id。加载时按条目出现顺序为每个 id 分配运行时句柄，�
 #### Scenario: 战斗字段缺失或骰式非法拒绝启动
 
 - **WHEN** 词表条目缺失任一战斗字段（hit_points、armor_class、level、blows），或其 hit_points、blows 的伤害骰不是合法骰式
-- **THEN** 启动失败，错误信息指明出错文件、该怪物 id 与缺失字段或非法骰式
+- **THEN** 启动失败；缺失时错误信息指明出错文件与缺失字段，骰式非法时进一步指明该怪物 id 与合法骰式形态
 
 ### Requirement: 怪物出生
 
