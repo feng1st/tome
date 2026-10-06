@@ -1,8 +1,8 @@
 // Blacklist guard: two jobs.
 // 1. Every model request gets the current language blacklist injected into
 //    its system prompt (~/.agents/language-blacklist.txt, gitignore-style:
-//    bare word = block, !word = allow, # = comment; a trailing （…）or (…)
-//    note on an entry line is stripped).
+//    bare word = block, !word = allow, # = comment; a trailing note —
+//    # …, （…）, or (…) — on an entry line is stripped).
 // 2. A write/edit whose *replacement* content hits a block word not covered
 //    by an allow word is rejected before the tool runs. An edit's source
 //    (oldString) may contain blacklist words — only the replacement must
@@ -47,15 +47,21 @@ function loadRules(file: string): { block: string[]; allow: string[] } {
   const text = readFileSync(file, "utf8")
   const block: string[] = []
   const allow: string[] = []
-  const firstWord = (line: string) => line.match(/^([^\s（(]+)/)?.[1]
+  // An entry runs to its first note marker — `#`, or the brackets `(`
+  // and `（` kept so old-format lists still parse — with the space
+  // before it discarded; interior spaces stay part of the entry, so
+  // multi-word phrases parse and match whole. Note-only lines
+  // (whole-line comments) strip to nothing and are skipped.
+  const entryWord = (line: string) =>
+    line.replace(/\s*[#(（].*$/, "").trim() || undefined
   for (const raw of text.split("\n")) {
     const line = raw.trim()
-    if (!line || line.startsWith("#")) continue
+    if (!line) continue
     if (line.startsWith("!")) {
-      const word = firstWord(line.slice(1).trim())
+      const word = entryWord(line.slice(1).trim())
       if (word) allow.push(word)
     } else {
-      const word = firstWord(line)
+      const word = entryWord(line)
       if (word) block.push(word)
     }
   }
