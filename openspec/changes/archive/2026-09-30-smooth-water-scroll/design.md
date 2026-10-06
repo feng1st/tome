@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 # Design: smooth-water-scroll
 
 ## 问题机理

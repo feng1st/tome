@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 # grid-map Specification Delta
 
 ## ADDED Requirements

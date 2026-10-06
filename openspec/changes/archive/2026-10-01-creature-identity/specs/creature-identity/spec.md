@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 ## Purpose
 
 生物身份模型：玩家、NPC、怪物皆为 creature，身份由 race（必需）、class（可选）、unique ID（可选）三个词表组件表达，core 的词表文件声明 id 并分配运行时句柄；形象由 display 的绑定表按 unique → race+class → race 的顺序取最具体匹配解析。

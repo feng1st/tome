@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 # Tasks: creature-identity
 
 ## 1. core/creature 身份域

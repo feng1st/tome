@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 ## 1. core 迁移
 
 - [x] 1.1 `core/movement`：新建 `Position` 组件（连续格坐标，整数=格中心）— verify: `cargo check` 通过，组件带 doc comment

@@ -1,26 +1,12 @@
 //! Hit-point derivation: a level-one character's hit-point ceiling.
 
 use crate::core::health::constants::constitution_hp_bonus::CONSTITUTION_HP_BONUS;
+use crate::core::stats::constants::stat_bonus_table::STAT_BONUS_TABLE_BIAS;
+use crate::core::stats::utils::stat_bonus_index::stat_bonus_index;
 
 /// The hit-point bonus a constitution value grants.
 fn constitution_hp_bonus(constitution: i32) -> i32 {
-    CONSTITUTION_HP_BONUS[stat_bonus_index(constitution)]
-}
-
-/// The compressed statistic index a value occupies, always inside the
-/// bonus table: 3–18 map one to one (anything below 3 shares the first
-/// bracket), 18/x map one bracket per ten points of x, and 18/220 and
-/// beyond share the last bracket.
-fn stat_bonus_index(value: i32) -> usize {
-    if value <= 3 {
-        0
-    } else if value <= 18 {
-        (value - 3) as usize
-    } else if value <= 18 + 219 {
-        (15 + (value - 18) / 10) as usize
-    } else {
-        37
-    }
+    CONSTITUTION_HP_BONUS[stat_bonus_index(constitution)] - STAT_BONUS_TABLE_BIAS
 }
 
 /// A level-one character's hit-point ceiling: the full hit die (race
@@ -62,7 +48,8 @@ mod tests {
     #[test]
     fn below_the_scale_floor_clamps_to_the_first_bracket() {
         // The stat scale floors at 3; lower inputs (which it cannot
-        // produce) still land on a valid table entry — the first bracket.
+        // produce) still land on a valid table entry — the first
+        // bracket.
         assert_eq!(constitution_hp_bonus(2), -5);
         assert_eq!(constitution_hp_bonus(0), -5);
         assert_eq!(constitution_hp_bonus(-10), -5);

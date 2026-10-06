@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 # Tasks: pixel-perfect-canvas
 
 依赖顺序：canvas 域先行（管线机制），相机改造依赖画布句柄，输入适配随后，验收收尾。各域 register 只做成员注册；两相机渲染先后由 `Camera.order` 表达。

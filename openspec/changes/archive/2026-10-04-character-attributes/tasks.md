@@ -1,3 +1,5 @@
+历史归档，不符合先英文后中文规范，请勿参考
+
 # Tasks: character-attributes
 
 依赖顺序：race/class 域 → stats 域 → health 域 → 出生接入 → 身份拆分 → 数据与集成。

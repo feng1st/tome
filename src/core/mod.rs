@@ -9,6 +9,7 @@
 
 pub mod app_state;
 pub mod class;
+pub mod combat;
 pub mod core_phase;
 pub mod dice;
 pub mod display;
@@ -41,10 +42,12 @@ pub fn register(app: &mut App) {
     monster::register(app);
     movement::register(app);
     world_clock::register(app);
+    combat::register(app);
     app.init_state::<AppState>().configure_sets(
         Update,
         (
             CorePhase::Advance,
+            CorePhase::Derive,
             CorePhase::Command,
             CorePhase::PlayerPlan,
             CorePhase::PlayerAct,

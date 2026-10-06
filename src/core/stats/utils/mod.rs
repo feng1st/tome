@@ -2,3 +2,4 @@
 
 pub mod adjust;
 pub mod roll;
+pub mod stat_bonus_index;

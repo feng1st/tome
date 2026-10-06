@@ -14,6 +14,10 @@ pub enum CorePhase {
     /// The frame opens with the clock: `now` sweeps to the nearest
     /// creature's next turn.
     Advance,
+    /// Derived state refreshes from its sources before any turn logic
+    /// reads it: change-driven derivation systems keep derived
+    /// components fresh at frame open.
+    Derive,
     /// Queued commands execute: validation and pathfinding settle here,
     /// so the planning phases read landed state.
     Command,
