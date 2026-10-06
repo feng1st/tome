@@ -1,77 +1,132 @@
-# figure Specification
+# figure Specification | figure 规格
 
 ## Purpose
 
-形象的声明与呈现：display 的形象表以条目声明每个形象（id、贴图、图集网格、动画帧表），加载时分配运行时句柄；显示侧按实体携带的形象句柄解析条目，为实体挂载贴图、图集布局与动画状态。
+Figure declaration and presentation: the display side's figure table
+declares each figure as an entry (id, texture, atlas grid, animation
+frame tables) and assigns runtime handles at load; the display side
+resolves the entry behind an entity's figure handle and attaches the
+texture, the atlas layout, and the animation state to that entity.
+
+形象的声明与呈现：display 的形象表以条目声明每个形象（id、贴图、图集
+网格、动画帧表），加载时分配运行时句柄；显示侧按实体携带的形象句柄解
+析条目，为实体挂载贴图、图集布局与动画状态。
 
 ## Requirements
 
+### Requirement: Figure Table Registry | 形象表注册表
 
-### Requirement: 形象表注册表
+Figure kinds and how they draw SHALL be defined by one display data
+file: each entry declares a figure id, a texture path, a frame size in
+pixels, the atlas grid's columns and rows, and frame tables keyed by
+animation names from the code-owned vocabulary (a frame sequence and
+a rate). Loading assigns each id a runtime handle in entry order. A
+handle is a transient identifier within one load of the process and
+MUST NOT be assumed stable across loads; cross-load scenarios such as
+saves MUST translate through the "handle ↔ id" mapping. Code MUST NOT
+contain a figure enum, nor test a handle or an id for figure identity.
+Adding a figure MUST take only a new entry in the figure table — no
+code change.
 
-形象的种类与画法 SHALL 由 display 的同一数据文件定义：每个条目声明形象 id、贴图路径、帧像素尺寸、图集行列数，以及以动画词汇名给出的帧表（帧序列与帧率）。加载时按条目出现顺序为每个 id 分配运行时句柄。句柄只是进程内一次加载中的临时标识，MUST NOT 假定其跨加载稳定；存档等跨加载场景 MUST 经"句柄 ↔ id"映射翻译。代码 MUST NOT 包含形象枚举，也不以句柄或 id 判断形象身份。新增形象 MUST 只需在形象表新增一个条目，不改动任何代码。
+形象的种类与画法 SHALL 由 display 的同一数据文件定义：每个条目声明形象
+id、贴图路径、帧像素尺寸、图集行列数，以及以代码持有的动画词汇名给出
+的帧表（帧序列与帧率）。加载时按条目出现顺序为每个 id 分配运行时句
+柄。句柄只是进程内一次加载中的临时标识，MUST NOT 假定其跨加载稳定；
+存档等跨加载场景 MUST 经"句柄 ↔ id"映射翻译。代码 MUST NOT 包含形象
+枚举，也不以句柄或 id 判断形象身份。新增形象 MUST 只需在形象表新增一
+个条目，不改动任何代码。
 
-#### Scenario: 按名换取句柄
+#### Scenario: Ids resolve to handles | 按名换取句柄
 
-- **WHEN** 形象表声明若干形象条目并加载
-- **THEN** 每个形象 id 可换取一个句柄；同一 id 在同一次加载内换取的句柄相等，不同 id 的句柄不同
+- **WHEN** the figure table declares several figure entries and loads | 形象表声明若干形象条目并加载时
+- **THEN** each figure id resolves to a handle; the same id resolves to equal handles within one load, different ids to different ones | 每个形象 id 可换取一个句柄；同一 id 在同一次加载内换取的句柄相等，不同 id 的句柄不同
 
-#### Scenario: 从文件解析形象条目
+#### Scenario: Entries parse from the file | 从文件解析形象条目
 
-- **WHEN** 加载形象表
-- **THEN** 每个条目解析为：贴图句柄、按帧尺寸与行列数构建的图集布局、按动画名索引的帧表
+- **WHEN** the figure table is loaded | 加载形象表时
+- **THEN** each entry resolves into: a texture handle, an atlas layout built from the frame size and the grid dimensions, and frame tables indexed by animation name | 每个条目解析为：贴图句柄、按帧尺寸与行列数构建的图集布局、按动画名索引的帧表
 
-#### Scenario: 新增形象不改代码
+#### Scenario: Adding a figure changes no code | 新增形象不改代码
 
-- **WHEN** 在形象表为一个新形象新增一个条目
-- **THEN** 不改动任何代码即可加载该形象并供生物呈现
+- **WHEN** a new entry is added to the figure table for a new figure | 在形象表为一个新形象新增一个条目时
+- **THEN** the figure loads and can present creatures without any code change | 不改动任何代码即可加载该形象并供生物呈现
 
-### Requirement: 动画回退 Idle
+### Requirement: Animation Fallback to Idle | 动画回退 Idle
 
-每个形象 MUST 定义 Idle 帧表；生物播放其形象未定义的动画时 SHALL 回退到 Idle 帧表。
+Every figure MUST define an Idle frame table; when a creature plays an
+animation its figure does not define, playback SHALL fall back to the
+Idle frame table.
 
-#### Scenario: 未定义动画回退 Idle
+每个形象 MUST 定义 Idle 帧表；生物播放其形象未定义的动画时 SHALL 回退
+到 Idle 帧表。
 
-- **WHEN** 生物播放其形象未定义的动画
-- **THEN** 实际播放该形象的 Idle 帧表
+#### Scenario: An undefined animation falls back to Idle | 未定义动画回退 Idle
 
-### Requirement: 形象数据校验
+- **WHEN** a creature plays an animation its figure does not define | 生物播放其形象未定义的动画时
+- **THEN** what actually plays is the figure's Idle frame table | 实际播放该形象的 Idle 帧表
 
-形象表 MUST 在加载时校验。同一 id 重复出现、id 为空、帧序列为空、帧率非正、帧号越出图集网格、条目缺少 Idle 帧表，SHALL 导致启动失败，错误信息指明出错文件与出错位置。
+### Requirement: Figure Data Validation | 形象数据校验
 
-#### Scenario: 帧号越出网格
+The figure table MUST be validated at load. A duplicated id, an empty
+id, an empty frame sequence, a non-positive rate, a frame index
+outside the atlas grid, or an entry missing its Idle frame table SHALL
+fail startup, the error naming the file and the offending position.
 
-- **WHEN** 形象条目的帧序列引用图集网格之外的帧号
-- **THEN** 启动失败，错误信息指明出错文件与该形象 id
+形象表 MUST 在加载时校验。同一 id 重复出现、id 为空、帧序列为空、帧率
+非正、帧号越出图集网格、条目缺少 Idle 帧表，SHALL 导致启动失败，错误
+信息指明出错文件与出错位置。
 
-#### Scenario: 缺少 Idle 帧表拒绝启动
+#### Scenario: A frame index outside the grid | 帧号越出网格
 
-- **WHEN** 形象条目未定义 Idle 帧表
-- **THEN** 启动失败，错误信息指明出错文件与该形象 id
+- **WHEN** a figure entry's frame sequence references a frame number outside the atlas grid | 形象条目的帧序列引用图集网格之外的帧号时
+- **THEN** startup fails, the error naming the file and that figure id | 启动失败，错误信息指明出错文件与该形象 id
 
-### Requirement: 生物呈现形象
+#### Scenario: A missing Idle frame table fails startup | 缺少 Idle 帧表拒绝启动
 
-携带形象句柄的实体进入世界后，显示侧 SHALL 按句柄解析形象条目，为该实体挂载对应贴图、图集布局与初始动画状态。
+- **WHEN** a figure entry does not define an Idle frame table | 形象条目未定义 Idle 帧表时
+- **THEN** startup fails, the error naming the file and that figure id | 启动失败，错误信息指明出错文件与该形象 id
 
-#### Scenario: 按句柄解析并挂载
+### Requirement: Creatures Present Figures | 生物呈现形象
 
-- **WHEN** 一个携带形象句柄的实体进入世界
-- **THEN** 显示侧按句柄查到形象条目，为该实体挂载对应贴图、图集布局与初始动画状态
+After an entity carrying a figure handle enters the world, the display
+side SHALL resolve the figure entry through the handle and attach the
+matching texture, atlas layout, and initial animation state to that
+entity.
 
-### Requirement: warrior 形象数据
+携带形象句柄的实体进入世界后，显示侧 SHALL 按句柄解析形象条目，为该
+实体挂载对应贴图、图集布局与初始动画状态。
 
-warrior 形象的条目 SHALL 复现既定表现：贴图 warrior.png，帧尺寸 12×15 像素，图集 21 列 8 行；Idle 帧序列为 0,0,0,1,0,0,1,1、帧率 8 fps；Run 帧序列为 2,3,4,5,6,7、帧率 20 fps。
+#### Scenario: Resolving through the handle and attaching | 按句柄解析并挂载
 
-#### Scenario: 数据条目与既定表现逐值一致
+- **WHEN** an entity carrying a figure handle enters the world | 一个携带形象句柄的实体进入世界时
+- **THEN** the display side finds the figure entry through the handle and attaches the matching texture, atlas layout, and initial animation state to the entity | 显示侧按句柄查到形象条目，为该实体挂载对应贴图、图集布局与初始动画状态
 
-- **WHEN** 读取仓库中的形象表
-- **THEN** warrior 条目的贴图、帧尺寸、行列数、Idle 与 Run 帧序列及帧率与上述数值逐项一致
+### Requirement: Warrior Figure Data | warrior 形象数据
 
-### Requirement: 巨白鼠形象数据
+The warrior figure's entry SHALL reproduce the established
+presentation: texture warrior.png, frame size 12×15 pixels, atlas 21
+columns by 8 rows; Idle frame sequence 0,0,0,1,0,0,1,1 at 8 fps; Run
+frame sequence 2,3,4,5,6,7 at 20 fps.
 
-giant_white_rat 形象的条目 SHALL 复现既定表现：贴图 rat.png，帧尺寸 16×15 像素，图集 16 列 2 行；Idle 帧序列为 16,16,16,17、帧率 2 fps。
+warrior 形象的条目 SHALL 复现既定表现：贴图 warrior.png，帧尺寸 12×15
+像素，图集 21 列 8 行；Idle 帧序列为 0,0,0,1,0,0,1,1、帧率 8 fps；Run
+帧序列为 2,3,4,5,6,7、帧率 20 fps。
 
-#### Scenario: 数据条目与既定表现逐值一致
+#### Scenario: The entry matches the established presentation value for value | 数据条目与既定表现逐值一致
 
-- **WHEN** 读取仓库中的形象表
-- **THEN** giant_white_rat 条目的贴图、帧尺寸、行列数与 Idle 帧序列及帧率与上述数值逐项一致
+- **WHEN** the repository's figure table is read | 读取仓库中的形象表时
+- **THEN** the warrior entry's texture, frame size, grid dimensions, and Idle and Run frame sequences and rates match the values above item for item | warrior 条目的贴图、帧尺寸、行列数、Idle 与 Run 帧序列及帧率与上述数值逐项一致
+
+### Requirement: Giant White Rat Figure Data | 巨白鼠形象数据
+
+The giant_white_rat figure's entry SHALL reproduce the established
+presentation: texture rat.png, frame size 16×15 pixels, atlas 16
+columns by 2 rows; Idle frame sequence 16,16,16,17 at 2 fps.
+
+giant_white_rat 形象的条目 SHALL 复现既定表现：贴图 rat.png，帧尺寸
+16×15 像素，图集 16 列 2 行；Idle 帧序列为 16,16,16,17、帧率 2 fps。
+
+#### Scenario: The entry matches the established presentation value for value | 数据条目与既定表现逐值一致
+
+- **WHEN** the repository's figure table is read | 读取仓库中的形象表时
+- **THEN** the giant_white_rat entry's texture, frame size, grid dimensions, and Idle frame sequence and rate match the values above item for item | giant_white_rat 条目的贴图、帧尺寸、行列数与 Idle 帧序列及帧率与上述数值逐项一致
