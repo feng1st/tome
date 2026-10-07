@@ -10,7 +10,7 @@ use bevy::prelude::*;
 
 /// Register the frontend's sub-areas. Systems land in the game-loop stages
 /// owned by the core (`GameLoop::Input` at frame start, `GameLoop::Display` at frame end);
-/// the assembly layer only chains the labels.
+/// the orchestration layer only chains the labels.
 pub fn register(app: &mut App) {
     display::register(app);
     input::register(app);

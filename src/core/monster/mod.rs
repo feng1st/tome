@@ -15,12 +15,12 @@ use crate::core::core_phase::CorePhase;
 
 /// Register the monster domain: the vocabulary registry builds at app
 /// build time (`FromWorld`), monsters spawn on entering the game, and
-/// `plan_wander` plans in the Plan phase.
+/// `plan_action` plans the monsters' turns in the world plan phase.
 pub fn register(app: &mut App) {
     app.init_resource::<MonsterRegistry>()
         .add_systems(OnEnter(AppState::Game), entities::monsters::spawn_monsters)
         .add_systems(
             Update,
-            systems::plan_wander::plan_wander.in_set(CorePhase::WorldPlan),
+            systems::plan_action::plan_action.in_set(CorePhase::WorldPlan),
         );
 }

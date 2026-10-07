@@ -6,7 +6,7 @@ use crate::core::map::components::cell_coord::CellCoord;
 use crate::frontend::display::motion::components::curr_position::CurrPosition;
 
 /// Whether both axes stand within `step` of the logical cell.
-pub fn reached(curr_position: CurrPosition, cell: CellCoord, step: f32) -> bool {
+pub fn has_reached(curr_position: CurrPosition, cell: CellCoord, step: f32) -> bool {
     (cell.x as f32 - curr_position.x).abs() <= step
         && (cell.y as f32 - curr_position.y).abs() <= step
 }

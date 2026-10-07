@@ -14,55 +14,15 @@ OPEN ISSUES — 延期工作与已知问题登记表
 
 已存在的支撑系统（取材依据）：六维与出身修正、玩家生命派生、
 HitPoints 组件、伤害通道与死亡处理（damage-and-death）、站立指令与
-玩家攻击解析（player-attacks）、速度域与世界时钟、移动管线、怪物词
-表与出生、怪物随机移动、前端动画槽位（Attack/Hit/Die 已预留）。
+玩家攻击解析（player-attacks）、统一出手管线与怪物出手
+（monster-attacks）、速度域与世界时钟、移动管线、怪物词表与出生、
+怪物随机移动、前端动画槽位（Attack/Hit/Die 已预留）。
 不存在的支撑系统（本次一律不取）：技能、装备、状态、effect 家族、
 旗标、感知 AI、经验/成长、消息。
 
-顺序理由：条目 5 落地后由 6 收尾；条目 1、2、3、4 已分别以
-monster-combat-profile、combat-bonuses、damage-and-death、
-player-attacks 落地并从本表删除。
-
-=====================================================================
-
-5. 半环乙：怪物攻击主角（顺序 5/6）
-
-目标：怪物行动到期且与主角相邻时出手；主角挨打、可能死亡；闭环在此
-合拢。变更命名建议：monster-attacks。
-
-现状与改动：
-- src/core/monster/systems/plan_wander.rs 现在 75% 站住、25% 随机移动
-  （已避开占位格，含主角格——player-attacks 随行落地）；本变更加最高
-  优先分支"相邻主角 -> 攻击"，出手同样消耗一次行动
-  （next_turn.at = now + action_duration(...)）。tome2 对应决策：怪物
-  要走进主角所在格时不移动、出手、算一回合（src/melee2.c:7138-7152）。
-- 怪物命中判定骨架（基础项，照搬 check_hit，src/melee1.c:60-81）：
-  先掷 0..99，小于 10 时按小于 5 定必中或必失；i = power + level*3；
-  randint(i) > ac*3/4 则命中（randint 出 1..M，src/z-rand.h:30-62）；
-  ac = 玩家 ac + to_a（combat-bonuses），level = 怪物 level（monster-combat-profile，已落地）。
-  luck 项不存在，去掉。
-- power 顶替值：终局来源是 effect 威力表（RBE_HURT=60、RBE_POISON=5，
-  src/melee1.c:1416-1565），effect 家族系统不存在 -> 固定值顶替，
-  design 定并记录映射（参考：基础家族 HURT=60；老鼠原版 effect 值 5
-  仅作参考，不入数据）。由条目 10 回收顶替值。
-- 伤害：掷 blow 伤害骰（老鼠 1d3，monster-combat-profile）；无属性修正、无 effect
-  附加。
-- 扣血与死亡：已落地（damage-and-death）；主角死后停收命令已随该条
-  落地。
-- 相邻判定：CellCoord 与主角格比较（tome2 用 (ny,nx)==(py,px)）。
-
-不做（支撑系统不存在）：effect 附加如中毒、护甲折减（挂在 effect
-家族分支，见条目 10）、豁免链（闪避/神力/护符，见条目 8）、命中
-暴击（割伤/击碎转流血/眩晕，见条目 10）、感知/睡眠/追击/逃跑
-（见条目 11）。
-
-验证：相邻必出手；不相邻仍走原随机移动；必中/必失边界；伤害区间；
-主角生命变负后停收命令。
-
-依赖：无；monster-combat-profile、combat-bonuses、damage-and-death 与
-player-attacks 已落地；本条合拢最小闭环。
-
-语料库交叉：.ref/tome2-specs/specs/monster-melee/spec.md。
+顺序理由：条目 1–5 已分别以 monster-combat-profile、
+combat-bonuses、damage-and-death、player-attacks、monster-attacks
+落地并从本表删除；仅余条目 6 收尾。
 
 =====================================================================
 
@@ -81,17 +41,24 @@ player-attacks 已落地；本条合拢最小闭环。
 
 落地内容（可分批）：
 - 攻击动作：前冲-回弹，不必新帧；受击帧或闪烁；死亡帧或淡出。
+- 形象帧与动画选择：为主角与老鼠补齐 Attack/Hit/Die 帧数据
+  （creature_figures.ron 目前只有 idle 与移动，素材来源见下方待裁
+  决）；sync_animation 目前只在 idle 与移动之间二选一
+  （src/frontend/display/sprite_animation/systems/sync_animation.rs），
+  本条改为按当前动作选动画（出手 Attack、受击 Hit、死亡 Die），动作
+  来源即本条的事件源。
 - 伤害数字上浮（PD 风格）。
 - 生命显示：主角 HUD 与怪物头顶小血条（数据来自 monster-combat-profile 与既有
   玩家生命）。
 - 事件源：攻击/受击/死亡须能被前端观察——伤害通道已落地
   （damage-and-death），但缓冲被破坏式排干，展示侧读不到；玩家的
-  攻击已随 player-attacks 落地、怪物的攻击待条目 5，两者的展示事
-  件由本条一并发展。
+  攻击随 player-attacks 落地、怪物的攻击随 monster-attacks 落地，
+  两者的展示事件由本条一并发展。
 
 不做（支撑系统不存在）：文字消息行与措辞档位（消息系统，见条目 14）。
 
-依赖：事件源来自条目 5；帧素材与显示组件可提前做。
+依赖：无——玩法侧战斗事件源（攻击、受击、死亡）已全部落地；帧素材
+与显示组件可提前做。
 
 待裁决：动画帧素材来源。
 
@@ -103,14 +70,16 @@ player-attacks 已落地；本条合拢最小闭环。
 - 等：词表旗标机制。
 - 回收：FORCE_MAXHP 与掷骰上限函数（maxroll，src/z-rand.c:349-352）；
   非 unique 出生速度扰动（src/monster2.c:2593-2652）；稀有度等生成
-  倾向字段。
+  倾向字段；NEVER_BLOW——表达为词表空 blows，届时怪物策划需跳过无打
+  击者：现行为是出手为空、回合照常消耗。
 - 语料库交叉：monster-generation/spec.md。
 
 8. 技能系统（战斗侧回收）
 - 等：技能系统。
-- 回收：skill_thn 真值替换 combat-bonuses 的命中技能顶替因子（顶替值
-  现存于 combat/utils/attack.rs；替换的形式与位置由技能系统的设计
-  决定，utils 只承载顶替值、不承载替代实现；src/xtra1.c:3903）；
+- 回收：skill_thn 真值替换 combat-bonuses 的近战技能命中值顶替因子
+  （顶替值现存于 combat/utils/attack.rs；替换的形式与位置由技能系
+  统的设计决定，utils 只承载顶替值、不承载替代实现；
+  src/xtra1.c:3903）；
   to_h_melee/to_d_melee 进攻击品质（src/xtra1.c:3740-3746、
   2331-2372）——攻击品质顶替值（含武器掌握的 to_h_melee 与基础武
   器 to_h，现存 combat/utils/attack.rs）随本条与条目 9 落地删除；
@@ -134,8 +103,9 @@ player-attacks 已落地；本条合拢最小闭环。
 10. effect 家族与状态系统（战斗侧回收）
 - 等：effect 家族、状态系统。
 - 回收：blow 的 method/effect 列解析与名称表（src/init1.c:46-123、
-  7941-8000）；effect 威力表替换条目 5 的 power 顶替值
-  （src/melee1.c:1416-1565）；护甲折减（封顶 150、比率 ac/250，
+  7941-8000）；effect 威力表替换威力顶替值（现存
+  src/core/monster/entities/monsters.rs 的 MONSTER_BLOW_POWER_STANDIN；
+  src/melee1.c:1416-1565）；护甲折减（封顶 150、比率 ac/250，
   src/melee1.c:1886-1887，同款共 4 处）；effect 附加状态（中毒等）；
   命中暴击表（割伤/击碎转流血/眩晕，src/melee1.c:2837-2916）。
 - 语料库交叉：monster-melee/spec.md。

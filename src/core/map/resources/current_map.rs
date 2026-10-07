@@ -231,7 +231,7 @@ mod tests {
         use crate::core::map::types::terrain::Terrain;
         use crate::core::map::utils::pathfinding::find_path;
 
-        fn walkable(
+        fn is_walkable(
             local_map: &LocalMap,
             terrain_registry: &TerrainRegistry,
             cell_coord: CellCoord,
@@ -239,7 +239,7 @@ mod tests {
             local_map
                 .get(cell_coord)
                 .and_then(|terrain_index| terrain_registry.get(terrain_index))
-                .is_some_and(Terrain::walkable)
+                .is_some_and(Terrain::is_walkable)
         }
 
         let text = std::fs::read_to_string(TERRAIN_TABLE_PATH).unwrap();
@@ -253,7 +253,7 @@ mod tests {
         // The border is sealed with impassable cells.
         for x in 0..48 {
             for y in [0, 31] {
-                assert!(!walkable(
+                assert!(!is_walkable(
                     &local_map,
                     &terrain_registry,
                     CellCoord::new(x, y)
@@ -262,7 +262,7 @@ mod tests {
         }
         for y in 0..32 {
             for x in [0, 47] {
-                assert!(!walkable(
+                assert!(!is_walkable(
                     &local_map,
                     &terrain_registry,
                     CellCoord::new(x, y)
@@ -276,7 +276,7 @@ mod tests {
         // blocking is asserted on the line itself, not the length.)
         let start = CellCoord::new(16, 19);
         let goal = CellCoord::new(32, 19);
-        assert!(!walkable(
+        assert!(!is_walkable(
             &local_map,
             &terrain_registry,
             CellCoord::new(24, 19)
@@ -284,13 +284,13 @@ mod tests {
         let path = find_path(&local_map, &terrain_registry, start, goal, &HashSet::new())
             .expect("a detour around the pool exists");
         for cell in &path {
-            assert!(walkable(&local_map, &terrain_registry, *cell));
+            assert!(is_walkable(&local_map, &terrain_registry, *cell));
         }
 
         // The player's starting cell (player/entities/player.rs
         // PLAYER_START) is
         // walkable.
-        assert!(walkable(
+        assert!(is_walkable(
             &local_map,
             &terrain_registry,
             CellCoord::new(24, 10)
@@ -306,7 +306,7 @@ mod tests {
         );
         for spawn in &local_map.spawns {
             assert_eq!(spawn.monster, "giant_white_rat");
-            assert!(walkable(&local_map, &terrain_registry, spawn.cell));
+            assert!(is_walkable(&local_map, &terrain_registry, spawn.cell));
         }
     }
 }

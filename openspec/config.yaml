@@ -58,7 +58,7 @@ context: |
 
     Plugin: 模块化手段，引擎功能和游戏功能都是插件。插件实现 Plugin trait 的
     build(&self, app) 方法，在里面注册自己的资源/系统；游戏按功能域拆成多个插件，
-    main() 只负责装配（DefaultPlugins 提供渲染/窗口/输入等引擎功能）。
+    main() 只负责组装（DefaultPlugins 提供渲染/窗口/输入等引擎功能）。
 
     Resource: 全局唯一的数据（时间、素材集合、地图数据等），derive Resource，
     系统里用 Res<T>/ResMut<T> 访问。Entity+Component 表达可查询的对象群体，
@@ -70,7 +70,7 @@ context: |
   - 游戏内核不拆插件：游戏功能是一个整体，不通过插件拆分、组织。
   - 可整体替换的实现抽成插件：内核持有协议，插件单向依赖内核。前端（输入和显示）是插件。
   - 可选功能（DLC 式子系统）做成插件：目前不涉及。
-  - 依据：Bevy 的 Plugin 是编译期装配单元（`fn(&mut App)` 天然实现 Plugin），
+  - 依据：Bevy 的 Plugin 是编译期组装单元（`fn(&mut App)` 天然实现 Plugin），
     不是运行时可热插拔组件；插件间没有依赖声明机制，耦合全部落在共享类型上。
 
   域组织规范：
@@ -91,10 +91,10 @@ context: |
   - register：域的 mod.rs 里定义 pub fn register(app: &mut App)（裸函数即 Plugin），
     只做成员注册（资源、消息、系统入集合），不做编排；编排（.chain()、
     configure_sets、门控）只在 core/、frontend/input/、frontend/display/
-    的根模块（mod.rs）与装配层（main()）。若将来出现子域，
+    的根模块（mod.rs）与编排层（main()）。若将来出现子域，
     其 register 由父域的 register 调用。
   - 归属判定：操作单域数据→归该域；通用数据→utils 或外部 crate；多域数据→
-    归"结果域"，依赖方向单向无环；两域对称融合→抽新域；纯编排→装配层。
+    归"结果域"，依赖方向单向无环；两域对称融合→抽新域；纯编排→编排层。
     例：读 core 的身份组件、向前端实体写展示组件的系统，操作多域数据且
     产出的组件属前端 → 归前端的结果域。
 

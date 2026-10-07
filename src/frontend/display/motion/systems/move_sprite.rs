@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use crate::core::display::components::is_moving::IsMoving;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::frontend::display::motion::components::curr_position::CurrPosition;
-use crate::frontend::display::motion::utils::position::{approach, reached};
+use crate::frontend::display::motion::utils::position::{approach, has_reached};
 
 /// Seconds per cell per axis, flat for every creature: speed is a logic
 /// concept — turn frequency — never a picture pace.
@@ -27,7 +27,7 @@ pub fn move_sprite(
 ) {
     let step = time.delta_secs() / CELL_SECS;
     for (entity, cell, mut curr_position, is_moving_curr) in &mut creatures {
-        let landed = reached(*curr_position, *cell, step);
+        let landed = has_reached(*curr_position, *cell, step);
         if landed {
             // Both axes land within this frame: arrive exactly.
             *curr_position = CurrPosition::from(*cell);
@@ -38,7 +38,7 @@ pub fn move_sprite(
         // after this frame's motion fits inside one frame's step, so
         // the core plans the next action while the move finishes — the
         // new target then absorbs the remainder with no standstill.
-        let lands_next_frame = reached(*curr_position, *cell, step);
+        let lands_next_frame = has_reached(*curr_position, *cell, step);
         let is_moving_next = !landed && !lands_next_frame;
         if is_moving_next != is_moving_curr {
             if is_moving_next {

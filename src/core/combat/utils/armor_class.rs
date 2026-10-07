@@ -16,7 +16,6 @@ const EQUIPMENT_ARMOR_BASE: i32 = 0;
 /// The player's armor class: the equipment base plus the armor bonus
 /// read by the current dexterity. Not floored — armor class may go
 /// negative.
-#[allow(dead_code)] // consumed by attack resolution
 pub fn armor_class(combat_bonuses: &CombatBonuses) -> i32 {
     EQUIPMENT_ARMOR_BASE + combat_bonuses.armor
 }

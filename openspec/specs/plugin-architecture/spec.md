@@ -20,12 +20,12 @@ Game code SHALL divide into two sides, the core and the frontend. The
 core holds game data and general logic and MUST NOT reference concrete
 frontend types; the frontend SHALL depend one-way on the protocols the
 core holds (components and data types). Replacing the frontend
-implementation MUST touch only the assembly layer, with zero changes
-to core code.
+implementation MUST touch only the orchestration layer, with zero
+changes to core code.
 
 游戏代码 SHALL 分为内核与界面层两方。内核持有游戏数据与通用逻辑，MUST
 NOT 引用界面层的具体类型；界面层 SHALL 单向依赖内核持有的协议（组件与
-数据类型）。替换界面层实现 MUST 只需修改装配层，内核代码零改动。
+数据类型）。替换界面层实现 MUST 只需修改编排层，内核代码零改动。
 
 #### Scenario: The core never depends on frontend implementations | 内核不依赖界面层实现
 
@@ -36,7 +36,7 @@ NOT 引用界面层的具体类型；界面层 SHALL 单向依赖内核持有的
 #### Scenario: Replacement never touches the core | 替换不触及内核
 
 - **WHEN** the current frontend implementation is replaced by another (such as swapping the sprite-graphical interface for a text one) | 用另一套界面层实现替换现有实现（如精灵图形界面换为文字界面）时
-- **THEN** every modification happens inside the frontend itself and in the assembly layer | 所有修改都发生在界面层自身与装配层
+- **THEN** every modification happens inside the frontend itself and in the orchestration layer | 所有修改都发生在界面层自身与编排层
 - **AND** the core code is unchanged | 内核代码无任何改动
 
 ### Requirement: Rendering-Independent Entity Position | 显示无关的实体位置
@@ -80,19 +80,19 @@ interface built on sprite sheets and tilesets, or a text interface
 (reporting position, coordinates, and surrounding terrain, driven by
 text commands). Both implementations SHALL consume the same core game
 state and produce the same command protocol. Replacement MUST happen
-through the assembly layer alone. Replaceable units inside the
+through the orchestration layer alone. Replaceable units inside the
 frontend (textures, animations, HUD, input modalities) are bounded by
 directories and do not constitute plugins of their own.
 
 界面层 SHALL 可整体替换——既可以是基于精灵表与 tileset 的图形界面，也
 可以是文字界面（报告所处位置、坐标与周围地形，以文字命令输入）。两种
 实现 SHALL 消费同一份内核游戏状态并产出同一套命令协议。替换 MUST 只
-通过装配层完成。界面层内部的替换单元（贴图、动画、HUD、输入模态）以
+通过编排层完成。界面层内部的替换单元（贴图、动画、HUD、输入模态）以
 目录为界，不构成独立插件。
 
 #### Scenario: A text interface consumes the same game state | 文字界面消费同一游戏状态
 
-- **WHEN** the assembly layer swaps the graphical interface for a text one | 装配层将图形界面替换为文字界面时
+- **WHEN** the orchestration layer swaps the graphical interface for a text one | 编排层将图形界面替换为文字界面时
 - **THEN** the text interface reads entity positions and map terrain from the core protocol and outputs descriptions, producing commands directly from text instructions | 文字界面从内核协议读取实体位置与地图地形并输出描述，从文字指令直接产生命令
 - **AND** core behaviors — map data, pathfinding, movement — are unaffected | 地图数据、寻路、移动等内核行为不受影响
 
@@ -161,9 +161,9 @@ modifying existing modality code.
 - **THEN** the gesture stage is not needed | 不需要手势层
 - **AND** the core's command protocol and execution behavior are unchanged | 内核的命令协议与执行行为不变
 
-### Requirement: Set-Based Assembly | 集合化装配
+### Requirement: Set-Based Orchestration | 集合化编排
 
-The assembly layer SHALL orchestrate the main-loop stage order by
+The orchestration layer SHALL arrange the main-loop stage order by
 referencing only abstract system set labels (SystemSet) —
 `GameLoop::{Input, Core, Display}` (command production, core logic,
 presentation) — and MUST NOT reference concrete system functions. The
@@ -171,17 +171,17 @@ set labels MUST be held by the core as part of the protocol; each side
 registers its systems into the matching sets inside its own register
 and orchestrates its own intra-set order.
 
-装配层 SHALL 只引用抽象系统集合标签（SystemSet）编排主循环阶段顺序——
+编排层 SHALL 只引用抽象系统集合标签（SystemSet）排定主循环阶段顺序——
 `GameLoop::{Input, Core, Display}`（命令产出、内核逻辑、呈现）——MUST
 NOT 引用具体系统函数。集合标签 MUST 由内核持有，作为协议的一部分；各
 方在自己的 register 内把系统注册进对应集合，并自行编排集合内部顺序。
 
-#### Scenario: The assembly layer names no concrete system | 装配层不指名具体系统
+#### Scenario: The orchestration layer names no concrete system | 编排层不指名具体系统
 
-- **WHEN** the assembly layer's (main.rs) system orchestration code is inspected | 检查装配层（main.rs）的系统编排代码时
+- **WHEN** the orchestration layer's (main.rs) stage-ordering code is inspected | 检查编排层（main.rs）的阶段排序代码时
 - **THEN** only set-label ordering appears, with no concrete system function referenced | 只出现集合标签的顺序编排，无任何具体系统函数引用
 
-#### Scenario: Replacing an implementation leaves the assembly untouched | 替换实现不动装配层
+#### Scenario: Replacing an implementation leaves the orchestration untouched | 替换实现不动编排层
 
 - **WHEN** a frontend plugin is replaced by a new implementation that registers into the same set labels | 用注册了同一集合标签的新实现替换界面层插件时
-- **THEN** the assembly layer code is unchanged | 装配层代码零改动
+- **THEN** the orchestration layer code is unchanged | 编排层代码零改动

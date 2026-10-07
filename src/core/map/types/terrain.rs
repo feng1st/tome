@@ -12,12 +12,12 @@ pub struct Terrain {
 
 impl Terrain {
     /// Whether creatures can step onto and path through this terrain.
-    pub fn walkable(&self) -> bool {
+    pub fn is_walkable(&self) -> bool {
         self.flags.contains(TerrainFlags::PASSABLE)
     }
 
     /// Whether this terrain is a liquid body.
-    pub fn liquid(&self) -> bool {
+    pub fn is_liquid(&self) -> bool {
         self.flags.contains(TerrainFlags::LIQUID)
     }
 }

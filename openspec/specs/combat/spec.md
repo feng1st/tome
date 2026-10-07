@@ -67,9 +67,9 @@ the statistics change, birth included.
 
 ### Requirement: Attack Chance | 攻击值
 
-The attack chance SHALL equal the melee skill term plus three times
+The attack chance SHALL equal the melee skill to-hit plus three times
 the attack quality — the hit bonus plus the weapon-side stand-in.
-Until the skill system lands, the melee skill term is the fixed
+Until the skill system lands, the melee skill to-hit is the fixed
 stand-in 5 — the value the reference formula yields for the level-one
 warrior's skill bases under its stepwise integer divisions. Until the
 skill and equipment systems land, the attack-quality stand-in is the
@@ -78,12 +78,12 @@ reference: the weaponmastery skill's to-hit (the skill level at level
 one) plus the basic weapon's own to-hit. Both stand-ins delete when
 their systems land.
 
-攻击值 SHALL 等于命中技能项加三倍攻击品质——命中修正加武器侧顶替
-值。技能系统落地前，命中技能项为固定顶替值 5——参考公式代入一级
-战士的技能基值、按其逐步整数除法算得的结果；技能与装备系统落地
-前，攻击品质顶替值为固定值 1——参考实现中一级战士所持武器贡献的
-命中：武器掌握技能的命中项（一级时为技能等级）加基础武器自身的命
-中。两个顶替值随各自系统落地删除。
+攻击值 SHALL 等于近战技能命中值加三倍攻击品质——命中修正加武器
+侧顶替值。技能系统落地前，近战技能命中值为固定顶替值 5——参考公
+式代入一级战士的技能基值、按其逐步整数除法算得的结果；技能与装
+备系统落地前，攻击品质顶替值为固定值 1——参考实现中一级战士所持
+武器贡献的命中：武器掌握技能的命中项（一级时为技能等级）加基础
+武器自身的命中。两个顶替值随各自系统落地删除。
 
 #### Scenario: The chance is a fixed function of the hit bonus | 攻击值为命中修正的确定函数
 
@@ -113,10 +113,13 @@ Unarmed damage SHALL be 1 plus the damage bonus, floored at zero.
 
 ### Requirement: Player Armor Class | 玩家护甲
 
-A player's armor class SHALL be the armor bonus; the equipment-granted
-base is zero while the equipment system does not exist.
+A player's armor class SHALL be the armor bonus; the
+equipment-granted base is zero while the equipment system does not
+exist. The armor class SHALL be carried as a component on the
+creature, derived anew whenever the combat bonuses renew.
 
-玩家护甲 SHALL 为护甲修正；装备系统不存在期间，装备给予的基数为 0。
+玩家护甲 SHALL 为护甲修正；装备系统不存在期间，装备给予的基数为
+0。护甲 SHALL 以组件形式携带在生物身上，随战斗加成更新重派生。
 
 #### Scenario: Armor class equals the armor bonus | 护甲等于护甲修正
 
@@ -164,25 +167,25 @@ in the world, the order SHALL be cleared without the turn being spent.
 - **WHEN** the attack order's target is no longer in the world at planning time | 策划时攻击指令的目标已不在世界中时
 - **THEN** the order is cleared and the next-turn slot stays put | 指令清除，回合槽保持不动
 
-### Requirement: Player Hit Determination | 玩家命中判定
+### Requirement: Hit Determination | 命中判定
 
-A strike SHALL judge the hit with the reference skeleton: draw a
-percentile of 0..99 first — below 10, the strike hits if and only if
-it is below 5; otherwise a chance at or below zero always misses;
-otherwise draw a power roll of 0..chance-1 — the strike hits if and
-only if the power roll is at least three quarters of the target's
-armor class (integer division). The chance SHALL be the attacker's
-attack chance (the melee skill term plus three times the attack
-quality — the hit bonus and the weapon-side stand-in summed); the
-armor class SHALL be the target kind's vocabulary value. The power
-roll MUST NOT be drawn while the chance is non-positive.
+A strike SHALL judge each blow's hit with the reference skeleton:
+draw a percentile of 0..99 first — below 10, the blow hits if and
+only if it is below 5; otherwise a chance at or below zero always
+misses; otherwise draw a power roll of 0..chance-1 — the blow hits if
+and only if the power roll is at least three quarters of the target's
+armor class (integer division). The chance SHALL be the blow's own,
+as the attacker carries it; the armor class SHALL be the target's
+armor-class component, reading as zero for a target that carries
+none. The power roll MUST NOT be drawn while the chance is
+non-positive.
 
-出手 SHALL 按参照骨架判定命中：先抽 0..99 的 percentile——小于 10
-时当且仅当小于 5 命中；否则 chance 不大于零必失；否则抽
-0..chance-1 的威力骰——当且仅当威力骰不小于目标护甲的四分之三
-（整数除法）时命中。chance SHALL 取攻击方的攻击值（命中技能项加
-三倍攻击品质——命中修正与武器侧顶替值之和）；护甲 SHALL 取目标种
-类的词表值。chance 非正时 MUST NOT 抽威力骰。
+出手 SHALL 按参照骨架逐击判定命中：先抽 0..99 的 percentile——
+小于 10 时当且仅当小于 5 命中；否则 chance 不大于零必失；否则
+抽 0..chance-1 的威力骰——当且仅当威力骰不小于目标护甲的四分
+之三（整数除法）时命中。chance SHALL 取攻击方携带的该击自身之
+值；护甲 SHALL 取目标的护甲组件，目标不携带时按零读。chance 非
+正时 MUST NOT 抽威力骰。
 
 #### Scenario: The certain-hit band | 必中带
 
@@ -206,14 +209,15 @@ roll MUST NOT be drawn while the chance is non-positive.
 
 ### Requirement: Unarmed Strike Damage | 徒手出手伤害
 
-A hitting strike SHALL issue a damage request against the target for
-the unarmed damage (one plus the attacker's damage bonus, floored at
-zero); a missing strike SHALL issue nothing. The strike SHALL spend
-the same base action duration as one step.
+The player's blows SHALL derive exactly one blow — the unarmed
+strike: its chance is the attack chance, its damage fixed at the
+unarmed damage (one plus the damage bonus, floored at zero), and the
+derivation SHALL renew the blow whenever the combat bonuses renew.
+The strike SHALL spend the same base action duration as one step.
 
-命中的出手 SHALL 对目标发出伤害请求，数值为徒手伤害（一加攻击方
-伤害加成，下端夹零）；未命中 SHALL 什么都不发出。出手 SHALL 与移
-动一步同基准行动时长。
+玩家的打击列表 SHALL 派生恰好一击——徒手一击：命中品质即攻击
+值，伤害固定为徒手伤害（一加伤害加成，下端夹零）；战斗加成更新
+时 SHALL 同步重派生该击。出手 SHALL 与移动一步同基准行动时长。
 
 #### Scenario: A hit hurts through the channel | 命中经通道致伤
 
@@ -224,3 +228,40 @@ the same base action duration as one step.
 
 - **WHEN** a strike misses | 出手未命中时
 - **THEN** no damage request exists and the target's hit points are unchanged | 不产生任何伤害请求，目标生命值不变
+
+### Requirement: Strike Resolution | 出手解析
+
+Every planned strike SHALL resolve through one shared pipeline: for
+each blow the attacker carries, judge the hit (see Hit Determination)
+against the target; on a hit issue exactly one damage request for
+that blow's damage — a fixed amount, or one roll of its dice; on a
+miss issue nothing. The strike action
+SHALL be consumed either way. Strikes planned by the player resolve
+in the player's acting phase; strikes planned by a monster resolve in
+the world's acting phase. Resolution MUST NOT read any vocabulary and
+MUST NOT branch on what the attacker or the target is — every number
+comes from the blows and armor-class components the creatures carry.
+
+每一次策划出的出手 SHALL 经同一条共享管线解析：对攻击方携带的每
+一击，判定其命中（见"命中判定"）；命中则恰好发出一条伤害请求，
+数值为该击的伤害——定值，或其骰子的一次掷出；未命中则什么都不
+发出。
+出手动作 SHALL 照例消耗。玩家策划的出手在玩家执行阶段解析；怪物
+策划的出手在世界执行阶段解析。解析 MUST NOT 读任何词表，也
+MUST NOT 按攻击方或目标是谁而分支——一切数值取自生物携带的打
+击与护甲组件。
+
+#### Scenario: Every blow judges and rolls on its own | 每击独立判定与掷骰
+
+- **WHEN** a strike resolves for an attacker carrying several blows | 攻击方携带多击的出手解析时
+- **THEN** each blow judges the hit on its own chance and issues its own damage request on a hit | 每击按自身命中品质独立判定，命中各发各的伤害请求
+
+#### Scenario: A target without armor takes no threshold | 无护甲目标无阈值
+
+- **WHEN** a strike's target carries no armor-class component | 出手的目标不携带护甲组件时
+- **THEN** three quarters of armor reads as zero, and a blow with a positive chance always lands past the certain bands | 护甲的四分之三按零读，命中品质为正的一击过带必中
+
+#### Scenario: An attacker without blows strikes nothing | 无打击者出手为空
+
+- **WHEN** a strike resolves for an attacker carrying no blows | 攻击方不携带打击的出手解析时
+- **THEN** no damage request issues, and the strike action is spent as usual | 不产生任何伤害请求，出手动作照常消耗

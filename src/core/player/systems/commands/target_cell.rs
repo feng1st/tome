@@ -54,7 +54,7 @@ pub fn execute(
         let target_walkable = local_map
             .get(target)
             .and_then(|terrain_index| terrain_registry.get(terrain_index))
-            .is_some_and(Terrain::walkable);
+            .is_some_and(Terrain::is_walkable);
         if !target_walkable {
             continue;
         }
@@ -304,12 +304,16 @@ mod tests {
             requests.0.extend(captured);
         }
 
+        use crate::core::combat::components::armor_class::ArmorClass;
+        use crate::core::combat::components::blows::Blows;
         use crate::core::combat::components::combat_bonuses::CombatBonuses;
         use crate::core::combat::systems::act_attack::act_attack;
+        use crate::core::combat::types::blow::{Blow, BlowDamage};
+        use crate::core::combat::utils::armor_class::armor_class;
+        use crate::core::combat::utils::attack::{attack_chance, unarmed_damage};
         use crate::core::health::components::hit_points::HitPoints;
         use crate::core::health::messages::damage::Damage;
         use crate::core::health::systems::apply_damage::apply_damage;
-        use crate::core::monster::resources::monster_registry::parse_monster_registry;
         use crate::core::rng::resources::game_rng::GameRng;
         use crate::core::world_clock::systems::advance::advance;
 
@@ -323,7 +327,7 @@ mod tests {
             damage: 3,
             armor: 0,
         };
-        let chance = crate::core::combat::utils::attack::attack_chance(&probe_bonuses);
+        let chance = attack_chance(&probe_bonuses);
         let seed = (0..10_000u64)
             .find(|seed| {
                 let mut probe = StdRng::seed_from_u64(*seed);
@@ -336,19 +340,6 @@ mod tests {
             .insert_resource(GameRng::seeded(seed))
             .insert_resource(terrain_registry())
             .insert_resource(CurrentMap::new(room()))
-            .insert_resource(parse_monster_registry(
-                "test",
-                r#"[
-                    (
-                        monster: "giant_white_rat",
-                        speed: 110,
-                        hit_points: "2d2",
-                        armor_class: 7,
-                        level: 4,
-                        blows: [ ( damage: "1d3" ) ],
-                    ),
-                ]"#,
-            ))
             .add_message::<TargetCell>()
             .add_message::<Damage>()
             .configure_sets(
@@ -374,6 +365,13 @@ mod tests {
             )
             .add_systems(Update, apply_damage.in_set(CorePhase::PlayerResolve))
             .insert_resource(Requests::default());
+        // What the derive would attach, hand-built from the probe's
+        // bonuses: one unarmed blow and the armor class.
+        let probe_blows = Blows(vec![Blow {
+            chance,
+            damage: BlowDamage::Fixed(unarmed_damage(&probe_bonuses)),
+        }]);
+        let probe_armor_class = ArmorClass(armor_class(&probe_bonuses));
         let player = app
             .world_mut()
             .spawn((
@@ -383,12 +381,15 @@ mod tests {
                 Speed(110),
                 NextTurn::default(),
                 probe_bonuses,
+                probe_blows,
+                probe_armor_class,
             ))
             .id();
         let rat = app
             .world_mut()
             .spawn((
                 MonsterIndex::from_index(0),
+                ArmorClass(7),
                 Speed(110),
                 CellCoord::new(4, 2),
                 NextTurn { at: i64::MAX },

@@ -26,7 +26,7 @@ pub fn shore_index(
         local_map
             .get(CellCoord::new(x, y))
             .and_then(|terrain_index| terrain_registry.get(terrain_index))
-            .is_none_or(|terrain| !terrain.walkable() || terrain.liquid())
+            .is_none_or(|terrain| !terrain.is_walkable() || terrain.is_liquid())
     };
     let (x, y) = (x as i32, y as i32);
     let mut mask = 0u16;

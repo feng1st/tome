@@ -13,9 +13,6 @@ pub struct MonsterKind {
     pub speed: Speed,
     pub hit_points: Dice,
     pub armor_class: i32,
-    // Both consumed by monster attack resolution when it lands.
-    #[allow(dead_code)]
     pub level: i32,
-    #[allow(dead_code)]
     pub blows: Vec<MonsterBlow>,
 }

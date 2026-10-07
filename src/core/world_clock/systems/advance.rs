@@ -92,7 +92,7 @@ mod tests {
         use crate::core::map::resources::current_map::{parse_local_map, CurrentMap};
         use crate::core::map::resources::terrain_registry::parse_terrain_registry;
         use crate::core::monster::components::monster_index::MonsterIndex;
-        use crate::core::monster::systems::plan_wander::plan_wander;
+        use crate::core::monster::systems::plan_action::plan_action as monster_plan_action;
         use crate::core::movement::systems::act_move::act_move;
         use crate::core::player::components::order::Order;
         use crate::core::player::systems::plan_action::plan_action;
@@ -118,7 +118,14 @@ mod tests {
             .insert_resource(CurrentMap::new(map))
             .add_systems(
                 Update,
-                (advance, plan_action, act_move, plan_wander, act_move).chain(),
+                (
+                    advance,
+                    plan_action,
+                    act_move,
+                    monster_plan_action,
+                    act_move,
+                )
+                    .chain(),
             );
         let player = app
             .world_mut()

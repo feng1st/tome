@@ -1,4 +1,4 @@
-//! Attack composites: the melee skill term, the attack chance, unarmed
+//! Attack composites: the melee skill to-hit, the attack chance, unarmed
 //! damage, and the hit skeleton.
 //!
 //! The melee style, combat skill, and attack-quality constants below
@@ -13,13 +13,13 @@ use crate::core::combat::components::combat_bonuses::CombatBonuses;
 
 /// The melee style skill level stand-in: the level-one warrior's style
 /// base — the weaponmastery raw score 1000 integer-divided by 1000.
-/// Serves the melee skill term; deleted when the skill system lands
+/// Serves the melee skill to-hit; deleted when the skill system lands
 /// (see the module note).
 const MELEE_STYLE_SKILL_STANDIN: i32 = 1;
 
 /// The combat skill level stand-in: the level-one warrior's combat
 /// base — the raw score 2000 integer-divided by 1000. Serves the melee
-/// skill term; deleted when the skill system lands (see the module
+/// skill to-hit; deleted when the skill system lands (see the module
 /// note).
 const COMBAT_SKILL_STANDIN: i32 = 2;
 
@@ -29,23 +29,23 @@ const COMBAT_SKILL_STANDIN: i32 = 2;
 /// when the skill and equipment systems land (see the module note).
 const ATTACK_QUALITY_STANDIN: i32 = 1;
 
-/// The melee skill term of the attack chance: 50 scaled by the
+/// The melee skill to-hit of the attack chance: 50 scaled by the
 /// weighted skill mix (seven parts style, three parts combat). Both
 /// integer divisions apply stepwise in order — folding them into a
 /// single division by 100 changes the result.
-pub fn melee_skill_term(melee_style_skill: i32, combat_skill: i32) -> i32 {
+pub fn melee_skill_to_hit(melee_style_skill: i32, combat_skill: i32) -> i32 {
     50 * ((7 * melee_style_skill + 3 * combat_skill) / 10) / 10
 }
 
 /// Points of attack chance per point of hit bonus.
 const CHANCE_PER_HIT_BONUS: i32 = 3;
 
-/// The attack chance: the melee skill term plus three times the
+/// The attack chance: the melee skill to-hit plus three times the
 /// attack quality — the stat-side hit bonus and the weapon-side
 /// stand-in summed. Not floored — hit resolution reads a chance at or
 /// below zero as a guaranteed miss.
 pub fn attack_chance(combat_bonuses: &CombatBonuses) -> i32 {
-    melee_skill_term(MELEE_STYLE_SKILL_STANDIN, COMBAT_SKILL_STANDIN)
+    melee_skill_to_hit(MELEE_STYLE_SKILL_STANDIN, COMBAT_SKILL_STANDIN)
         + (combat_bonuses.hit + ATTACK_QUALITY_STANDIN) * CHANCE_PER_HIT_BONUS
 }
 
@@ -98,14 +98,14 @@ mod tests {
         // 50 × 13 / 100 would give 6 — the stepwise order is the
         // point.
         assert_eq!(
-            melee_skill_term(MELEE_STYLE_SKILL_STANDIN, COMBAT_SKILL_STANDIN),
+            melee_skill_to_hit(MELEE_STYLE_SKILL_STANDIN, COMBAT_SKILL_STANDIN),
             5
         );
-        assert_eq!(melee_skill_term(2, 2), 10);
+        assert_eq!(melee_skill_to_hit(2, 2), 10);
     }
 
     #[test]
-    fn chance_is_the_skill_term_plus_three_times_the_quality() {
+    fn chance_is_the_skill_to_hit_plus_three_times_the_quality() {
         // The quality sums the hit bonus and the weapon-side stand-in:
         // 5 + (2 + 1) * 3.
         assert_eq!(attack_chance(&bonuses(2, 0)), 14);

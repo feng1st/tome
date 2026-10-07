@@ -23,13 +23,13 @@ pub fn find_path(
     goal: CellCoord,
     obstacles: &HashSet<CellCoord>,
 ) -> Option<VecDeque<CellCoord>> {
-    let walkable = |cell: CellCoord| {
+    let is_walkable = |cell: CellCoord| {
         local_map
             .get(cell)
             .and_then(|terrain_index| terrain_registry.get(terrain_index))
-            .is_some_and(Terrain::walkable)
+            .is_some_and(Terrain::is_walkable)
     };
-    if !walkable(start) || !walkable(goal) {
+    if !is_walkable(start) || !is_walkable(goal) {
         return None;
     }
     // The destination is exempt from the obstacle overlay: a route may
@@ -100,7 +100,7 @@ pub fn find_path(
         let g = g_score[&cell];
         for (dir, cost) in DIRS {
             let next = cell + dir;
-            if !walkable(next) || blocked(next) {
+            if !is_walkable(next) || blocked(next) {
                 continue;
             }
             let next_g = g + cost;
@@ -133,11 +133,15 @@ mod tests {
         parse_terrain_registry("test", TERRAINS)
     }
 
-    fn walkable(local_map: &LocalMap, terrain_registry: &TerrainRegistry, cell: CellCoord) -> bool {
+    fn is_walkable(
+        local_map: &LocalMap,
+        terrain_registry: &TerrainRegistry,
+        cell: CellCoord,
+    ) -> bool {
         local_map
             .get(cell)
             .and_then(|terrain_index| terrain_registry.get(terrain_index))
-            .is_some_and(Terrain::walkable)
+            .is_some_and(Terrain::is_walkable)
     }
 
     fn map_from(rows: &[&str]) -> LocalMap {
@@ -179,7 +183,7 @@ mod tests {
         let water = terrain_registry.get_index("water").unwrap();
         for cell in &path {
             assert!(
-                walkable(&local_map, &terrain_registry, *cell),
+                is_walkable(&local_map, &terrain_registry, *cell),
                 "path steps on walkable cells only"
             );
             assert!(local_map.get(*cell) != Some(water));
@@ -273,7 +277,7 @@ mod tests {
             "the obstacle cell is avoided"
         );
         for cell in &path {
-            assert!(walkable(&local_map, &terrain_registry, *cell));
+            assert!(is_walkable(&local_map, &terrain_registry, *cell));
         }
     }
 

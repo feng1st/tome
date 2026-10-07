@@ -2,3 +2,4 @@
 
 pub mod act_attack;
 pub mod derive_combat_bonuses;
+pub mod derive_strike;

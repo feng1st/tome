@@ -1,15 +1,17 @@
-//! Plan wander: the monster's idle wander — at each due turn, 75%
-//! standing still, 25% a random direction.
+//! Plan action: the monster's turn planning — the strike at an
+//! adjacent living player first, the idle wander otherwise.
 
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::core::combat::components::attack::Attack;
 use crate::core::health::components::dead::Dead;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::types::terrain::Terrain;
+use crate::core::map::utils::adjacency::adjacent;
 use crate::core::monster::components::monster_index::MonsterIndex;
 use crate::core::movement::components::r#move::Move;
 use crate::core::player::components::player::Player;
@@ -21,8 +23,8 @@ use crate::core::world_clock::components::next_turn::NextTurn;
 use crate::core::world_clock::components::world_driver::WorldDriver;
 use crate::core::world_clock::resources::world_clock::WorldClock;
 
-/// A monster's wander-planning state: cell and speed for pricing, and
-/// the persistent next turn.
+/// A monster's turn-planning state: cell and speed for pricing, and the
+/// persistent next turn.
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct MonsterQuery {
@@ -30,6 +32,18 @@ pub struct MonsterQuery {
     cell: &'static CellCoord,
     speed: &'static Speed,
     next_turn: &'static mut NextTurn,
+}
+
+/// The monster planner's query filter: monster entities only, never
+/// the dead, never the driver.
+type MonsterFilter = (With<MonsterIndex>, Without<Dead>, Without<WorldDriver>);
+
+/// The living player's data: the entity a strike would target and the
+/// cell adjacency is judged against.
+#[derive(QueryData)]
+pub struct PlayerQuery {
+    entity: Entity,
+    cell: &'static CellCoord,
 }
 
 /// The 8 step directions a wander can pick.
@@ -49,15 +63,21 @@ const DIRECTIONS: [IVec2; 8] = [
 /// fails all of them stands.
 const RANDOM_ATTEMPTS: usize = 4;
 
-/// Every monster with a due turn plans one action: 75% standing still,
-/// 25% a random direction — up to four independent picks, the first
-/// passable and creature-free one wins, and a monster whose picks all
-/// fail stands. Occupied cells — any living creature's cell, the
-/// player's included, plus the cells this frame's planned steps head
-/// for — count as blocked: a monster never merges into another
-/// creature. Standing is an action all the same: the turn is spent
-/// either way. The world starts with the driver's first action; before
-/// that, nobody plans.
+/// Every living monster with a due turn plans one action. A living
+/// player in one of the eight neighboring cells is struck: the strike
+/// is deterministic — no stand roll, no direction draw — plans no step,
+/// and prices its turn as usual. Otherwise the monster wanders: 75%
+/// standing still, 25% a random direction — up to four independent
+/// picks, the first passable and creature-free one wins, and a monster
+/// whose picks all fail stands. Occupied cells — any living creature's
+/// cell, the player's included, plus the cells this frame's planned
+/// steps head for — count as blocked: a monster never merges into
+/// another creature. Standing is an action all the same: the turn is
+/// spent either way. The world starts with the driver's first action;
+/// before that, nobody plans. Dead monsters are skipped: a corpse
+/// neither plans nor blocks a cell. The dead despawn in the same
+/// resolve pass today; the filter is what keeps it so if a later
+/// entry lets corpses linger for presentation.
 ///
 /// The only gate is the clock: while any picture is still moving the
 /// clock is held (by `advance`), and a plan always prices its turn into
@@ -66,15 +86,15 @@ const RANDOM_ATTEMPTS: usize = 4;
 // The system boundary keeps the parameters flat: each is its own query
 // or resource, and none pair naturally into a bundle.
 #[allow(clippy::too_many_arguments)]
-pub fn plan_wander(
+pub fn plan_action(
     mut commands: Commands,
     world_clock: Res<WorldClock>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
     mut game_rng: ResMut<GameRng>,
     world_driver: Query<&NextTurn, With<WorldDriver>>,
-    player: Query<&CellCoord, (With<Player>, Without<Dead>)>,
-    mut monsters: Query<MonsterQuery, (With<MonsterIndex>, Without<WorldDriver>)>,
+    player: Query<PlayerQuery, (With<Player>, Without<Dead>)>,
+    mut monsters: Query<MonsterQuery, MonsterFilter>,
 ) {
     // The world starts with the driver's first action: its next turn
     // leaves zero the moment the first plan lands.
@@ -88,8 +108,12 @@ pub fn plan_wander(
     // included. A planned step's target joins the set as plans land, so
     // two monsters planning on the same frame never merge either.
     let mut occupied: Vec<CellCoord> = monsters.iter().map(|monster| *monster.cell).collect();
-    if let Ok(player_cell) = player.single() {
-        occupied.push(*player_cell);
+    let player = player
+        .single()
+        .ok()
+        .map(|player| (player.entity, *player.cell));
+    if let Some((_, player_cell)) = player {
+        occupied.push(player_cell);
     }
     let rng = &mut game_rng.rng;
     for mut monster in &mut monsters {
@@ -97,21 +121,33 @@ pub fn plan_wander(
         if world_clock.now < monster.next_turn.at {
             continue;
         }
+        // The strike branch precedes the wander: an adjacent living
+        // player is always struck, and the turn is priced either way.
+        if let Some((player_entity, player_cell)) = player {
+            if adjacent(*monster.cell, player_cell) {
+                commands.entity(monster.entity).insert(Attack {
+                    target: player_entity,
+                });
+                monster.next_turn.at =
+                    world_clock.now + action_duration(STANDARD_ACTION_DURATION, monster.speed.0);
+                continue;
+            }
+        }
         let stands = rng.random_range(0..100) >= 25;
-        let walkable = |target: CellCoord| {
+        let is_walkable = |target: CellCoord| {
             !occupied.contains(&target)
                 && current_map
                     .map()
                     .get(target)
                     .and_then(|terrain_index| terrain_registry.get(terrain_index))
-                    .is_some_and(Terrain::walkable)
+                    .is_some_and(Terrain::is_walkable)
         };
         let mut target = None;
         if !stands {
             for _ in 0..RANDOM_ATTEMPTS {
                 let direction = DIRECTIONS[rng.random_range(0..DIRECTIONS.len())];
                 let to = *monster.cell + direction;
-                if walkable(to) {
+                if is_walkable(to) {
                     target = Some(to);
                     break;
                 }
@@ -182,21 +218,23 @@ mod tests {
                 Update,
                 (
                     crate::core::world_clock::systems::advance::advance,
-                    plan_wander,
+                    plan_action,
                 )
                     .chain(),
             );
         app
     }
 
-    /// A started world: the driver has planned once (turn left zero).
+    /// A started world with its driver at `cell` (the turn has left
+    /// zero).
+    fn spawn_driver_at(app: &mut App, cell: CellCoord) -> Entity {
+        app.world_mut()
+            .spawn((Player, WorldDriver, cell, NextTurn { at: 10 }))
+            .id()
+    }
+
     fn spawn_started_driver(app: &mut App) {
-        app.world_mut().spawn((
-            Player,
-            WorldDriver,
-            CellCoord::new(0, 0),
-            NextTurn { at: 10 },
-        ));
+        spawn_driver_at(app, CellCoord::new(0, 0));
     }
 
     fn spawn_rat(app: &mut App, cell: CellCoord) -> Entity {
@@ -228,6 +266,11 @@ mod tests {
         let rat = spawn_rat(&mut app, CellCoord::new(2, 2));
         app.update();
         assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 100);
+        // The wander, not the strike: the driver is beyond adjacency.
+        assert!(
+            app.world().get::<Attack>(rat).is_none(),
+            "no strike planned"
+        );
         if let Some(m) = app.world().get::<Move>(rat) {
             let dx = (m.to.x - 2).abs();
             let dy = (m.to.y - 2).abs();
@@ -268,9 +311,45 @@ mod tests {
     }
 
     #[test]
+    fn an_adjacent_player_is_struck_and_the_wander_never_runs() {
+        // The strike branch precedes the 75% stand roll: over the seeds
+        // the turnover never yields a wander action.
+        for seed in 1..=8u64 {
+            let mut app = app_with(open_room());
+            app.insert_resource(GameRng::seeded(seed));
+            let driver = spawn_driver_at(&mut app, CellCoord::new(2, 2));
+            let rat = spawn_rat(&mut app, CellCoord::new(3, 3));
+
+            app.update();
+
+            assert_eq!(
+                app.world().get::<Attack>(rat).map(|attack| attack.target),
+                Some(driver),
+                "seed {seed}"
+            );
+            assert!(app.world().get::<Move>(rat).is_none(), "no step is planned");
+            assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 100);
+        }
+    }
+
+    #[test]
+    fn a_dead_player_is_not_struck() {
+        let mut app = app_with(open_room());
+        let driver = spawn_driver_at(&mut app, CellCoord::new(2, 2));
+        app.world_mut().entity_mut(driver).insert(Dead);
+        let rat = spawn_rat(&mut app, CellCoord::new(3, 3));
+
+        app.update();
+
+        assert!(app.world().get::<Attack>(rat).is_none());
+    }
+
+    #[test]
     fn walled_in_spends_the_turn_without_a_step() {
-        let mut app = app_with(room(3, 3, &[CellCoord::new(1, 1)]));
-        spawn_started_driver(&mut app);
+        // The driver stands off adjacency, so the walled-in rat gets its
+        // wander roll — and stands on it.
+        let mut app = app_with(room(4, 4, &[CellCoord::new(1, 1)]));
+        spawn_driver_at(&mut app, CellCoord::new(3, 3));
         let rat = spawn_rat(&mut app, CellCoord::new(1, 1));
         app.update();
         assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 100);
@@ -353,27 +432,30 @@ mod tests {
 
     #[test]
     fn the_driver_cell_is_never_stepped_onto() {
+        // Off adjacency to start: the rat wanders until it reaches a
+        // neighboring cell, then strikes instead of stepping — either
+        // way, never onto the driver's cell.
         let mut app = app_with(open_room());
-        app.world_mut().spawn((
-            Player,
-            WorldDriver,
-            CellCoord::new(2, 2),
-            NextTurn { at: 10 },
-        ));
-        let rat = spawn_rat(&mut app, CellCoord::new(3, 3));
-        let steps = driven_steps(&mut app, rat, 200);
-        assert!(
-            steps.len() > 20,
-            "the sweep exercised real moves: {}",
-            steps.len()
-        );
-        for step in &steps {
-            assert_ne!(
-                step.to,
-                CellCoord::new(2, 2),
-                "the driver's cell is never picked"
-            );
+        let driver = spawn_driver_at(&mut app, CellCoord::new(2, 2));
+        let driver_cell = *app.world().get::<CellCoord>(driver).unwrap();
+        let rat = spawn_rat(&mut app, CellCoord::new(4, 1));
+        let mut actions = 0;
+        for turn in 1..=200 {
+            app.world_mut().resource_mut::<WorldClock>().now = turn as i64 * 100;
+            app.world_mut().entity_mut(rat).insert(NextTurn {
+                at: turn as i64 * 100,
+            });
+            app.update();
+            if let Some(step) = app.world().get::<Move>(rat).copied() {
+                actions += 1;
+                assert_ne!(step.to, driver_cell, "the driver's cell is never picked");
+                app.world_mut().entity_mut(rat).remove::<Move>();
+            } else if app.world().get::<Attack>(rat).is_some() {
+                actions += 1;
+                app.world_mut().entity_mut(rat).remove::<Attack>();
+            }
         }
+        assert!(actions > 20, "the sweep exercised real actions: {actions}");
     }
 
     #[test]
@@ -402,18 +484,19 @@ mod tests {
         let mut moved = 0;
         for seed in 0..300u64 {
             let mut app = app_with(room(
-                5,
+                6,
                 3,
                 &[
                     CellCoord::new(1, 1),
                     CellCoord::new(2, 1),
                     CellCoord::new(3, 1),
+                    CellCoord::new(4, 1),
                 ],
             ));
             app.insert_resource(GameRng::seeded(seed));
             spawn_started_driver(&mut app);
-            let a = spawn_rat(&mut app, CellCoord::new(1, 1));
-            let b = spawn_rat(&mut app, CellCoord::new(3, 1));
+            let a = spawn_rat(&mut app, CellCoord::new(2, 1));
+            let b = spawn_rat(&mut app, CellCoord::new(4, 1));
             app.update();
             let ta = app.world().get::<Move>(a).map(|m| m.to);
             let tb = app.world().get::<Move>(b).map(|m| m.to);
@@ -421,7 +504,7 @@ mod tests {
                 moved += 1;
             }
             assert!(
-                ta != Some(CellCoord::new(2, 1)) || tb != Some(CellCoord::new(2, 1)),
+                ta != Some(CellCoord::new(3, 1)) || tb != Some(CellCoord::new(3, 1)),
                 "both monsters targeted the shared cell at seed {seed}: {ta:?} / {tb:?}"
             );
         }

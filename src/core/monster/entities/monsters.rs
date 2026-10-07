@@ -3,21 +3,53 @@
 
 use bevy::prelude::*;
 
+use crate::core::combat::components::armor_class::ArmorClass;
+use crate::core::combat::components::blows::Blows;
+use crate::core::combat::types::blow::{Blow, BlowDamage};
 use crate::core::dice::utils::roll::roll_with;
 use crate::core::health::components::hit_points::HitPoints;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::monster::resources::monster_registry::MonsterRegistry;
+use crate::core::monster::types::monster_kind::MonsterKind;
 use crate::core::rng::resources::game_rng::GameRng;
 use crate::core::world_clock::components::next_turn::NextTurn;
 
+/// The monster blow power stand-in: the reference's HURT effect power
+/// (60) — the plain-damage family, which is what an effect-less blow
+/// behaves as. The rat's literal poisoning power is reference-only:
+/// nothing attaches an effect here. Deleted when the effect family
+/// lands and blows carry their own effect (see OPEN_ISSUES entry 10).
+const MONSTER_BLOW_POWER_STANDIN: i32 = 60;
+
+/// Points of blow chance per point of monster level: the reference's
+/// hit quality is the blow power plus three times the level.
+const CHANCE_PER_LEVEL: i32 = 3;
+
+/// The blows translated from a kind's row: one blow per declared blow,
+/// chance the power stand-in plus three times the level, damage the
+/// blow's dice. The row stays the authored source; the entity carries
+/// the translated values.
+fn translated_blows(monster_kind: &MonsterKind) -> Blows {
+    let blows = monster_kind
+        .blows
+        .iter()
+        .map(|blow| Blow {
+            chance: MONSTER_BLOW_POWER_STANDIN + monster_kind.level * CHANCE_PER_LEVEL,
+            damage: BlowDamage::Roll(blow.damage),
+        })
+        .collect();
+    Blows(blows)
+}
+
 /// Spawn every monster declared by the current map's spawn table as
-/// pure game data: the kind handle, the spawn cell, and birth hit
-/// points rolled from the kind's hit dice with current equal to
-/// ceiling. Monster ids resolve here, not at map load: the map domain
-/// does not depend on this vocabulary (positions flow the other way),
-/// so an unknown id surfaces at spawn — still startup, the same
-/// launch. Nothing despawns on state exit today (the app never leaves
-/// `Game`); a cleanup/rebuild strategy arrives with map switching.
+/// pure game data: the kind handle, the spawn cell, birth hit points
+/// rolled from the kind's hit dice with current equal to ceiling, and
+/// the blows and armor class translated from the kind's combat profile.
+/// Monster ids resolve here, not at map load: the map domain does not
+/// depend on this vocabulary (positions flow the other way), so an
+/// unknown id surfaces at spawn — still startup, the same launch.
+/// Nothing despawns on state exit today (the app never leaves `Game`);
+/// a cleanup/rebuild strategy arrives with map switching.
 pub fn spawn_monsters(
     mut commands: Commands,
     current_map: Res<CurrentMap>,
@@ -35,12 +67,15 @@ pub fn spawn_monsters(
             });
         let monster_kind = monster_registry.monster_kind(monster_index);
         let max = roll_with(monster_kind.hit_points, &mut game_rng.rng);
+        let blows = translated_blows(monster_kind);
         commands.spawn((
             monster_index,
             monster_kind.speed,
             spawn.cell,
             NextTurn::default(),
             HitPoints { current: max, max },
+            blows,
+            ArmorClass(monster_kind.armor_class),
         ));
     }
 }
@@ -52,6 +87,10 @@ mod tests {
     use rand::{Rng, SeedableRng};
 
     use super::*;
+    use crate::core::combat::components::armor_class::ArmorClass;
+    use crate::core::combat::components::blows::Blows;
+    use crate::core::combat::types::blow::{Blow, BlowDamage};
+    use crate::core::dice::types::dice::Dice;
     use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::map::types::local_map::LocalMap;
     use crate::core::map::types::monster_spawn::MonsterSpawn;
@@ -137,6 +176,38 @@ mod tests {
         assert_eq!(jackal.3.max, expected_jackal_max, "seeded 1d4 roll");
         assert_eq!(jackal.3.current, jackal.3.max);
         assert!((1..=4).contains(&jackal.3.max), "1d4 range");
+    }
+
+    #[test]
+    fn spawning_carries_the_blows_and_armor() {
+        let local_map = LocalMap {
+            width: 1,
+            height: 1,
+            tiles: vec![],
+            spawns: vec![MonsterSpawn {
+                monster: "giant_white_rat".to_string(),
+                cell: CellCoord::new(0, 0),
+            }],
+        };
+        let mut world = World::new();
+        world.insert_resource(CurrentMap::new(local_map));
+        world.insert_resource(monster_registry());
+        world.insert_resource(GameRng::seeded(42));
+
+        world.run_system_once(spawn_monsters).unwrap();
+
+        // The rat's translated blows and armor: armor class 7, one blow with
+        // the stand-in-60 chance plus three per level, damage 1d3.
+        let mut query = world.query::<(&Blows, &ArmorClass)>();
+        let (blows, armor_class) = query.single(&world).unwrap();
+        assert_eq!(armor_class.0, 7);
+        assert_eq!(
+            blows.0,
+            vec![Blow {
+                chance: 60 + 3 * 4,
+                damage: BlowDamage::Roll(Dice { n: 1, m: 3 }),
+            }]
+        );
     }
 
     #[test]
