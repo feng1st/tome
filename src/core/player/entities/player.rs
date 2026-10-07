@@ -33,7 +33,7 @@ const PLAYER_CLASS: &str = "warrior";
 /// Spawn the player as pure game data: marker, identity handles, the
 /// start cell, standard speed — and the birth values. Birth rolls the
 /// six base statistics, merges each with its summed race-and-class
-/// modifier, and derives the hit-point ceiling from the merged
+/// modifier, and derives the hit-point maximum from the merged
 /// constitution against the full hit die (race share plus class share).
 /// No occupation yet: the first action is free to execute at time zero,
 /// like everyone else's birth. Nothing despawns on state exit today
@@ -140,8 +140,8 @@ mod tests {
         assert_eq!(*class_index, expected_class);
         assert_eq!(*cell, PLAYER_START);
         assert_eq!(*speed, Speed(STANDARD_SPEED));
-        assert_eq!(next_turn.at, 0, "the first action is free at time zero");
-        // Birth statistics: the ceiling equals the current set (nothing
+        assert_eq!(next_turn.at, 0, "the first turn waits at the world's zero");
+        // Birth statistics: the maximum equals the current set (nothing
         // drains at birth), and every statistic at least reaches its
         // rolled floor plus the merged modifier — each merged point adds
         // at least one.
@@ -154,7 +154,7 @@ mod tests {
                 stats.max[stat.index()]
             );
         }
-        // Hit points: the ceiling is the merged constitution's function,
+        // Hit points: the maximum is the merged constitution's function,
         // and nothing is spent at birth.
         let constitution = stats.max[Stat::Constitution.index()];
         assert_eq!(hit_points.max, max_hit_points(hit_die, constitution));

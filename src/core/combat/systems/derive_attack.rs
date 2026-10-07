@@ -1,4 +1,4 @@
-//! Derive strike: react to combat-bonus changes and recompute the
+//! Derive attack: react to combat-bonus changes and recompute the
 //! entity's blows and armor class wholesale.
 
 use bevy::prelude::*;
@@ -16,7 +16,7 @@ use crate::core::combat::utils::attack::{attack_chance, unarmed_damage};
 /// write is unconditional — a skip-if-equal would stall the change
 /// chain the next derive stage hangs off. Runs chained after the bonus
 /// derive, so the fresh bonuses are visible in the same pass.
-pub fn derive_strike(
+pub fn derive_attack(
     mut commands: Commands,
     bonus_changes: Query<(Entity, &CombatBonuses), Changed<CombatBonuses>>,
 ) {
@@ -76,7 +76,7 @@ mod tests {
     fn the_player_blow_and_armor_derive_from_the_bonuses() {
         let mut world = world();
         let entity = spawn_born_player(&mut world);
-        world.run_system_once(derive_strike).unwrap();
+        world.run_system_once(derive_attack).unwrap();
 
         let bonuses = world.entity(entity).get::<CombatBonuses>().unwrap();
         let blows = world.entity(entity).get::<Blows>().unwrap();
@@ -96,12 +96,12 @@ mod tests {
     fn a_statistics_change_renews_the_blow_and_armor() {
         let mut world = world();
         let entity = spawn_born_player(&mut world);
-        world.run_system_once(derive_strike).unwrap();
+        world.run_system_once(derive_attack).unwrap();
         let before = world.entity(entity).get::<Blows>().unwrap().0[0].chance;
 
         world.entity_mut(entity).get_mut::<Stats>().unwrap().current[Stat::Strength.index()] = 3;
         world.run_system_once(derive_combat_bonuses).unwrap();
-        world.run_system_once(derive_strike).unwrap();
+        world.run_system_once(derive_attack).unwrap();
 
         let bonuses = world.entity(entity).get::<CombatBonuses>().unwrap();
         let blows = world.entity(entity).get::<Blows>().unwrap();
@@ -131,7 +131,7 @@ mod tests {
         app.insert_resource(GameRng::seeded(42));
         app.add_systems(
             Update,
-            (spawn_player, (derive_combat_bonuses, derive_strike).chain()).chain(),
+            (spawn_player, (derive_combat_bonuses, derive_attack).chain()).chain(),
         );
         app.update();
 

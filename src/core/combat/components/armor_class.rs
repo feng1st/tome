@@ -1,5 +1,5 @@
 //! The armor-class component: a creature's armor class, read by
-//! strikes aimed at it.
+//! attacks aimed at it.
 
 use bevy::prelude::*;
 

@@ -5,139 +5,42 @@ OPEN ISSUES — 延期工作与已知问题登记表
 
 =====================================================================
 
-一、最小战斗闭环（按序 1/6 – 6/6）
+一、战斗表现打磨
 
-总目标：玩家与怪物能互相攻击致死，前端看得见。取材按 config.yaml 的
-迭代取材原则：每个终局公式只落基础项与支撑系统已存在的项；缺项用
-设计定死的固定值顶替，并在 design 里记录顶替值与终局来源的映射
-（回收顶替值的扩展条目见第二部分）。
-
-已存在的支撑系统（取材依据）：六维与出身修正、玩家生命派生、
-HitPoints 组件、伤害通道与死亡处理（damage-and-death）、站立指令与
-玩家攻击解析（player-attacks）、统一出手管线与怪物出手
-（monster-attacks）、速度域与世界时钟、移动管线、怪物词表与出生、
-怪物随机移动、前端动画槽位（Attack/Hit/Die 已预留）。
-不存在的支撑系统（本次一律不取）：技能、装备、状态、effect 家族、
-旗标、感知 AI、经验/成长、消息。
-
-顺序理由：条目 1–5 已分别以 monster-combat-profile、
-combat-bonuses、damage-and-death、player-attacks、monster-attacks
-落地并从本表删除；仅余条目 6 收尾。
+15. 白闪剪影回收（effects 遗留顶替）
+- 现状：受击白闪以乘色过曝近似参考实现的加色全白剪影
+  （FLASH_TINT，src/frontend/display/effects/constants/feedback.rs）；
+  引擎 sprite 只有乘色通道，真剪影需自定义材质。
+- 回收：材质管线落地时改为加色/剪影着色，删除乘色顶替。
 
 =====================================================================
 
-6. 战斗反馈：动画与生命显示（顺序 6/6）
+二、display 体系化
 
-目标：把 Attack/Hit/Die 三个动画槽位与生命显示接上，给最小闭环一个
-可见的观感（PD 风格）。变更命名建议：combat-feedback。
+16. display/creature/ 并入 display/figure/
+- 现状：creature/ 只做形象绑定注册与挂载（图鉴查询 + attach），与
+  figure/ 同属"形象选择与呈现"主题；creature/mod.rs 已注明待合并。
+- 规划：内容并入 figure/，消去两域之间的往返。
 
-现状：
-- AnimKind 已含 Attack/Hit/Die，注释写明等战斗命令落地
-  （src/frontend/display/sprite_animation/constants/anim_kind.rs:8-30）；
-  形象动画与挂载在 src/frontend/display/creature 与 sprite_animation
-  域；形象数据在 data/graphic/creature_figures.ron，目前只有 idle
-  与移动。
-- 没有血条、伤害数字。
+17. tween 化改造：持续一段时间的显示变化统一走 tween
+- 现状：tween 域已承载淡出（AlphaTween）与移动（PosTween）；camera
+  shake 与 flash 目前各自管计时，未走 tween。
+- 规划：shake 与 flash 也改为 tween 驱动（shake 需逐帧随机偏移的求
+  值，flash 需乘色复原），消去各自的到期系统与计时状态。
 
-落地内容（可分批）：
-- 攻击动作：前冲-回弹，不必新帧；受击帧或闪烁；死亡帧或淡出。
-- 形象帧与动画选择：为主角与老鼠补齐 Attack/Hit/Die 帧数据
-  （creature_figures.ron 目前只有 idle 与移动，素材来源见下方待裁
-  决）；sync_animation 目前只在 idle 与移动之间二选一
-  （src/frontend/display/sprite_animation/systems/sync_animation.rs），
-  本条改为按当前动作选动画（出手 Attack、受击 Hit、死亡 Die），动作
-  来源即本条的事件源。
-- 伤害数字上浮（PD 风格）。
-- 生命显示：主角 HUD 与怪物头顶小血条（数据来自 monster-combat-profile 与既有
-  玩家生命）。
-- 事件源：攻击/受击/死亡须能被前端观察——伤害通道已落地
-  （damage-and-death），但缓冲被破坏式排干，展示侧读不到；玩家的
-  攻击随 player-attacks 落地、怪物的攻击随 monster-attacks 落地，
-  两者的展示事件由本条一并发展。
+18. effects 定位：游戏内容对应效果，编排 tween/particles
+- effects 域承载"游戏事实对应的可见效果"（白闪、飘字、血溅、死亡
+  淡出、震屏），不实现机制；机制由 tween 与 particles 提供，effects
+  只做配方与编排。现有实现按此分层（splash→Factory/burst、
+  dead_fade→AlphaTween），后续新效果沿用。
 
-不做（支撑系统不存在）：文字消息行与措辞档位（消息系统，见条目 14）。
-
-依赖：无——玩法侧战斗事件源（攻击、受击、死亡）已全部落地；帧素材
-与显示组件可提前做。
-
-待裁决：动画帧素材来源。
-
-=====================================================================
-
-二、闭环后扩展（各等支撑系统；立项时按届时系统现状重新细化）
-
-7. 旗标系统（战斗侧回收）
-- 等：词表旗标机制。
-- 回收：FORCE_MAXHP 与掷骰上限函数（maxroll，src/z-rand.c:349-352）；
-  非 unique 出生速度扰动（src/monster2.c:2593-2652）；稀有度等生成
-  倾向字段；NEVER_BLOW——表达为词表空 blows，届时怪物策划需跳过无打
-  击者：现行为是出手为空、回合照常消耗。
-- 语料库交叉：monster-generation/spec.md。
-
-8. 技能系统（战斗侧回收）
-- 等：技能系统。
-- 回收：skill_thn 真值替换 combat-bonuses 的近战技能命中值顶替因子
-  （顶替值现存于 combat/utils/attack.rs；替换的形式与位置由技能系
-  统的设计决定，utils 只承载顶替值、不承载替代实现；
-  src/xtra1.c:3903）；
-  to_h_melee/to_d_melee 进攻击品质（src/xtra1.c:3740-3746、
-  2331-2372）——攻击品质顶替值（含武器掌握的 to_h_melee 与基础武
-  器 to_h，现存 combat/utils/attack.rs）随本条与条目 9 落地删除；
-  战斗技能按 scale(10) 加 to_d（src/xtra1.c:3748-3754）；
-  闪避豁免链（dodge_chance，src/melee1.c:1565-1636）；武器掌握的
-  多击加成（src/xtra1.c:3642-3643）。
-- 语料库交叉：skills/spec.md、skill/spec.md、player-derive/spec.md。
-
-9. 装备系统（战斗侧回收）
-- 等：装备/物品系统。
-- 回收：武器骰与武器 to_h/to_d 进攻击品质与伤害（src/cmd1.c:2640-
-  2846）——武器 to_h 的顶替份额随本条与条目 8 一并删除；暴击五档
-  （2d+5 / 2d+10 / 3d+15 / 3d+20 / 7d/2+25，src/cmd1.c:123-186）；多击 num_blow 与 blows_table
-  （src/xtra1.c:3600-3660、src/tables.c 的 blows 表）；玩家护甲 ac 的
-  装备来源——combat/utils/armor_class.rs 的装备基数 0 为顶替值，替换
-  的形式与位置由装备系统的设计决定，utils 只承载顶替值、不承载替代
-  实现。站姿与移动姿态表（src/tables.c:2875-2965）不依赖装备，
-  可提前独立立项。
-- 语料库交叉：player-melee/spec.md、tables/spec.md。
-
-10. effect 家族与状态系统（战斗侧回收）
-- 等：effect 家族、状态系统。
-- 回收：blow 的 method/effect 列解析与名称表（src/init1.c:46-123、
-  7941-8000）；effect 威力表替换威力顶替值（现存
-  src/core/monster/entities/monsters.rs 的 MONSTER_BLOW_POWER_STANDIN；
-  src/melee1.c:1416-1565）；护甲折减（封顶 150、比率 ac/250，
-  src/melee1.c:1886-1887，同款共 4 处）；effect 附加状态（中毒等）；
-  命中暴击表（割伤/击碎转流血/眩晕，src/melee1.c:2837-2916）。
-- 语料库交叉：monster-melee/spec.md。
-
-11. 怪物 AI 进阶
-- 等：感知/视野系统。
-- 回收：感知（aaf）/睡眠（slp）词表字段启用；追击、睡眠唤醒、恐惧
-  逃跑（mon_take_hit 尾部恐惧掷点，src/xtra2.c:4830-4880）；
-  process_monster 回合顺序对齐（src/melee2.c:6322-7543）；RAND_25
-  语义对齐（tome2 是"追击方向以 25% 概率随机"，与本项目 wander 的
-  "75% 站住、25% 随机移动"语义不同）；怪物间敌对。
-- 语料库交叉：monster-ai/spec.md。
-
-12. 经验与成长
-- 等：本条自身即系统。
-- 回收：词表 experience 字段启用；杀怪经验 mexp*level/max_plv 带分数
-  累积（src/xtra2.c:4622-4640）；升级循环与生命成长
-  （check_experience，src/xtra2.c:3652-3767；player_exp 与 player_hp
-  表，src/tables.c:1164-1216）。
-- 语料库交叉：experience-system/spec.md。
-
-13. 死亡收尾
-- 等：物品/掉落（条目 9 之后）、消息系统（墓碑文本，见条目 14）。
-- 回收：怪物掉落与尸体（monster_death，src/xtra2.c:3917-4501）；主角
-  墓碑与记分收尾（src/files.c:5220-5337）。
-- 语料库交叉：monster-death/spec.md、death-score/spec.md。
-
-14. 战斗消息与措辞档位
-- 等：消息系统。
-- 回收：玩家伤害措辞五档（按占目标上限比例，src/cmd1.c:2106-2148）；
-  怪物死亡措辞 slain/destroyed/killed（src/xtra2.c:4570-4595 前后）；
-  怪物受创措辞（语料库 monster-generation/spec.md 的 Pain Messages
-  条目）。
+19. display 模式抽象（体系化）
+- move 与 attack 的整理：两者都是"行动事实 → 呈现反应"（格坐标变化
+  → PosTween；AttackResolved → 转向 + 攻击动画），看能否归一为同一条
+  行动呈现管线。
+- sync_animation 的切换整理：idle/run 推导、一次性、死亡优先级现为
+  条件链，看能否抽象为状态或规则表。
+- IsMoving 与 IsDisappearing 的整理：两者都是"展示侧写入、核心侧读
+  取"的协议旗，看能否抽象出统一的旗标模式。
 
 =====================================================================

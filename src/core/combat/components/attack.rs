@@ -1,8 +1,8 @@
-//! The attack action: one planned strike at one target.
+//! The attack action: one planned attack at one target.
 
 use bevy::prelude::*;
 
-/// A strike planned this frame, consumed by execution in the same
+/// An attack planned this frame, consumed by execution in the same
 /// frame — the `Move` pattern. The target is resolved at plan time and
 /// nothing between the phases can hurt it, yet execution still reads it
 /// fallibly: the phase guarantee is a comment, not a type.

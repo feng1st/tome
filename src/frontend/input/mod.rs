@@ -1,6 +1,6 @@
 //! Input: raw device input translated into core commands. A mouse press
 //! becomes the core command `TargetCell`; what the target means — a walk
-//! or a strike — is the core's decision.
+//! or an attack — is the core's decision.
 
 pub mod systems;
 

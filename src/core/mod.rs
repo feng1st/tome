@@ -109,7 +109,7 @@ mod tests {
     }
 
     /// Hunt the first rat until it dies, the driver dies, or the budget
-    /// runs out. The target is re-issued as the one-order-one-strike
+    /// runs out. The target is re-issued as the one-order-one-attack
     /// loop resolves — and as bites clear the order — the rhythm a
     /// player re-targets at.
     fn hunt_first_rat(seed: u64) -> Hunt {
@@ -154,7 +154,7 @@ mod tests {
     }
 
     /// The bite-back half, end to end: a rat beside the player lands
-    /// bites through planning, the strike pipeline, the damage channel,
+    /// bites through planning, the attack pipeline, the damage channel,
     /// and application — the driver's hit points fall while the world
     /// runs on re-issued orders.
     #[test]

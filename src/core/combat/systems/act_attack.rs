@@ -1,4 +1,4 @@
-//! Act attack: resolve every strike action planned this frame through
+//! Act attack: resolve every attack action planned this frame through
 //! the shared pipeline.
 
 use bevy::prelude::*;
@@ -6,47 +6,70 @@ use bevy::prelude::*;
 use crate::core::combat::components::armor_class::ArmorClass;
 use crate::core::combat::components::attack::Attack;
 use crate::core::combat::components::blows::Blows;
+use crate::core::combat::messages::attack_resolved::AttackResolved;
 use crate::core::combat::utils::attack::attack_hits;
+use crate::core::health::components::dead::Dead;
 use crate::core::health::messages::damage::Damage;
+use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::rng::resources::game_rng::GameRng;
 
-/// Resolve every strike planned this frame: for each blow the attacker
+/// Resolve every attack planned this frame: for each blow the attacker
 /// carries, judge the hit against the target's armor class and write
 /// one damage request per hit, the blow's damage drawn from the central
-/// source. The action component is consumed either way, and an
-/// attacker carrying no blows spends the action striking nothing. No
-/// vocabulary and no attacker or target kind: every number comes from
-/// the blows and armor-class components the creatures carry. The target
-/// is read fallibly: planning and execution share one frame, so the
-/// target cannot die in between, but the guarantee is a comment, not a
-/// type — a vanished target is skipped, and an absent armor class
-/// reads as zero.
+/// source. Each resolution also emits its fact — attacker, both cells,
+/// and the landed amounts — hit or miss: the swing itself is the fact.
+/// The action component is consumed either way, and an attacker
+/// carrying no blows spends the action swinging nothing. No vocabulary
+/// and no attacker or target kind: every number comes from the blows
+/// and armor-class components the creatures carry. The target is read
+/// fallibly: planning and execution share one frame, so the target
+/// cannot die in between, but the guarantee is a comment, not a type —
+/// a vanished or dead target is skipped (its attack emits no fact:
+/// nothing was swung at), and an absent armor class reads as zero.
 pub fn act_attack(
     mut commands: Commands,
-    mut strikes: Query<(Entity, &Attack, Option<&Blows>), Added<Attack>>,
-    armor_classes: Query<Option<&ArmorClass>>,
+    mut attacks: Query<(Entity, &Attack, Option<&Blows>, &CellCoord), Added<Attack>>,
+    // The target is read fallibly: a target that left the world, or a
+    // dead one (the marked driver stays in the world), reads as no
+    // target at all — the filter sees to the dead, the fallible get to
+    // the gone. Absent armor reads as zero.
+    targets: Query<Option<&ArmorClass>, Without<Dead>>,
+    cells: Query<&CellCoord>,
     mut game_rng: ResMut<GameRng>,
     mut damages: MessageWriter<Damage>,
+    mut attacks_resolved: MessageWriter<AttackResolved>,
 ) {
-    for (attacker, strike, blows) in &mut strikes {
+    for (attacker, attack, blows, attacker_cell) in &mut attacks {
         commands.entity(attacker).remove::<Attack>();
-        let Ok(armor_class) = armor_classes.get(strike.target) else {
-            // The target left the world since planning: nothing to strike.
+        let Ok(armor_class) = targets.get(attack.target) else {
+            // The target left the world or died since planning:
+            // nothing to attack.
             continue;
         };
         let armor_class = armor_class.map_or(0, |armor_class| armor_class.0);
-        let Some(blows) = blows else {
-            // A creature without blows cannot strike; the action is spent.
-            continue;
-        };
-        for blow in &blows.0 {
-            if attack_hits(blow.chance, armor_class, &mut game_rng.rng) {
-                damages.write(Damage {
-                    target: strike.target,
-                    amount: blow.damage.roll(&mut game_rng.rng),
-                });
+        let mut damage_amounts = Vec::new();
+        if let Some(blows) = blows {
+            for blow in &blows.0 {
+                if attack_hits(blow.chance, armor_class, &mut game_rng.rng) {
+                    let amount = blow.damage.roll(&mut game_rng.rng);
+                    damages.write(Damage {
+                        target: attack.target,
+                        source: Some(attacker),
+                        amount,
+                    });
+                    damage_amounts.push(amount);
+                }
             }
         }
+        let target_cell = *cells
+            .get(attack.target)
+            .expect("a live target always carries its cell");
+        attacks_resolved.write(AttackResolved {
+            attacker,
+            attacker_cell: *attacker_cell,
+            target_cell,
+            damage_amounts,
+        });
     }
 }
 
@@ -60,13 +83,15 @@ mod tests {
     use super::*;
     use crate::core::combat::types::blow::{Blow, BlowDamage};
     use crate::core::dice::types::dice::Dice;
+    use crate::core::health::components::dead::Dead;
 
     /// The world pieces every test needs: the seeded source and the
-    /// damage message channel.
+    /// two message channels — requests and facts.
     fn world(seed: u64) -> World {
         let mut world = World::new();
         world.insert_resource(GameRng::seeded(seed));
         world.init_resource::<Messages<Damage>>();
+        world.init_resource::<Messages<AttackResolved>>();
         world
     }
 
@@ -95,17 +120,33 @@ mod tests {
         world.resource_mut::<Messages<Damage>>().drain().collect()
     }
 
+    fn attacks_resolved(world: &mut World) -> Vec<AttackResolved> {
+        world
+            .resource_mut::<Messages<AttackResolved>>()
+            .drain()
+            .collect()
+    }
+
     #[test]
     fn a_hit_writes_the_blows_damage_and_consumes_the_action() {
         // Armor 0 and a huge chance: any percentile past the bands hits.
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
-        let target = world.spawn(ArmorClass(0)).id();
-        let attacker = world.spawn((Attack { target }, blows(&[(1000, 4)]))).id();
+        let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
+        let attacker = world
+            .spawn((Attack { target }, blows(&[(1000, 4)]), CellCoord::new(1, 0)))
+            .id();
 
         world.run_system_once(act_attack).unwrap();
 
-        assert_eq!(damages(&mut world), vec![Damage { target, amount: 4 }]);
+        assert_eq!(
+            damages(&mut world),
+            vec![Damage {
+                target,
+                source: Some(attacker),
+                amount: 4
+            }]
+        );
         assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
     }
 
@@ -115,8 +156,10 @@ mod tests {
         // chance of 20 can draw.
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
-        let target = world.spawn(ArmorClass(1000)).id();
-        let attacker = world.spawn((Attack { target }, blows(&[(20, 4)]))).id();
+        let target = world.spawn((ArmorClass(1000), CellCoord::new(3, 0))).id();
+        let attacker = world
+            .spawn((Attack { target }, blows(&[(20, 4)]), CellCoord::new(1, 0)))
+            .id();
 
         world.run_system_once(act_attack).unwrap();
 
@@ -130,22 +173,33 @@ mod tests {
         // the first hits, and only the first blow's damage lands.
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
-        let target = world.spawn(ArmorClass(0)).id();
+        let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
         let attacker = world
-            .spawn((Attack { target }, blows(&[(1000, 4), (0, 5)])))
+            .spawn((
+                Attack { target },
+                blows(&[(1000, 4), (0, 5)]),
+                CellCoord::new(1, 0),
+            ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
 
-        assert_eq!(damages(&mut world), vec![Damage { target, amount: 4 }]);
+        assert_eq!(
+            damages(&mut world),
+            vec![Damage {
+                target,
+                source: Some(attacker),
+                amount: 4
+            }]
+        );
         assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
     }
 
     #[test]
-    fn a_multi_blow_strike_rolls_each_hit_separately() {
+    fn a_multi_blow_attack_rolls_each_hit_separately() {
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
-        let target = world.spawn(ArmorClass(0)).id();
+        let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
         let attacker = world
             .spawn((
                 Attack { target },
@@ -159,6 +213,7 @@ mod tests {
                         damage: BlowDamage::Roll(Dice { n: 1, m: 3 }),
                     },
                 ]),
+                CellCoord::new(1, 0),
             ))
             .id();
 
@@ -178,10 +233,12 @@ mod tests {
             vec![
                 Damage {
                     target,
+                    source: Some(attacker),
                     amount: first
                 },
                 Damage {
                     target,
+                    source: Some(attacker),
                     amount: second
                 },
             ]
@@ -195,22 +252,33 @@ mod tests {
         // (only 0) can pass only against an armor threshold of zero.
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
-        let target = world.spawn_empty().id();
-        let attacker = world.spawn((Attack { target }, blows(&[(1, 3)]))).id();
+        let target = world.spawn(CellCoord::new(3, 0)).id();
+        let attacker = world
+            .spawn((Attack { target }, blows(&[(1, 3)]), CellCoord::new(1, 0)))
+            .id();
 
         world.run_system_once(act_attack).unwrap();
 
-        assert_eq!(damages(&mut world), vec![Damage { target, amount: 3 }]);
+        assert_eq!(
+            damages(&mut world),
+            vec![Damage {
+                target,
+                source: Some(attacker),
+                amount: 3
+            }]
+        );
         assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
     }
 
     #[test]
-    fn an_attacker_without_blows_strikes_nothing() {
+    fn an_attacker_without_blows_attacks_nothing() {
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
-        let target = world.spawn(ArmorClass(0)).id();
-        let bare = world.spawn(Attack { target }).id();
-        let empty = world.spawn((Attack { target }, Blows(vec![]))).id();
+        let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
+        let bare = world.spawn((Attack { target }, CellCoord::new(1, 0))).id();
+        let empty = world
+            .spawn((Attack { target }, Blows(vec![]), CellCoord::new(2, 0)))
+            .id();
 
         world.run_system_once(act_attack).unwrap();
 
@@ -227,13 +295,113 @@ mod tests {
                 Attack {
                     target: Entity::PLACEHOLDER,
                 },
-                blows(&[(1000, 4)]),
+                CellCoord::new(1, 0),
             ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
 
         assert!(damages(&mut world).is_empty());
+        assert!(
+            attacks_resolved(&mut world).is_empty(),
+            "nothing was swung at"
+        );
+        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+    }
+
+    #[test]
+    fn a_dead_target_is_skipped() {
+        // The marked driver stays in the world; an attack planned
+        // against it must not land on the corpse.
+        let mut world = world(42);
+        let target = world
+            .spawn((ArmorClass(0), CellCoord::new(4, 1), Dead))
+            .id();
+        let attacker = world
+            .spawn((Attack { target }, blows(&[(1000, 4)]), CellCoord::new(1, 1)))
+            .id();
+
+        world.run_system_once(act_attack).unwrap();
+
+        assert!(damages(&mut world).is_empty());
+        assert!(
+            attacks_resolved(&mut world).is_empty(),
+            "nothing was swung at"
+        );
+        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+    }
+
+    #[test]
+    fn an_attack_emits_its_fact() {
+        // One blow lands for 4, one misses: the fact names attacker,
+        // both cells, and the single landed amount.
+        let seed = seed_with_percentile_at_least(10);
+        let mut world = world(seed);
+        let target = world.spawn((ArmorClass(0), CellCoord::new(4, 1))).id();
+        let attacker = world
+            .spawn((
+                Attack { target },
+                blows(&[(1000, 4), (0, 5)]),
+                CellCoord::new(1, 1),
+            ))
+            .id();
+
+        world.run_system_once(act_attack).unwrap();
+
+        assert_eq!(
+            attacks_resolved(&mut world),
+            vec![AttackResolved {
+                attacker,
+                attacker_cell: CellCoord::new(1, 1),
+                target_cell: CellCoord::new(4, 1),
+                damage_amounts: vec![4],
+            }]
+        );
+        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+    }
+
+    #[test]
+    fn a_full_miss_emits_an_empty_fact() {
+        let seed = seed_with_percentile_at_least(10);
+        let mut world = world(seed);
+        let target = world.spawn((ArmorClass(1000), CellCoord::new(4, 1))).id();
+        let attacker = world
+            .spawn((Attack { target }, blows(&[(20, 4)]), CellCoord::new(1, 1)))
+            .id();
+
+        world.run_system_once(act_attack).unwrap();
+
+        assert_eq!(
+            attacks_resolved(&mut world),
+            vec![AttackResolved {
+                attacker,
+                attacker_cell: CellCoord::new(1, 1),
+                target_cell: CellCoord::new(4, 1),
+                damage_amounts: vec![],
+            }]
+        );
+        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+    }
+
+    #[test]
+    fn a_blows_free_attacker_emits_an_empty_fact() {
+        // The swing happened (the action is spent), so the fact goes
+        // out with an empty list.
+        let mut world = world(42);
+        let target = world.spawn((ArmorClass(0), CellCoord::new(4, 1))).id();
+        let attacker = world.spawn((Attack { target }, CellCoord::new(1, 1))).id();
+
+        world.run_system_once(act_attack).unwrap();
+
+        assert_eq!(
+            attacks_resolved(&mut world),
+            vec![AttackResolved {
+                attacker,
+                attacker_cell: CellCoord::new(1, 1),
+                target_cell: CellCoord::new(4, 1),
+                damage_amounts: vec![],
+            }]
+        );
         assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
     }
 }

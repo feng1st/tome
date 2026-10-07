@@ -5,6 +5,7 @@ use bevy::window::PrimaryWindow;
 
 use crate::frontend::display::camera::components::camera_target::CameraTarget;
 use crate::frontend::display::camera::components::main_camera::MainCamera;
+use crate::frontend::display::camera::resources::camera_shake::CameraShake;
 use crate::frontend::display::camera::utils::screen_grid::world_scale_factor;
 use crate::frontend::display::constants::layout::ZOOM;
 
@@ -12,13 +13,15 @@ use crate::frontend::display::constants::layout::ZOOM;
 /// the effective integer magnification. The projection scale is the
 /// window's scale factor over the (integer) world-to-screen factor, so
 /// one world pixel always covers an integer number of screen pixels;
-/// the camera position is the target's position rounded to the screen
-/// grid, so the presented view scrolls at a quantum of one screen pixel
-/// and the target sits within half a screen pixel of the view center.
-/// Both derive live from the window's scale factor. Integer-gridded
-/// content (terrain chunks, anchored layers) shares the lattice and
-/// needs no further snapping.
+/// the camera position is the target's position (plus the running
+/// shake's offset) rounded to the screen grid, so the presented view
+/// scrolls at a quantum of one screen pixel, the target sits within
+/// half a screen pixel of the view center, and a shaking view jitters
+/// whole pixels instead of smearing. Both derive live from the
+/// window's scale factor. Integer-gridded content (terrain chunks,
+/// anchored layers) shares the lattice and needs no further snapping.
 pub fn snap_camera(
+    shake: Res<CameraShake>,
     target: Query<&Transform, (With<CameraTarget>, Without<MainCamera>)>,
     windows: Query<&Window, With<PrimaryWindow>>,
     mut camera: Query<(&mut Transform, &mut Projection), With<MainCamera>>,
@@ -34,7 +37,7 @@ pub fn snap_camera(
         return;
     };
     orthographic.scale = window_scale_factor / world_scale_factor;
-    let target_position = target_transform.translation;
+    let target_position = target_transform.translation.truncate() + shake.offset;
     camera_transform.translation.x =
         (target_position.x * world_scale_factor).round() / world_scale_factor;
     camera_transform.translation.y =
@@ -47,7 +50,8 @@ mod tests {
 
     fn app() -> App {
         let mut app = App::new();
-        app.add_systems(Update, snap_camera);
+        app.init_resource::<CameraShake>()
+            .add_systems(Update, snap_camera);
         app
     }
 
@@ -91,6 +95,32 @@ mod tests {
         // The snapped position stays within half a screen pixel.
         let error = position - Vec2::new(100.3, -50.27);
         assert!(error.abs().max_element() <= 0.5 / world_scale_factor + 1e-4);
+    }
+
+    #[test]
+    fn a_running_shake_stays_on_the_grid() {
+        let mut app = app();
+        let (_, camera) = rig(&mut app, Vec2::new(96.0, -64.0));
+        // A shake mid-flight with a fractional offset.
+        app.insert_resource(CameraShake {
+            magnitude: 4.0,
+            duration: 0.3,
+            time_remaining: 0.2,
+            offset: Vec2::new(2.7, -1.3),
+        });
+        app.update();
+        let position = app
+            .world()
+            .get::<Transform>(camera)
+            .unwrap()
+            .translation
+            .truncate();
+        let world_scale_factor = ZOOM;
+        assert_eq!(
+            position * world_scale_factor,
+            (position * world_scale_factor).round(),
+            "the shaking view jitters whole pixels"
+        );
     }
 
     #[test]

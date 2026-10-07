@@ -14,15 +14,15 @@ use crate::core::monster::types::monster_kind::MonsterKind;
 use crate::core::rng::resources::game_rng::GameRng;
 use crate::core::world_clock::components::next_turn::NextTurn;
 
-/// The monster blow power stand-in: the reference's HURT effect power
-/// (60) — the plain-damage family, which is what an effect-less blow
-/// behaves as. The rat's literal poisoning power is reference-only:
-/// nothing attaches an effect here. Deleted when the effect family
-/// lands and blows carry their own effect (see OPEN_ISSUES entry 10).
+/// The monster blow power stand-in: 60, the plain-damage family's
+/// power — what a blow without an attached effect behaves as.
+/// Nothing attaches effects here, so every blow takes the plain
+/// stand-in; deleted when the effect family lands and blows carry
+/// their own effect (see OPEN_ISSUES entry 10).
 const MONSTER_BLOW_POWER_STANDIN: i32 = 60;
 
-/// Points of blow chance per point of monster level: the reference's
-/// hit quality is the blow power plus three times the level.
+/// Points of blow chance per point of monster level: a kind's blow
+/// chance is the blow power stand-in plus three times its level.
 const CHANCE_PER_LEVEL: i32 = 3;
 
 /// The blows translated from a kind's row: one blow per declared blow,
@@ -43,7 +43,7 @@ fn translated_blows(monster_kind: &MonsterKind) -> Blows {
 
 /// Spawn every monster declared by the current map's spawn table as
 /// pure game data: the kind handle, the spawn cell, birth hit points
-/// rolled from the kind's hit dice with current equal to ceiling, and
+/// rolled from the kind's hit dice with current equal to maximum, and
 /// the blows and armor class translated from the kind's combat profile.
 /// Monster ids resolve here, not at map load: the map domain does not
 /// depend on this vocabulary (positions flow the other way), so an
@@ -166,7 +166,7 @@ mod tests {
 
         // Birth hit points come from the seeded source in spawn-table
         // order: the rat draws its 2d2, then the jackal its 1d4. Current
-        // equals ceiling, and each lands inside its die range.
+        // equals maximum, and each lands inside its die range.
         let mut replay = StdRng::seed_from_u64(42);
         let expected_rat_max = replay.random_range(1..=2) + replay.random_range(1..=2);
         let expected_jackal_max = replay.random_range(1..=4);

@@ -59,13 +59,12 @@ pub fn unarmed_damage(combat_bonuses: &CombatBonuses) -> i32 {
     (UNARMED_DAMAGE_BASE + combat_bonuses.damage).max(0)
 }
 
-/// The hit skeleton, term for term from the reference (`test_hit_norm`,
-/// without the absent visibility and luck terms): the percentile's
-/// certain-hit and certain-miss bands, a non-positive chance never
-/// hitting, and the power roll against three quarters of the target's
-/// armor class (integer division). The percentile is drawn first and
-/// the power roll only while the chance is positive, so a seeded
-/// source reproduces every branch.
+/// The hit skeleton: the percentile's certain-hit and certain-miss
+/// bands, a non-positive chance never hitting, and the power roll
+/// against three quarters of the target's armor class (integer
+/// division). Visibility and luck terms join when their systems land.
+/// The percentile is drawn first and the power roll only while the
+/// chance is positive, so a seeded source reproduces every branch.
 pub fn attack_hits(chance: i32, armor_class: i32, rng: &mut impl Rng) -> bool {
     let percentile: i32 = rng.random_range(0..100);
     if percentile < 10 {
@@ -117,7 +116,7 @@ mod tests {
     #[test]
     fn a_level_one_warrior_clears_a_rats_armor() {
         // Zero hit bonus: the chance is the level-one warrior's 8,
-        // above the rat's three quarters of armor (5) — strikes
+        // above the rat's three quarters of armor (5) — attacks
         // outside the certain bands can land.
         assert_eq!(attack_chance(&bonuses(0, 0)), 8);
     }
@@ -132,9 +131,9 @@ mod tests {
 
     #[test]
     fn the_skeleton_draws_the_percentile_then_the_power_roll() {
-        // The verdict is the reference rule applied to the draws a seed
-        // produces: the percentile first, the power roll only past the
-        // certain bands. The clone pins the draw order — a swapped or
+        // The verdict is the rule applied to the draws a seed produces:
+        // the percentile first, the power roll only past the certain
+        // bands. The clone pins the draw order — a swapped or
         // extra draw shifts the sequence and fails the comparison.
         for seed in [1, 7, 42, 2026] {
             let mut source = StdRng::seed_from_u64(seed);
@@ -154,12 +153,12 @@ mod tests {
     fn a_non_positive_chance_draws_no_power_roll() {
         // A guaranteed miss past the bands consumes exactly one draw:
         // the next draw lands where a single-draw replay puts it.
-        let mut struck = StdRng::seed_from_u64(9);
-        assert!(!attack_hits(0, 5, &mut struck));
-        let after_strike = struck.random_range(0..100);
+        let mut rng = StdRng::seed_from_u64(9);
+        assert!(!attack_hits(0, 5, &mut rng));
+        let after_percentile = rng.random_range(0..100);
         let mut replay = StdRng::seed_from_u64(9);
         let _ = replay.random_range(0..100);
-        assert_eq!(after_strike, replay.random_range(0..100));
+        assert_eq!(after_percentile, replay.random_range(0..100));
     }
 
     #[test]

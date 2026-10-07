@@ -51,6 +51,27 @@ impl FigureRegistry {
 
 #[cfg(test)]
 impl FigureRegistry {
+    /// A single-figure registry whose figure plays the given anims
+    /// (an idle fallback included automatically when absent). Playback
+    /// tests never touch pixels.
+    pub(crate) fn for_test_with_anims(anims: &[(AnimKind, Anim)]) -> Self {
+        let mut anims: HashMap<AnimKind, Anim> = anims.iter().cloned().collect();
+        anims.entry(AnimKind::Idle).or_insert_with(|| Anim {
+            frames: vec![0],
+            fps: 1.0,
+            looped: true,
+        });
+        FigureRegistry {
+            appearances: vec![Appearance::new(
+                Handle::default(),
+                Handle::default(),
+                UVec2::ONE,
+                anims,
+            )],
+            by_id: HashMap::from([("figure".to_string(), FigureIndex::from_index(0))]),
+        }
+    }
+
     /// A registry for tests: the given ids resolve to handles in list
     /// order, each backed by a placeholder appearance (default handles,
     /// idle-only). Binding and playback tests never touch pixels.
@@ -68,6 +89,7 @@ impl FigureRegistry {
                     Anim {
                         frames: vec![0],
                         fps: 1.0,
+                        looped: true,
                     },
                 )]),
             ));
@@ -111,6 +133,7 @@ impl FromWorld for FigureRegistry {
                         Anim {
                             frames: anim_entry.frames,
                             fps: anim_entry.fps,
+                            looped: anim_entry.looped,
                         },
                     )
                 })
@@ -200,8 +223,8 @@ mod tests {
             columns: 21,
             rows: 8,
             anims: [
-                ( anim: idle, frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0 ),
-                ( anim: run,  frames: [2, 3, 4, 5, 6, 7],         fps: 20.0 ),
+                ( anim: idle, frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0, looped: true ),
+                ( anim: run,  frames: [2, 3, 4, 5, 6, 7],         fps: 20.0, looped: true ),
             ],
         ),
         (
@@ -210,7 +233,7 @@ mod tests {
             frame_size: (16, 15),
             columns: 4,
             rows: 1,
-            anims: [ ( anim: idle, frames: [0, 1], fps: 6.0 ) ],
+            anims: [ ( anim: idle, frames: [0, 1], fps: 6.0, looped: true ) ],
         ),
     ]"#;
 
@@ -277,8 +300,8 @@ mod tests {
     #[should_panic(expected = "duplicate Run anim")]
     fn duplicate_anim_panics() {
         let doc = DOC.replace(
-            "( anim: idle, frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0 )",
-            "( anim: run,  frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0 )",
+            "( anim: idle, frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0, looped: true )",
+            "( anim: run,  frames: [0, 0, 0, 1, 0, 0, 1, 1], fps: 8.0, looped: true )",
         );
         parse_figure_entries("test", &doc);
     }
@@ -286,7 +309,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "has no idle anim")]
     fn missing_idle_panics() {
-        let doc = DOC.replace("anim: idle", "anim: walk");
+        let doc = DOC.replace("anim: idle", "anim: attack");
         parse_figure_entries("test", &doc);
     }
 
@@ -323,6 +346,23 @@ mod tests {
             .unwrap();
         assert_eq!(run.frames, [2, 3, 4, 5, 6, 7]);
         assert_eq!(run.fps, 20.0);
+        assert!(run.looped);
+        let attack = entry
+            .anims
+            .iter()
+            .find(|a| a.anim == AnimKind::Attack)
+            .unwrap();
+        assert_eq!(attack.frames, [13, 14, 15, 0]);
+        assert_eq!(attack.fps, 15.0);
+        assert!(!attack.looped);
+        let die = entry
+            .anims
+            .iter()
+            .find(|a| a.anim == AnimKind::Die)
+            .unwrap();
+        assert_eq!(die.frames, [8, 9, 10, 11, 12, 11]);
+        assert_eq!(die.fps, 20.0);
+        assert!(!die.looped);
     }
 
     /// Spec-alignment test: the real figure table on disk reproduces the
@@ -338,8 +378,6 @@ mod tests {
         assert_eq!(entry.texture, "rat.png");
         assert_eq!(entry.frame_size, UVec2::new(16, 15));
         assert_eq!((entry.columns, entry.rows), (16, 2));
-        // Only an idle anim: the rat neither walks nor fights yet.
-        assert_eq!(entry.anims.len(), 1);
         let idle = entry
             .anims
             .iter()
@@ -347,5 +385,30 @@ mod tests {
             .unwrap();
         assert_eq!(idle.frames, [16, 16, 16, 17]);
         assert_eq!(idle.fps, 2.0);
+        assert!(idle.looped);
+        let run = entry
+            .anims
+            .iter()
+            .find(|a| a.anim == AnimKind::Run)
+            .unwrap();
+        assert_eq!(run.frames, [22, 23, 24, 25, 26]);
+        assert_eq!(run.fps, 10.0);
+        assert!(run.looped);
+        let attack = entry
+            .anims
+            .iter()
+            .find(|a| a.anim == AnimKind::Attack)
+            .unwrap();
+        assert_eq!(attack.frames, [18, 19, 20, 21, 16]);
+        assert_eq!(attack.fps, 15.0);
+        assert!(!attack.looped);
+        let die = entry
+            .anims
+            .iter()
+            .find(|a| a.anim == AnimKind::Die)
+            .unwrap();
+        assert_eq!(die.frames, [27, 28, 29, 30]);
+        assert_eq!(die.fps, 10.0);
+        assert!(!die.looped);
     }
 }

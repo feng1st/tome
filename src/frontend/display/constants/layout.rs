@@ -38,9 +38,13 @@ pub const LAYER_GROUND: f32 = 0.0;
 pub const LAYER_ACTOR: f32 = 2.0;
 /// Things rising overhead (tree crowns, roof edges) render above actors.
 pub const LAYER_OVERHEAD: f32 = 3.0;
+/// Floating text (damage numbers) renders above everything in the
+/// world — it reports on the actors it overlaps.
+pub const LAYER_FLOATING_TEXT: f32 = 4.0;
 
 // The z layers are strictly ordered (compile-time check).
 const _: () = {
     assert!(LAYER_GROUND < LAYER_ACTOR);
     assert!(LAYER_ACTOR < LAYER_OVERHEAD);
+    assert!(LAYER_OVERHEAD < LAYER_FLOATING_TEXT);
 };

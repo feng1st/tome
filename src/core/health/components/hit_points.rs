@@ -1,14 +1,13 @@
-//! The hit-point component: current injury against a ceiling.
+//! The hit-point component: current injury against a maximum.
 
 use bevy::prelude::*;
 
 /// A creature's hit points: how much of its injury ledger is spent and
-/// the ceiling that ledger starts from. Shared by players and monsters
-/// alike; the current value MUST NOT exceed the ceiling.
+/// the maximum that ledger starts from. Shared by players and monsters
+/// alike; the current value MUST NOT exceed the maximum.
 #[derive(Component)]
 pub struct HitPoints {
     pub current: i32,
-    #[allow(dead_code)] // consumed by life display and restorative channels
     pub max: i32,
 }
 
@@ -17,7 +16,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn carries_current_and_ceiling() {
+    fn carries_current_and_maximum() {
         let hit_points = HitPoints {
             current: 12,
             max: 19,

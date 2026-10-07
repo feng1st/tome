@@ -1,0 +1,15 @@
+// Font table: one entry per font, ascending. `chars` is the
+// reference's full Latin table; the leading fully-transparent gap
+// of a font's texture measures the space glyph's advance, the
+// marker columns between glyph stretches split the glyphs, and
+// each stretch pairs with the table's characters in order
+// (space skipped — it owns no stretch). Row height bounds the
+// column scan; baseline and tracking are the layout values the
+// presentation side applies.
+[
+    ( font: "1x", texture: "font1x.png", row_height: 8, baseline: 6, tracking: -1.0, chars: r##" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"## ),
+    ( font: "15x", texture: "font15x.png", row_height: 12, baseline: 9, tracking: -1.0, chars: r##" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"## ),
+    ( font: "2x", texture: "font2x.png", row_height: 14, baseline: 11, tracking: -1.0, chars: r##" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"## ),
+    ( font: "25x", texture: "font25x.png", row_height: 17, baseline: 13, tracking: -1.0, chars: r##" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"## ),
+    ( font: "3x", texture: "font3x.png", row_height: 22, baseline: 17, tracking: -2.0, chars: r##" !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"## ),
+]

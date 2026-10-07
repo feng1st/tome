@@ -4,7 +4,7 @@ use crate::core::map::components::cell_coord::CellCoord;
 
 /// Two distinct cells are adjacent when they differ by at most one row
 /// and one column — the eight neighboring cells, the reach of one step
-/// and of one strike. A cell is not adjacent to itself.
+/// and of one attack. A cell is not adjacent to itself.
 pub fn adjacent(a: CellCoord, b: CellCoord) -> bool {
     a != b && (a.x - b.x).abs() <= 1 && (a.y - b.y).abs() <= 1
 }

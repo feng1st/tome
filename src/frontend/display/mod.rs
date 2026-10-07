@@ -6,16 +6,20 @@
 //! carry the ordering, and each system's working conditions (`run_if`)
 //! travel with it.
 
+pub mod bitmap_text;
 pub mod camera;
 pub mod constants;
 pub mod creature;
 pub mod display_phase;
+pub mod effects;
 pub mod figure;
 pub mod map;
 pub mod motion;
+pub mod particles;
 pub mod sprite_animation;
 pub mod terrain_animation;
 pub mod tileset;
+pub mod tween;
 
 use bevy::prelude::*;
 
@@ -25,14 +29,18 @@ use crate::core::game_loop::GameLoop;
 /// Register the display side: every domain's systems and the
 /// display-internal phase chain. No concrete system is named here.
 pub fn register(app: &mut App) {
+    bitmap_text::register(app);
     tileset::register(app);
     map::register(app);
     figure::register(app);
     motion::register(app);
     creature::register(app);
+    particles::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);
     camera::register(app);
+    tween::register(app);
+    effects::register(app);
     app.configure_sets(
         Update,
         (

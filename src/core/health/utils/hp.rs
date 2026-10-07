@@ -1,4 +1,4 @@
-//! Hit-point derivation: a level-one character's hit-point ceiling.
+//! Hit-point derivation: a level-one character's hit-point maximum.
 
 use crate::core::health::constants::constitution_hp_bonus::CONSTITUTION_HP_BONUS;
 use crate::core::stats::constants::stat_bonus_table::STAT_BONUS_TABLE_BIAS;
@@ -9,7 +9,7 @@ fn constitution_hp_bonus(constitution: i32) -> i32 {
     CONSTITUTION_HP_BONUS[stat_bonus_index(constitution)] - STAT_BONUS_TABLE_BIAS
 }
 
-/// A level-one character's hit-point ceiling: the full hit die (race
+/// A level-one character's hit-point maximum: the full hit die (race
 /// and class shares summed) plus half the constitution bonus, integer
 /// division.
 pub fn max_hit_points(hit_die: i32, constitution: i32) -> i32 {
@@ -56,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn ceiling_is_die_plus_half_the_bonus() {
+    fn maximum_is_die_plus_half_the_bonus() {
         // Human 10 + warrior 9 = 19 hit die.
         assert_eq!(max_hit_points(19, 14), 19, "bonus +1 halves to 0");
         assert_eq!(max_hit_points(19, 17), 20, "bonus +2 halves to 1");

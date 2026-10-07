@@ -16,7 +16,7 @@ use crate::frontend::display::map::utils::coords::world_to_cell;
 /// the cursor converts window -> world -> cell: `window_to_world` (the
 /// camera domain owns the rule). The ground is the only hittable target
 /// today, so every press becomes `TargetCell` and the core derives what
-/// it means — a walk or a strike.
+/// it means — a walk or an attack.
 pub fn translate(
     buttons: Res<ButtonInput<MouseButton>>,
     window: Single<&Window>,

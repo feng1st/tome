@@ -20,7 +20,7 @@ mod tests {
     #[test]
     fn table_covers_every_bracket() {
         assert_eq!(CONSTITUTION_HP_BONUS.len(), 38);
-        // Entries carry the bias: the deepest floor and the ceiling
+        // Entries carry the bias: the deepest floor and the maximum
         // match the bonus scale once the bias is subtracted.
         assert_eq!(CONSTITUTION_HP_BONUS[0] - STAT_BONUS_TABLE_BIAS, -5);
         assert_eq!(

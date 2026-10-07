@@ -17,7 +17,7 @@ Dexterity/Constitution/Charisma）以出生掷点得出、种族与职业修正�
 ### Requirement: The Six-Statistic Component | 六维组件
 
 A playable character SHALL carry a six-statistic component recording
-each statistic's ceiling and current value, indexed in the fixed order
+each statistic's maximum and current value, indexed in the fixed order
 Strength/Intelligence/Wisdom/Dexterity/Constitution/Charisma. The
 component carries plain values only; temporary drains and
 modifier-derived values belong to their own systems.
@@ -29,7 +29,7 @@ Strength/Intelligence/Wisdom/Dexterity/Constitution/Charisma 的固定顺序
 #### Scenario: The component carries the six | 组件承载六维
 
 - **WHEN** a playable character's six-statistic component is read | 读取一个可被扮演角色的六维组件时
-- **THEN** each of the six fixed dimensions yields a ceiling and a current value | 可按六个固定维度各自取得最大值与当前值
+- **THEN** each of the six fixed dimensions yields a maximum and a current value | 可按六个固定维度各自取得最大值与当前值
 
 ### Requirement: Birth Rolls | 出生掷点
 
@@ -57,7 +57,7 @@ value toward 18 — faster than one per point above it — then drain one
 per point below it; no value MUST drop below 3. The merge moves only
 along the modifier's direction: a positive modifier's result MUST NOT
 be below the base, a negative one's result MUST NOT be above it. The
-merged result is written into both the ceiling and the current value.
+merged result is written into both the maximum and the current value.
 
 种族与职业的六维修正相加后，SHALL 按分段非线性地并入对应维度的基准
 值：基准未满 18 时每点修正逐点增减；达到 18 之后按分段以更大步长增减
@@ -98,7 +98,7 @@ lands on the first bracket; 4 through 18 map one bracket per point;
 a value above 18 carries its x directly, one bracket per ten points
 of x; 18/220 and beyond share the last (thirty-eighth) bracket.
 
-压缩属性索引 SHALL 把属性值映射到一切属性加成表共享的 38 个分段：
+压缩属性索引 SHALL 把属性值映射到一切属性修正表共享的 38 个分段：
 不大于 3 的值落在第一段；4 到 18 逐点一段；18 以上的值直接携带 x，
 每十点 x 一段；18/220 及以上共用末段（第三十八段）。
 

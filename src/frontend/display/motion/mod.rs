@@ -1,22 +1,26 @@
-//! Motion: a picture's current position and its move toward the
-//! logical cell, plus the `IsMoving` flag the core reads. One mechanism
-//! serves every moving action — a step today, a lunge or a knockback
-//! tomorrow; actions that play in place (pickup, eat) belong to sprite
-//! animation instead. Display-side only — real time lives here, never
-//! in core.
+//! The motion domain: a step's picture glides toward its landed cell,
+//! plus the `IsMoving` flag the core reads. One mechanism over the
+//! tween domain's `PosTween`: this domain decides when a glide starts
+//! (the logical cell changed) and when the flag speaks (road left).
 
 pub mod components;
+pub mod constants;
 pub mod systems;
 pub mod utils;
 
 use bevy::prelude::*;
 
+use self::systems::is_moving::update_is_moving;
+use self::systems::move_cells::move_cells;
 use crate::frontend::display::display_phase::DisplayPhase;
 
-/// Register the motion domain.
+/// Register the motion domain: glides arm and flags speak in the
+/// Motion phase, ahead of the tweens' advance in Animate.
 pub fn register(app: &mut App) {
     app.add_systems(
         Update,
-        systems::move_sprite::move_sprite.in_set(DisplayPhase::Motion),
+        (move_cells, update_is_moving)
+            .chain()
+            .in_set(DisplayPhase::Motion),
     );
 }

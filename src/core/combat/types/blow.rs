@@ -1,4 +1,4 @@
-//! Strike value types: one blow's hit quality and damage.
+//! Attack value types: one blow's chance and damage.
 
 use rand::Rng;
 
@@ -6,7 +6,7 @@ use crate::core::dice::types::dice::Dice;
 use crate::core::dice::utils::roll::roll_with;
 
 /// The damage of one blow: a fixed amount (the player's unarmed
-/// strike) or one roll of the blow's dice (monster blows).
+/// attack) or one roll of the blow's dice (monster blows).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BlowDamage {
     Fixed(i32),
@@ -24,7 +24,7 @@ impl BlowDamage {
     }
 }
 
-/// One blow of a strike: the hit quality and the damage it deals. The
+/// One blow of an attack: its chance and its damage. The
 /// chance is the attacker's own; the target contributes only its armor
 /// class at resolution, so a pairing is never stored.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

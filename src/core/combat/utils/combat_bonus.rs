@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn reads_take_the_current_values() {
-        // The ceiling may sit above the current set: reads follow the
+        // The maximum may sit above the current set: reads follow the
         // current values.
         let mut stats = stats(16, 16);
         stats.current[Stat::Strength.index()] = 3;

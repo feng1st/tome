@@ -2,15 +2,22 @@
 
 use bevy::prelude::*;
 
+use crate::core::health::components::dead::Dead;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::movement::components::r#move::Move;
 
-/// Every entity with a freshly added `Move` sets its cell coordinate to
-/// the target at once — data first, the display chases. The action
-/// component is consumed so the next step registers as `Added` again.
+/// Every living entity with a freshly added `Move` sets its cell
+/// coordinate to the target at once — data first, the display chases.
+/// The action component is consumed so the next step registers as
+/// `Added` again. The dead never move: a lingering death presentation
+/// must not walk a corpse, whatever left a move pending on it.
+/// The actor filter: fresh steps of the living only — the dead
+/// never move.
+type ActorFilter = (Added<Move>, Without<Dead>);
+
 pub fn act_move(
     mut commands: Commands,
-    mut actors: Query<(Entity, &Move, &mut CellCoord), Added<Move>>,
+    mut actors: Query<(Entity, &Move, &mut CellCoord), ActorFilter>,
 ) {
     for (entity, target, mut cell) in &mut actors {
         *cell = target.to;

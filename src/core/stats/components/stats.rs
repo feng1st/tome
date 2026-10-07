@@ -2,9 +2,9 @@
 
 use bevy::prelude::*;
 
-/// A playable creature's six statistics: the ceiling values reached at
+/// A playable creature's six statistics: the maximum values reached at
 /// birth (rolled bases merged with race and class modifiers) and the
-/// current values, which drift below the ceiling when effects drain
+/// current values, which drift below the maximum when effects drain
 /// them. Arrays are indexed by `Stat`; monsters carry no statistics.
 #[derive(Component)]
 pub struct Stats {

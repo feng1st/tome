@@ -1,5 +1,5 @@
 //! Executes `TargetCell` commands: the core decides what a target means
-//! — a monster's cell asks for a strike, a walkable cell for a walk —
+//! — a monster's cell asks for an attack, a walkable cell for a walk —
 //! and dispatches the standing order; pathfinding lives in planning.
 
 use bevy::ecs::query::QueryData;
@@ -28,12 +28,17 @@ pub struct PlayerCellQuery {
 /// player's own cell changes nothing. A new command replaces the
 /// standing order. Commands to a dead driver are ignored — the query
 /// filters the death marker out.
+/// The monster filter — living monsters only: a corpse (its body may
+/// linger through its death fade) is not an attack target, and its
+/// cell is ground to walk on.
+type MonsterFilter = (With<MonsterIndex>, Without<Dead>);
+
 pub fn execute(
     mut commands: Commands,
     mut targets: MessageReader<TargetCell>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
-    monsters: Query<(Entity, &CellCoord), With<MonsterIndex>>,
+    monsters: Query<(Entity, &CellCoord), MonsterFilter>,
     player: Query<PlayerCellQuery, (With<Player>, Without<Dead>)>,
 ) {
     let Ok(player) = player.single() else {
@@ -286,7 +291,7 @@ mod tests {
     }
 
     /// The full combat loop over the real phase topology: a target on a
-    /// distant rat pursues, strikes when adjacent, and the slain rat
+    /// distant rat pursues, attacks when adjacent, and the slain rat
     /// leaves the world — the player never standing on its cell, the
     /// world freezing once the order is spent.
     #[test]
@@ -294,7 +299,7 @@ mod tests {
         #[derive(Resource, Default)]
         struct Requests(Vec<Damage>);
 
-        /// Capture the strikes between execution and application, then
+        /// Capture the attacks between execution and application, then
         /// put them back — the apply system runs them as usual.
         fn record_requests(mut messages: ResMut<Messages<Damage>>, mut requests: ResMut<Requests>) {
             let captured: Vec<Damage> = messages.drain().collect();
@@ -307,21 +312,23 @@ mod tests {
         use crate::core::combat::components::armor_class::ArmorClass;
         use crate::core::combat::components::blows::Blows;
         use crate::core::combat::components::combat_bonuses::CombatBonuses;
+        use crate::core::combat::messages::attack_resolved::AttackResolved;
         use crate::core::combat::systems::act_attack::act_attack;
         use crate::core::combat::types::blow::{Blow, BlowDamage};
         use crate::core::combat::utils::armor_class::armor_class;
         use crate::core::combat::utils::attack::{attack_chance, unarmed_damage};
         use crate::core::health::components::hit_points::HitPoints;
         use crate::core::health::messages::damage::Damage;
+        use crate::core::health::messages::damage_applied::DamageApplied;
         use crate::core::health::systems::apply_damage::apply_damage;
         use crate::core::rng::resources::game_rng::GameRng;
         use crate::core::world_clock::systems::advance::advance;
 
-        // One order, one strike: the seed must land the first swing
+        // One order, one attack: the seed must land the first swing
         // (percentile past the bands, power roll beating three quarters
-        // of the rat's armor), or the driver stands ready after a miss —
-        // exactly as the reference behaves. The probe replays the real
-        // draw sequence against the real chance.
+        // of the rat's armor), or the driver stands ready after a miss.
+        // The probe replays the real draw sequence against the real
+        // chance.
         let probe_bonuses = CombatBonuses {
             hit: 5,
             damage: 3,
@@ -336,12 +343,14 @@ mod tests {
             })
             .expect("a hitting seed exists");
         let mut app = App::new();
-        app.init_resource::<WorldClock>()
+        app.insert_resource(WorldClock { now: 0 })
             .insert_resource(GameRng::seeded(seed))
             .insert_resource(terrain_registry())
             .insert_resource(CurrentMap::new(room()))
             .add_message::<TargetCell>()
             .add_message::<Damage>()
+            .add_message::<DamageApplied>()
+            .add_message::<AttackResolved>()
             .configure_sets(
                 Update,
                 (
@@ -364,6 +373,10 @@ mod tests {
                     .in_set(CorePhase::PlayerAct),
             )
             .add_systems(Update, apply_damage.in_set(CorePhase::PlayerResolve))
+            .add_systems(
+                Update,
+                crate::core::health::systems::despawn_dead::despawn_dead.in_set(CorePhase::Derive),
+            )
             .insert_resource(Requests::default());
         // What the derive would attach, hand-built from the probe's
         // bonuses: one unarmed blow and the armor class.
@@ -419,12 +432,13 @@ mod tests {
             requests.0,
             vec![Damage {
                 target: rat,
+                source: Some(player),
                 amount: 4
             }],
-            "one strike of 1 + damage bonus 3 lands"
+            "one attack of 1 + damage bonus 3 lands, attributed to the driver"
         );
 
-        // The strike cleared the order: the driver stands ready — the
+        // The attack cleared the order: the driver stands ready — the
         // clock sweeps onto the driver's unspent turn and freezes there.
         assert!(app.world().get::<Order>(player).is_none());
         app.update();
@@ -448,7 +462,7 @@ mod tests {
         use crate::core::world_clock::systems::advance::advance;
 
         let mut app = App::new();
-        app.init_resource::<WorldClock>()
+        app.insert_resource(WorldClock { now: 0 })
             .insert_resource(terrain_registry())
             .insert_resource(CurrentMap::new(room()))
             .add_message::<TargetCell>()
@@ -517,24 +531,53 @@ mod tests {
     }
 
     /// A target beyond a monster routes around it: the blocker is
-    /// never struck, never hurt, and the player reaches the target.
+    /// never attacked, never hurt, and the player reaches the target.
+    #[test]
+    fn a_fading_corpse_s_cell_is_ground_to_walk_on() {
+        // The corpse lingers through its death fade; its cell must
+        // read as ground, not as a monster's cell — the click walks,
+        // it does not attack.
+        let mut app = app();
+        let player_cell = CellCoord::new(1, 1);
+        app.world_mut().spawn((Player, player_cell));
+        let corpse_cell = CellCoord::new(2, 1);
+        app.world_mut().spawn((
+            MonsterIndex::from_index(0),
+            corpse_cell,
+            crate::core::health::components::dead::Dead,
+        ));
+        app.world_mut().write_message(TargetCell(corpse_cell));
+        app.update();
+        let mut orders = app.world_mut().query_filtered::<&Order, With<Player>>();
+        let order = orders.single(app.world()).unwrap();
+        assert_eq!(
+            order,
+            &Order::Move {
+                target: corpse_cell
+            },
+            "the corpse's cell issues a move order, not an attack"
+        );
+    }
+
     #[test]
     fn a_target_beyond_a_monster_routes_around_it() {
         use crate::core::combat::components::combat_bonuses::CombatBonuses;
         use crate::core::health::components::hit_points::HitPoints;
         use crate::core::health::messages::damage::Damage;
+        use crate::core::health::messages::damage_applied::DamageApplied;
         use crate::core::health::systems::apply_damage::apply_damage;
         use crate::core::player::components::order::Order;
         use crate::core::rng::resources::game_rng::GameRng;
         use crate::core::world_clock::systems::advance::advance;
 
         let mut app = App::new();
-        app.init_resource::<WorldClock>()
+        app.insert_resource(WorldClock { now: 0 })
             .insert_resource(GameRng::seeded(7))
             .insert_resource(terrain_registry())
             .insert_resource(CurrentMap::new(room()))
             .add_message::<TargetCell>()
             .add_message::<Damage>()
+            .add_message::<DamageApplied>()
             .configure_sets(
                 Update,
                 (
@@ -550,7 +593,11 @@ mod tests {
             .add_systems(Update, execute.in_set(CorePhase::Command))
             .add_systems(Update, plan_action.in_set(CorePhase::PlayerPlan))
             .add_systems(Update, act_move.in_set(CorePhase::PlayerAct))
-            .add_systems(Update, apply_damage.in_set(CorePhase::PlayerResolve));
+            .add_systems(Update, apply_damage.in_set(CorePhase::PlayerResolve))
+            .add_systems(
+                Update,
+                crate::core::health::systems::despawn_dead::despawn_dead.in_set(CorePhase::Derive),
+            );
         let player = app
             .world_mut()
             .spawn((
@@ -580,10 +627,10 @@ mod tests {
         app.world_mut()
             .write_message(TargetCell(CellCoord::new(5, 2)));
 
-        let mut strikes_seen = 0;
+        let mut attacks_seen = 0;
         for _ in 0..100 {
             app.update();
-            strikes_seen += app
+            attacks_seen += app
                 .world_mut()
                 .resource_mut::<Messages<Damage>>()
                 .drain()
@@ -598,7 +645,7 @@ mod tests {
             "the player reaches the target around the blocker"
         );
         app.update();
-        assert_eq!(strikes_seen, 0, "a floor target never starts a fight");
+        assert_eq!(attacks_seen, 0, "a floor target never starts a fight");
         assert!(
             app.world().get_entity(blocker).is_ok(),
             "the blocker survives"

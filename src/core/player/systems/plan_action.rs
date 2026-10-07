@@ -1,5 +1,5 @@
 //! Plan action: the driver's turn action from its standing order — one
-//! strike at an adjacent target, or one step along a freshly computed
+//! attack at an adjacent target, or one step along a freshly computed
 //! route. The order persists; the route never does.
 
 use std::collections::HashSet;
@@ -17,11 +17,11 @@ use crate::core::map::utils::pathfinding::find_path;
 use crate::core::monster::components::monster_index::MonsterIndex;
 use crate::core::movement::components::r#move::Move;
 use crate::core::player::components::order::Order;
+use crate::core::player::components::player::Player;
 use crate::core::speed::components::speed::Speed;
 use crate::core::speed::constants::action_duration::STANDARD_ACTION_DURATION;
 use crate::core::speed::utils::action_duration::action_duration;
 use crate::core::world_clock::components::next_turn::NextTurn;
-use crate::core::world_clock::components::world_driver::WorldDriver;
 use crate::core::world_clock::resources::world_clock::WorldClock;
 
 /// The player's order-planning state: position, speed for pricing, the
@@ -37,7 +37,7 @@ pub struct PlayerQuery {
 }
 
 /// On a due turn, plan one action from the standing order. An attack
-/// order strikes when the target is adjacent — one order, one strike —
+/// order attacks when the target is adjacent — one order, one attack —
 /// and otherwise paths toward the target's current cell, following a
 /// wandering target. A move order paths toward its target. Both route
 /// with monster cells as obstacles, the destination cell exempt, and
@@ -51,13 +51,18 @@ pub struct PlayerQuery {
 /// creature's picture is mid-move — the action plans at the frozen tick
 /// all the same and the pictures overlap. Only the tick ledger is
 /// serial; overlapping pictures are a display concern.
+/// The monster filter — living monsters as route obstacles and
+/// order targets: a corpse neither blocks a route nor keeps an
+/// attack order alive.
+type MonsterFilter = (With<MonsterIndex>, Without<Dead>);
+
 pub fn plan_action(
     mut commands: Commands,
     world_clock: Res<WorldClock>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
-    monsters: Query<(Entity, &CellCoord), With<MonsterIndex>>,
-    mut player: Query<PlayerQuery, (With<WorldDriver>, Without<Dead>)>,
+    monsters: Query<(Entity, &CellCoord), MonsterFilter>,
+    mut player: Query<PlayerQuery, (With<Player>, Without<Dead>)>,
 ) {
     let Ok(mut player) = player.single_mut() else {
         return;
@@ -67,12 +72,13 @@ pub fn plan_action(
     }
     match player.order.copied() {
         Some(Order::Attack { target }) => {
-            // The target's current cell drives the whole order: strike when
+            // The target's current cell drives the whole order: attack when
             // adjacent, otherwise pursue.
             let Some(target_cell) = monsters.get(target).ok().map(|(_, cell)| *cell) else {
                 // The order's target cannot die while it stands — the
-                // strike is the only damage source, and striking clears the
-                // order — but a gone target simply drops the order.
+                // attack is the only damage source, and a landed blow on
+                // the holder clears the order — but a gone target simply
+                // drops the order.
                 commands.entity(player.entity).remove::<Order>();
                 return;
             };
@@ -150,6 +156,7 @@ mod tests {
     use crate::core::map::resources::current_map::parse_local_map;
     use crate::core::map::resources::terrain_registry::parse_terrain_registry;
     use crate::core::map::types::local_map::LocalMap;
+    use crate::core::world_clock::components::world_driver::WorldDriver;
 
     const TERRAINS: &str = r#"[
         ( terrain: "floor", flags: ["PASSABLE"] ),
@@ -181,7 +188,7 @@ mod tests {
 
     fn world_with(room: LocalMap) -> World {
         let mut world = World::new();
-        world.insert_resource(WorldClock::default());
+        world.insert_resource(WorldClock { now: 0 });
         world.insert_resource(CurrentMap::new(room));
         world.insert_resource(terrain_registry());
         world
@@ -196,7 +203,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -227,7 +234,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn { at: 50 },
@@ -248,7 +255,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn { at: 100 },
@@ -277,7 +284,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -293,7 +300,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(3, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -320,7 +327,7 @@ mod tests {
         let mut world = world_with(map_from(&["#####", "#.#.#", "#.#.#", "#.#.#", "#####"]));
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -343,7 +350,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -365,7 +372,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -385,11 +392,11 @@ mod tests {
     }
 
     #[test]
-    fn an_adjacent_target_strikes_and_clears_the_order() {
+    fn an_adjacent_target_attacks_and_clears_the_order() {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -403,11 +410,11 @@ mod tests {
         assert_eq!(
             world.get::<Attack>(player).map(|a| a.target),
             Some(rat),
-            "adjacent: the strike is planned"
+            "adjacent: the attack is planned"
         );
         assert!(
             world.get::<Order>(player).is_none(),
-            "one order, one strike"
+            "one order, one attack"
         );
         assert_eq!(
             world.get::<NextTurn>(player).unwrap().at,
@@ -421,7 +428,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -460,7 +467,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -486,7 +493,7 @@ mod tests {
         let mut world = world_with(map_from(&["#####", "#.#.#", "#.#.#", "#.#.#", "#####"]));
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -514,7 +521,7 @@ mod tests {
         let mut world = world_with(open_room());
         let player = world
             .spawn((
-                WorldDriver,
+                Player,
                 CellCoord::new(1, 1),
                 Speed(110),
                 NextTurn::default(),
@@ -543,13 +550,14 @@ mod tests {
         use crate::core::world_clock::systems::advance::advance;
 
         let mut app = App::new();
-        app.init_resource::<WorldClock>()
+        app.insert_resource(WorldClock { now: 0 })
             .insert_resource(terrain_registry())
             .insert_resource(CurrentMap::new(open_room()))
             .add_systems(Update, (advance, plan_action).chain());
         let player = app
             .world_mut()
             .spawn((
+                Player,
                 WorldDriver,
                 CellCoord::new(1, 1),
                 Speed(110),

@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use crate::core::map::components::cell_coord::CellCoord;
 
 /// Command: the player targeted a cell. The core decides what the target
-/// means — a strike when a living monster stands there, a walk otherwise
+/// means — an attack when a living monster stands there, a walk otherwise
 /// — and ignores invalid cells.
 #[derive(Message, Clone, Copy, Debug)]
 pub struct TargetCell(pub CellCoord);

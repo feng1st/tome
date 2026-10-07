@@ -39,7 +39,7 @@ pub fn attach_appearance(
         commands.entity(entity).insert((
             curr_position,
             Sprite {
-                image: appearance.image.clone(),
+                image: appearance.texture.clone(),
                 texture_atlas: Some(TextureAtlas {
                     layout: appearance.layout.clone(),
                     index: 0,
@@ -52,6 +52,8 @@ pub fn attach_appearance(
             AnimState {
                 anim: AnimKind::Idle,
                 frame_offset: (cell.x + cell.y) as usize % idle_len,
+                finish_at: None,
+                finished: false,
             },
         ));
     }

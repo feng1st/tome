@@ -14,7 +14,7 @@ use crate::frontend::display::sprite_animation::types::anim::Anim;
 /// renderer reads them off the entity); the anim table is looked up per
 /// frame through `anim()`.
 pub struct Appearance {
-    pub image: Handle<Image>,
+    pub texture: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
     /// Frame size in texels; the texel-grid anchor derives from it (see
     /// `attach_appearance`).
@@ -24,13 +24,13 @@ pub struct Appearance {
 
 impl Appearance {
     pub fn new(
-        image: Handle<Image>,
+        texture: Handle<Image>,
         layout: Handle<TextureAtlasLayout>,
         frame_size: UVec2,
         anims: HashMap<AnimKind, Anim>,
     ) -> Self {
         Appearance {
-            image,
+            texture,
             layout,
             frame_size,
             anims,
@@ -56,6 +56,7 @@ mod tests {
         Anim {
             frames: vec![0, 1],
             fps: 8.0,
+            looped: true,
         }
     }
 
@@ -63,6 +64,7 @@ mod tests {
         Anim {
             frames: vec![2, 3],
             fps: 20.0,
+            looped: true,
         }
     }
 
