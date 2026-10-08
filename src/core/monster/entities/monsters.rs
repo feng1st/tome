@@ -5,8 +5,7 @@ use bevy::prelude::*;
 
 use crate::core::combat::components::armor_class::ArmorClass;
 use crate::core::combat::components::blows::Blows;
-use crate::core::combat::types::blow::{Blow, BlowDamage};
-use crate::core::dice::utils::roll::roll_with;
+use crate::core::combat::types::blow::Blow;
 use crate::core::health::components::hit_points::HitPoints;
 use crate::core::map::resources::current_map::CurrentMap;
 use crate::core::monster::resources::monster_registry::MonsterRegistry;
@@ -35,7 +34,7 @@ fn translated_blows(monster_kind: &MonsterKind) -> Blows {
         .iter()
         .map(|blow| Blow {
             chance: MONSTER_BLOW_POWER_STANDIN + monster_kind.level * CHANCE_PER_LEVEL,
-            damage: BlowDamage::Roll(blow.damage),
+            damage: blow.damage,
         })
         .collect();
     Blows(blows)
@@ -66,7 +65,7 @@ pub fn spawn_monsters(
                 )
             });
         let monster_kind = monster_registry.monster_kind(monster_index);
-        let max = roll_with(monster_kind.hit_points, &mut game_rng.rng);
+        let max = monster_kind.hit_points.roll_with(&mut game_rng.rng);
         let blows = translated_blows(monster_kind);
         commands.spawn((
             monster_index,
@@ -89,7 +88,7 @@ mod tests {
     use super::*;
     use crate::core::combat::components::armor_class::ArmorClass;
     use crate::core::combat::components::blows::Blows;
-    use crate::core::combat::types::blow::{Blow, BlowDamage};
+    use crate::core::combat::types::blow::Blow;
     use crate::core::dice::types::dice::Dice;
     use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::map::types::local_map::LocalMap;
@@ -205,7 +204,7 @@ mod tests {
             blows.0,
             vec![Blow {
                 chance: 60 + 3 * 4,
-                damage: BlowDamage::Roll(Dice { n: 1, m: 3 }),
+                damage: Dice { dice: 1, side: 3 },
             }]
         );
     }

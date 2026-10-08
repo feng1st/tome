@@ -18,10 +18,10 @@ use crate::frontend::display::camera::resources::camera_shake::CameraShake;
 /// and a headless run of the same seed must roll the same game.
 pub fn update_shake(
     time: Res<Time>,
-    mut requests: MessageReader<ShakeCamera>,
+    mut shake_camera_reader: MessageReader<ShakeCamera>,
     mut shake: ResMut<CameraShake>,
 ) {
-    for request in requests.read() {
+    for request in shake_camera_reader.read() {
         *shake = CameraShake {
             magnitude: request.magnitude,
             duration: request.duration,

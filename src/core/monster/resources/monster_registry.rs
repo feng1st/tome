@@ -167,27 +167,27 @@ mod tests {
         assert_eq!(monster_registry.monster_kind(rat).speed, Speed(110));
         assert_eq!(
             monster_registry.monster_kind(rat).hit_points,
-            Dice { n: 2, m: 2 }
+            Dice { dice: 2, side: 2 }
         );
         assert_eq!(monster_registry.monster_kind(rat).armor_class, 7);
         assert_eq!(monster_registry.monster_kind(rat).level, 4);
         assert_eq!(
             monster_registry.monster_kind(rat).blows,
             vec![MonsterBlow {
-                damage: Dice { n: 1, m: 3 }
+                damage: Dice { dice: 1, side: 3 }
             }]
         );
         assert_eq!(monster_registry.monster_kind(jackal).speed, Speed(120));
         assert_eq!(
             monster_registry.monster_kind(jackal).hit_points,
-            Dice { n: 1, m: 4 }
+            Dice { dice: 1, side: 4 }
         );
         assert_eq!(monster_registry.monster_kind(jackal).armor_class, 4);
         assert_eq!(monster_registry.monster_kind(jackal).level, 2);
         assert_eq!(
             monster_registry.monster_kind(jackal).blows,
             vec![MonsterBlow {
-                damage: Dice { n: 1, m: 2 }
+                damage: Dice { dice: 1, side: 2 }
             }]
         );
     }
@@ -366,13 +366,13 @@ mod tests {
             .expect("giant_white_rat is declared");
         let rat_kind = monster_registry.monster_kind(rat);
         assert_eq!(rat_kind.speed, Speed(110));
-        assert_eq!(rat_kind.hit_points, Dice { n: 2, m: 2 });
+        assert_eq!(rat_kind.hit_points, Dice { dice: 2, side: 2 });
         assert_eq!(rat_kind.armor_class, 7);
         assert_eq!(rat_kind.level, 4);
         assert_eq!(
             rat_kind.blows,
             vec![MonsterBlow {
-                damage: Dice { n: 1, m: 3 }
+                damage: Dice { dice: 1, side: 3 }
             }]
         );
     }

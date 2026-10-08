@@ -1,4 +1,4 @@
-//! The damage-applied fact.
+//! The damaged fact.
 
 use bevy::prelude::*;
 
@@ -12,7 +12,7 @@ use crate::core::map::components::cell_coord::CellCoord;
 /// looked up. `source_cell` reads as `None` when the wound names no
 /// source or the source left the world before application.
 #[derive(Message, Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DamageApplied {
+pub struct Damaged {
     pub target: Entity,
     pub cell: CellCoord,
     pub source_cell: Option<CellCoord>,

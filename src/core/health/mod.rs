@@ -12,7 +12,7 @@ pub mod utils;
 use bevy::prelude::*;
 
 use self::messages::damage::Damage;
-use self::messages::damage_applied::DamageApplied;
+use self::messages::damaged::Damaged;
 use self::systems::apply_damage::apply_damage;
 use self::systems::despawn_dead::despawn_dead;
 use crate::core::core_phase::CorePhase;
@@ -24,7 +24,7 @@ use crate::core::core_phase::CorePhase;
 /// them each frame, taking the dead whose disappearance is done.
 pub fn register(app: &mut App) {
     app.add_message::<Damage>()
-        .add_message::<DamageApplied>()
+        .add_message::<Damaged>()
         .add_systems(Update, despawn_dead.in_set(CorePhase::Derive))
         .add_systems(Update, apply_damage.in_set(CorePhase::PlayerResolve))
         .add_systems(Update, apply_damage.in_set(CorePhase::WorldResolve));

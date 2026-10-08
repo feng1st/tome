@@ -15,7 +15,7 @@ use crate::frontend::display::tween::messages::tween_finished::TweenFinished;
 pub fn update_tweens(
     time: Res<Time>,
     mut commands: Commands,
-    mut finished: MessageWriter<TweenFinished>,
+    mut tween_finished_writer: MessageWriter<TweenFinished>,
     mut alpha_tweens: Query<(Entity, &mut AlphaTween, &mut Sprite)>,
     mut pos_tweens: Query<(Entity, &mut PosTween, &mut CurrPosition)>,
 ) {
@@ -27,7 +27,7 @@ pub fn update_tweens(
         sprite.color = sprite.color.with_alpha(alpha);
         if alpha_tween.elapsed >= alpha_tween.interval {
             commands.entity(entity).remove::<AlphaTween>();
-            finished.write(TweenFinished { entity });
+            tween_finished_writer.write(TweenFinished { entity });
         }
     }
     for (entity, mut pos_tween, mut curr_position) in &mut pos_tweens {
@@ -38,7 +38,7 @@ pub fn update_tweens(
         curr_position.y = landed.y;
         if pos_tween.elapsed >= pos_tween.interval {
             commands.entity(entity).remove::<PosTween>();
-            finished.write(TweenFinished { entity });
+            tween_finished_writer.write(TweenFinished { entity });
         }
     }
 }

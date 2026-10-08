@@ -4,4 +4,4 @@
 //! apart at a glance. Facts are broadcasts: any number of readers may
 //! consume them, and reading one changes nothing.
 
-pub mod attack_resolved;
+pub mod attacked;

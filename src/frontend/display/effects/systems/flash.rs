@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::health::messages::damage_applied::DamageApplied;
+use crate::core::health::messages::damaged::Damaged;
 use crate::frontend::display::effects::components::flash::Flash;
 use crate::frontend::display::effects::constants::feedback::{FLASH_INTERVAL, FLASH_TINT};
 
@@ -12,12 +12,12 @@ use crate::frontend::display::effects::constants::feedback::{FLASH_INTERVAL, FLA
 /// presentation carries the moment.
 pub fn flash(
     time: Res<Time>,
-    mut damages_applied: MessageReader<DamageApplied>,
+    mut damaged_reader: MessageReader<Damaged>,
     sprites: Query<&Sprite>,
     mut commands: Commands,
 ) {
     let elapsed = time.elapsed_secs();
-    for damage in damages_applied.read() {
+    for damage in damaged_reader.read() {
         if sprites.get(damage.target).is_ok() {
             commands.entity(damage.target).insert(Flash {
                 until: elapsed + FLASH_INTERVAL,
@@ -54,7 +54,7 @@ mod tests {
     fn app() -> App {
         let mut app = App::new();
         app.insert_resource(Time::<()>::default())
-            .init_resource::<Messages<DamageApplied>>()
+            .init_resource::<Messages<Damaged>>()
             .add_systems(Update, (flash, update_flash).chain());
         app
     }
@@ -67,7 +67,7 @@ mod tests {
     fn a_wounded_creature_flashes_briefly_then_restores() {
         let mut app = app();
         let target = spawn_target(&mut app);
-        app.world_mut().write_message(DamageApplied {
+        app.world_mut().write_message(Damaged {
             target,
             cell: CellCoord::new(0, 0),
             source_cell: None,
@@ -98,7 +98,7 @@ mod tests {
     fn a_removed_target_flashes_nothing() {
         let mut app = app();
         let ghost = app.world_mut().spawn_empty().id();
-        app.world_mut().write_message(DamageApplied {
+        app.world_mut().write_message(Damaged {
             target: ghost,
             cell: CellCoord::new(0, 0),
             source_cell: None,

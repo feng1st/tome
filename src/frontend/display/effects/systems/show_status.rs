@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::core::health::components::hit_points::HitPoints;
-use crate::core::health::messages::damage_applied::DamageApplied;
+use crate::core::health::messages::damaged::Damaged;
 use crate::frontend::display::bitmap_text::entities::spawn_text::spawn_text;
 use crate::frontend::display::bitmap_text::resources::font_registry::FontRegistry;
 use crate::frontend::display::bitmap_text::utils::choose_font::choose_font;
@@ -31,11 +31,11 @@ pub fn show_status(
     hit_points: Query<&HitPoints>,
     mut text_stacks: ResMut<TextStacks>,
     mut stacked_texts: Query<&mut Transform, With<FloatingText>>,
-    mut damages_applied: MessageReader<DamageApplied>,
+    mut damaged_reader: MessageReader<Damaged>,
     mut commands: Commands,
 ) {
     let zoom = windows.single().map(world_scale_factor).unwrap_or(ZOOM);
-    for damage in damages_applied.read() {
+    for damage in damaged_reader.read() {
         let (font, scale) = choose_font(font_registry.fonts(), TEXT_TARGET_GLYPH_HEIGHT, zoom);
         // Doubled comparison: the threshold is half the maximum,
         // kept in integers.
@@ -147,7 +147,7 @@ mod tests {
         app.insert_resource(Time::<()>::default())
             .insert_resource(FontRegistry::for_test_with_fonts(fonts))
             .init_resource::<TextStacks>()
-            .init_resource::<Messages<DamageApplied>>()
+            .init_resource::<Messages<Damaged>>()
             .add_systems(Update, (show_status, update_floating_text).chain());
         app
     }
@@ -159,8 +159,8 @@ mod tests {
         app.update();
     }
 
-    fn applied(target: Entity, amount: i32) -> DamageApplied {
-        DamageApplied {
+    fn damaged(target: Entity, amount: i32) -> Damaged {
+        Damaged {
             target,
             cell: CellCoord::new(2, 3),
             source_cell: None,
@@ -179,7 +179,7 @@ mod tests {
                 max: 20,
             })
             .id();
-        app.world_mut().write_message(applied(rat, 4));
+        app.world_mut().write_message(damaged(rat, 4));
         app.update();
         let mut query = app
             .world_mut()
@@ -212,9 +212,9 @@ mod tests {
             })
             .id();
         let ghost = app.world_mut().spawn_empty().id();
-        app.world_mut().write_message(applied(healthy, 4));
-        app.world_mut().write_message(applied(hurt, 4));
-        app.world_mut().write_message(applied(ghost, 4));
+        app.world_mut().write_message(damaged(healthy, 4));
+        app.world_mut().write_message(damaged(hurt, 4));
+        app.world_mut().write_message(damaged(ghost, 4));
         app.update();
         // Three roots; colors live on the glyph children.
         let mut roots = app
@@ -244,13 +244,13 @@ mod tests {
                 max: 20,
             })
             .id();
-        app.world_mut().write_message(applied(rat, 4));
+        app.world_mut().write_message(damaged(rat, 4));
         app.update();
         let mut roots = app
             .world_mut()
             .query_filtered::<&Transform, With<FloatingText>>();
         let first_y = roots.single(app.world()).unwrap().translation.y;
-        app.world_mut().write_message(applied(rat, 4));
+        app.world_mut().write_message(damaged(rat, 4));
         app.update();
         let mut roots = app
             .world_mut()
@@ -276,7 +276,7 @@ mod tests {
                 max: 20,
             })
             .id();
-        app.world_mut().write_message(applied(rat, 4));
+        app.world_mut().write_message(damaged(rat, 4));
         app.update();
         let mut roots = app
             .world_mut()

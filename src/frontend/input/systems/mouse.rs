@@ -21,7 +21,7 @@ pub fn translate(
     buttons: Res<ButtonInput<MouseButton>>,
     window: Single<&Window>,
     camera: Single<&Transform, With<MainCamera>>,
-    mut targets: MessageWriter<TargetCell>,
+    mut target_cell_writer: MessageWriter<TargetCell>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
         return;
@@ -30,5 +30,5 @@ pub fn translate(
         return;
     };
     let world = window_to_world(cursor, &window, camera.translation.truncate());
-    targets.write(TargetCell(world_to_cell(world)));
+    target_cell_writer.write(TargetCell(world_to_cell(world)));
 }

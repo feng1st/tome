@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.19"
+# The debug feature fills in real component/system names in engine
+# warnings (e.g. hierarchy warning B0004); remove it once diagnosed.
+bevy = { version = "0.19", features = ["debug"] }
 bitflags = "2.13.2"
 rand = "0.9"
 ron = "0.12.2"

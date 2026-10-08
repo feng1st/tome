@@ -6,7 +6,7 @@
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::combat::messages::attack_resolved::AttackResolved;
+use crate::core::combat::messages::attacked::Attacked;
 use crate::core::display::components::is_disappearing::IsDisappearing;
 use crate::core::health::components::dead::Dead;
 use crate::core::map::components::cell_coord::CellCoord;
@@ -61,17 +61,23 @@ pub struct AnimSyncQuery {
 pub fn sync_animation(
     time: Res<Time>,
     figure_registry: Res<FigureRegistry>,
-    mut attacks_resolved: MessageReader<AttackResolved>,
-    mut anim_finished: MessageWriter<AnimFinished>,
+    mut attacked_reader: MessageReader<Attacked>,
+    mut anim_finished_writer: MessageWriter<AnimFinished>,
     mut commands: Commands,
     mut query: Query<AnimSyncQuery>,
 ) {
     let elapsed = time.elapsed_secs();
     // This frame's attack switches, by attacker: face the target cell
     // and play the swing — hit or miss, the swing happened.
-    let attacks: Vec<(Entity, CellCoord, CellCoord)> = attacks_resolved
+    let attacks: Vec<(Entity, CellCoord, CellCoord)> = attacked_reader
         .read()
-        .map(|attack| (attack.attacker, attack.attacker_cell, attack.target_cell))
+        .map(|attack| {
+            (
+                attack.attacker,
+                attack.attacker_cell_coord,
+                attack.target_cell_coord,
+            )
+        })
         .collect();
     for mut item in &mut query {
         if item.dead.is_some() {
@@ -90,7 +96,7 @@ pub fn sync_animation(
                 // The die one-shot's end has passed and no fact has
                 // flown for it yet.
                 item.state.finished = true;
-                anim_finished.write(AnimFinished {
+                anim_finished_writer.write(AnimFinished {
                     entity: item.entity,
                     anim: AnimKind::Die,
                 });
@@ -107,7 +113,7 @@ pub fn sync_animation(
             }
             if !item.state.finished {
                 item.state.finished = true;
-                anim_finished.write(AnimFinished {
+                anim_finished_writer.write(AnimFinished {
                     entity: item.entity,
                     anim: item.state.anim,
                 });
@@ -165,7 +171,7 @@ mod tests {
         let mut app = App::new();
         app.insert_resource(Time::<()>::default())
             .insert_resource(FigureRegistry::for_test(&["warrior"]))
-            .add_message::<AttackResolved>()
+            .add_message::<Attacked>()
             .add_message::<AnimFinished>()
             .add_systems(Update, sync_animation);
         app
@@ -427,10 +433,10 @@ mod tests {
             CellCoord::new(1, 0),
             CurrPosition::from(CellCoord::new(1, 0)),
         );
-        app.world_mut().write_message(AttackResolved {
+        app.world_mut().write_message(Attacked {
             attacker: creature,
-            attacker_cell: CellCoord::new(1, 0),
-            target_cell: CellCoord::new(3, 0),
+            attacker_cell_coord: CellCoord::new(1, 0),
+            target_cell_coord: CellCoord::new(3, 0),
             damage_amounts: vec![],
         });
         app.update();

@@ -13,15 +13,15 @@ pub mod utils;
 
 use bevy::prelude::*;
 
-use self::messages::attack_resolved::AttackResolved;
+use self::messages::attacked::Attacked;
 use crate::core::core_phase::CorePhase;
 
-/// Register the combat domain: the attack-resolved fact message exists
+/// Register the combat domain: the attacked fact message exists
 /// (emitted by the action domain's executor), and the derive chain
 /// keeps the bonus and attack components fresh in the Derive phase,
 /// before any turn logic reads them.
 pub fn register(app: &mut App) {
-    app.add_message::<AttackResolved>().add_systems(
+    app.add_message::<Attacked>().add_systems(
         Update,
         ((
             systems::derive_combat_bonuses::derive_combat_bonuses,

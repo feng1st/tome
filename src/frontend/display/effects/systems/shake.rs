@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::health::messages::damage_applied::DamageApplied;
+use crate::core::health::messages::damaged::Damaged;
 use crate::core::world_clock::components::world_driver::WorldDriver;
 use crate::frontend::display::camera::messages::shake_camera::ShakeCamera;
 
@@ -18,11 +18,11 @@ const SHAKE_SECS: f32 = 0.3;
 /// in which case any positive damage is heavy and the magnitude
 /// saturates the band.
 pub fn shake(
-    mut damages_applied: MessageReader<DamageApplied>,
+    mut damaged_reader: MessageReader<Damaged>,
     drivers: Query<(), With<WorldDriver>>,
-    mut shakes: MessageWriter<ShakeCamera>,
+    mut shake_camera_writer: MessageWriter<ShakeCamera>,
 ) {
-    for damage in damages_applied.read() {
+    for damage in damaged_reader.read() {
         if drivers.get(damage.target).is_err() {
             continue;
         }
@@ -37,7 +37,7 @@ pub fn shake(
         } else {
             (damage.amount / quarter).clamp(1, 5)
         };
-        shakes.write(ShakeCamera {
+        shake_camera_writer.write(ShakeCamera {
             magnitude: magnitude as f32,
             duration: SHAKE_SECS,
         });
@@ -47,12 +47,12 @@ pub fn shake(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::health::messages::damage_applied::DamageApplied;
+    use crate::core::health::messages::damaged::Damaged;
     use crate::core::map::components::cell_coord::CellCoord;
 
     fn app() -> App {
         let mut app = App::new();
-        app.init_resource::<Messages<DamageApplied>>()
+        app.init_resource::<Messages<Damaged>>()
             .init_resource::<Messages<ShakeCamera>>()
             .add_systems(Update, shake);
         app
@@ -69,7 +69,7 @@ mod tests {
     fn a_heavy_hit_shakes() {
         let mut app = app();
         let driver = app.world_mut().spawn(WorldDriver).id();
-        app.world_mut().write_message(DamageApplied {
+        app.world_mut().write_message(Damaged {
             target: driver,
             cell: CellCoord::new(1, 1),
             source_cell: None,
@@ -90,7 +90,7 @@ mod tests {
     fn a_light_hit_stays_still() {
         let mut app = app();
         let driver = app.world_mut().spawn(WorldDriver).id();
-        app.world_mut().write_message(DamageApplied {
+        app.world_mut().write_message(Damaged {
             target: driver,
             cell: CellCoord::new(1, 1),
             source_cell: None,
@@ -105,7 +105,7 @@ mod tests {
     fn a_hard_monster_wound_never_shakes() {
         let mut app = app();
         let rat = app.world_mut().spawn(()).id();
-        app.world_mut().write_message(DamageApplied {
+        app.world_mut().write_message(Damaged {
             target: rat,
             cell: CellCoord::new(1, 1),
             source_cell: None,
@@ -122,7 +122,7 @@ mod tests {
         // Maximum 3: the quarter is zero, any wound is heavy, and the
         // magnitude saturates at five.
         let driver = app.world_mut().spawn(WorldDriver).id();
-        app.world_mut().write_message(DamageApplied {
+        app.world_mut().write_message(Damaged {
             target: driver,
             cell: CellCoord::new(1, 1),
             source_cell: None,

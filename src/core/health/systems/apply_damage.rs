@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use crate::core::health::components::dead::Dead;
 use crate::core::health::components::hit_points::HitPoints;
 use crate::core::health::messages::damage::Damage;
-use crate::core::health::messages::damage_applied::DamageApplied;
+use crate::core::health::messages::damaged::Damaged;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::player::components::order::Order;
 
@@ -52,7 +52,7 @@ pub fn apply_damage(
     mut commands: Commands,
     cells: Query<&CellCoord>,
     mut damage_messages: ResMut<Messages<Damage>>,
-    mut damages_applied: MessageWriter<DamageApplied>,
+    mut damaged_writer: MessageWriter<Damaged>,
     mut creatures: Query<WoundableQuery>,
 ) {
     for damage in damage_messages.drain() {
@@ -75,7 +75,7 @@ pub fn apply_damage(
             let source_cell = damage
                 .source
                 .and_then(|source| cells.get(source).ok().copied());
-            damages_applied.write(DamageApplied {
+            damaged_writer.write(Damaged {
                 target: damage.target,
                 cell: *target.cell,
                 source_cell,
@@ -107,7 +107,7 @@ mod tests {
     fn app() -> App {
         let mut app = App::new();
         app.add_message::<Damage>()
-            .add_message::<DamageApplied>()
+            .add_message::<Damaged>()
             .add_systems(Update, apply_damage);
         app
     }
@@ -122,9 +122,9 @@ mod tests {
         app.world().get::<HitPoints>(entity).unwrap().current
     }
 
-    fn damages_applied(app: &mut App) -> Vec<DamageApplied> {
+    fn damaged(app: &mut App) -> Vec<Damaged> {
         app.world_mut()
-            .resource_mut::<Messages<DamageApplied>>()
+            .resource_mut::<Messages<Damaged>>()
             .drain()
             .collect()
     }
@@ -208,7 +208,7 @@ mod tests {
     fn two_instances_apply_each_request_once() {
         let mut app = App::new();
         app.add_message::<Damage>()
-            .add_message::<DamageApplied>()
+            .add_message::<Damaged>()
             .add_systems(Update, (apply_damage, apply_damage).chain());
         let creature = spawn_creature(&mut app, 12, 19);
         app.world_mut().write_message(Damage {
@@ -219,7 +219,7 @@ mod tests {
         app.update();
         assert_eq!(hit_points(&app, creature), 7, "applied once, not twice");
         assert_eq!(
-            damages_applied(&mut app).len(),
+            damaged(&mut app).len(),
             1,
             "the fact is stamped once, not twice"
         );
@@ -310,8 +310,8 @@ mod tests {
         });
         app.update();
         assert_eq!(
-            damages_applied(&mut app),
-            vec![DamageApplied {
+            damaged(&mut app),
+            vec![Damaged {
                 target: wounded,
                 cell: CellCoord::new(3, 1),
                 source_cell: Some(CellCoord::new(3, 1)),
@@ -337,7 +337,7 @@ mod tests {
         // apply pass runs.
         app.world_mut().entity_mut(ghost_source).despawn();
         app.update();
-        let facts = damages_applied(&mut app);
+        let facts = damaged(&mut app);
         assert_eq!(facts.len(), 1);
         assert_eq!(facts[0].source_cell, None);
     }
@@ -357,7 +357,7 @@ mod tests {
         assert!(app.world().get::<Dead>(body).is_some());
         let before = hit_points(&app, body);
         // Clear the killing blow's own fact before the probe.
-        damages_applied(&mut app);
+        damaged(&mut app);
         // A second request onto the marked body: no change, no fact.
         app.world_mut().write_message(Damage {
             target: body,
@@ -366,7 +366,7 @@ mod tests {
         });
         app.update();
         assert_eq!(hit_points(&app, body), before);
-        assert!(damages_applied(&mut app).is_empty());
+        assert!(damaged(&mut app).is_empty());
     }
 
     /// The sweep marks only the unmarked: a body already carrying the
@@ -375,7 +375,7 @@ mod tests {
     fn the_sweep_never_remarks_the_marked() {
         let mut app = App::new();
         app.add_message::<Damage>()
-            .add_message::<DamageApplied>()
+            .add_message::<Damaged>()
             .add_systems(Update, (apply_damage, apply_damage).chain());
         let creature = spawn_creature(&mut app, 1, 19);
         app.world_mut().write_message(Damage {

@@ -17,8 +17,8 @@ mod tests {
     #[test]
     fn carries_damage_dice() {
         let blow = MonsterBlow {
-            damage: Dice { n: 1, m: 3 },
+            damage: Dice { dice: 1, side: 3 },
         };
-        assert_eq!(blow.damage, Dice { n: 1, m: 3 });
+        assert_eq!(blow.damage, Dice { dice: 1, side: 3 });
     }
 }

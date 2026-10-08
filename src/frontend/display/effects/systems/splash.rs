@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::health::messages::damage_applied::DamageApplied;
+use crate::core::health::messages::damaged::Damaged;
 use crate::frontend::display::constants::layout::LAYER_ACTOR;
 use crate::frontend::display::map::utils::coords::cell_to_world;
 use crate::frontend::display::motion::components::curr_position::CurrPosition;
@@ -44,8 +44,8 @@ const BLOOD_COUNT_CAP: f32 = 9.0;
 /// randomness is cosmetic and draws from the thread-local source,
 /// never the seeded game source — a presented run and a headless run
 /// of the same seed must roll the same game.
-pub fn splash(mut damages_applied: MessageReader<DamageApplied>, mut commands: Commands) {
-    for damage in damages_applied.read() {
+pub fn splash(mut damaged_reader: MessageReader<Damaged>, mut commands: Commands) {
+    for damage in damaged_reader.read() {
         let count = (BLOOD_COUNT_CAP * (damage.amount as f32 / damage.max as f32).sqrt())
             .min(BLOOD_COUNT_CAP) as usize;
         if count == 0 {
@@ -91,13 +91,13 @@ mod tests {
 
     fn app() -> App {
         let mut app = App::new();
-        app.init_resource::<Messages<DamageApplied>>()
+        app.init_resource::<Messages<Damaged>>()
             .add_systems(Update, splash);
         app
     }
 
-    fn applied(amount: i32, maximum: i32, source: Option<CellCoord>) -> DamageApplied {
-        DamageApplied {
+    fn damaged(amount: i32, maximum: i32, source: Option<CellCoord>) -> Damaged {
+        Damaged {
             target: Entity::PLACEHOLDER,
             cell: CellCoord::new(5, 5),
             source_cell: source,
@@ -117,7 +117,7 @@ mod tests {
     fn maximum_equal_damage_bursts_nine() {
         let mut app = app();
         app.world_mut()
-            .write_message(applied(9, 9, Some(CellCoord::new(4, 5))));
+            .write_message(damaged(9, 9, Some(CellCoord::new(4, 5))));
         app.update();
         assert_eq!(particle_count(&mut app), 9);
     }
@@ -127,7 +127,7 @@ mod tests {
         let mut app = app();
         // 9 * sqrt(4/16) = 9 * 0.5 = 4.5 -> 4 particles.
         app.world_mut()
-            .write_message(applied(4, 16, Some(CellCoord::new(4, 5))));
+            .write_message(damaged(4, 16, Some(CellCoord::new(4, 5))));
         app.update();
         assert_eq!(particle_count(&mut app), 4);
     }
@@ -136,7 +136,7 @@ mod tests {
     fn a_zero_amount_bursts_nothing() {
         let mut app = app();
         app.world_mut()
-            .write_message(applied(0, 10, Some(CellCoord::new(4, 5))));
+            .write_message(damaged(0, 10, Some(CellCoord::new(4, 5))));
         app.update();
         assert_eq!(particle_count(&mut app), 0);
     }
@@ -147,7 +147,7 @@ mod tests {
         // The source sits left of the target: the particles fly
         // rightward — their x velocity dominates.
         app.world_mut()
-            .write_message(applied(9, 9, Some(CellCoord::new(3, 5))));
+            .write_message(damaged(9, 9, Some(CellCoord::new(3, 5))));
         app.update();
         let world = app.world_mut();
         let mut query = world.query::<&PixelParticle>();
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn a_sourceless_wound_sprays_upward() {
         let mut app = app();
-        app.world_mut().write_message(applied(9, 9, None));
+        app.world_mut().write_message(damaged(9, 9, None));
         app.update();
         let world = app.world_mut();
         let mut query = world.query::<&PixelParticle>();

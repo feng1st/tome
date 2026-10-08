@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use crate::core::action::components::attack_action::AttackAction;
 use crate::core::combat::components::armor_class::ArmorClass;
 use crate::core::combat::components::blows::Blows;
-use crate::core::combat::messages::attack_resolved::AttackResolved;
+use crate::core::combat::messages::attacked::Attacked;
 use crate::core::combat::utils::attack::attack_hits;
 use crate::core::health::components::dead::Dead;
 use crate::core::health::messages::damage::Damage;
@@ -37,35 +37,35 @@ pub fn act_attack(
     // the gone. Absent armor reads as zero.
     targets: Query<(&CellCoord, Option<&ArmorClass>), Without<Dead>>,
     mut game_rng: ResMut<GameRng>,
-    mut damages: MessageWriter<Damage>,
-    mut attacks_resolved: MessageWriter<AttackResolved>,
+    mut damage_writer: MessageWriter<Damage>,
+    mut attacked_writer: MessageWriter<Attacked>,
 ) {
-    for (actor, action, &actor_cell_coord, blows) in &mut actors {
+    for (actor, action, &actor_cell_coord, actor_blows) in &mut actors {
         commands.entity(actor).remove::<AttackAction>();
         let Ok((&target_cell_coord, target_armor_class)) = targets.get(action.target) else {
             // The target left the world or died since planning:
             // nothing to attack.
             continue;
         };
-        let armor_class = target_armor_class.map_or(0, |armor_class| armor_class.0);
+        let target_armor_class = target_armor_class.map_or(0, |armor_class| armor_class.0);
         let mut damage_amounts = Vec::new();
-        if let Some(blows) = blows {
-            for blow in &blows.0 {
-                if attack_hits(blow.chance, armor_class, &mut game_rng.rng) {
-                    let amount = blow.damage.roll(&mut game_rng.rng);
-                    damages.write(Damage {
+        if let Some(actor_blows) = actor_blows {
+            for actor_blow in &actor_blows.0 {
+                if attack_hits(actor_blow.chance, target_armor_class, &mut game_rng.rng) {
+                    let damage_amount = actor_blow.damage.roll_with(&mut game_rng.rng);
+                    damage_writer.write(Damage {
                         target: action.target,
                         source: Some(actor),
-                        amount,
+                        amount: damage_amount,
                     });
-                    damage_amounts.push(amount);
+                    damage_amounts.push(damage_amount);
                 }
             }
         }
-        attacks_resolved.write(AttackResolved {
+        attacked_writer.write(Attacked {
             attacker: actor,
-            attacker_cell: actor_cell_coord,
-            target_cell: target_cell_coord,
+            attacker_cell_coord: actor_cell_coord,
+            target_cell_coord,
             damage_amounts,
         });
     }
@@ -79,7 +79,7 @@ mod tests {
     use rand::SeedableRng;
 
     use super::*;
-    use crate::core::combat::types::blow::{Blow, BlowDamage};
+    use crate::core::combat::types::blow::Blow;
     use crate::core::dice::types::dice::Dice;
     use crate::core::health::components::dead::Dead;
 
@@ -89,7 +89,7 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(GameRng::seeded(seed));
         world.init_resource::<Messages<Damage>>();
-        world.init_resource::<Messages<AttackResolved>>();
+        world.init_resource::<Messages<Attacked>>();
         world
     }
 
@@ -108,7 +108,10 @@ mod tests {
                 .iter()
                 .map(|(chance, damage)| Blow {
                     chance: *chance,
-                    damage: BlowDamage::Fixed(*damage),
+                    damage: Dice {
+                        dice: *damage,
+                        side: 1,
+                    },
                 })
                 .collect(),
         )
@@ -118,11 +121,8 @@ mod tests {
         world.resource_mut::<Messages<Damage>>().drain().collect()
     }
 
-    fn attacks_resolved(world: &mut World) -> Vec<AttackResolved> {
-        world
-            .resource_mut::<Messages<AttackResolved>>()
-            .drain()
-            .collect()
+    fn attacked(world: &mut World) -> Vec<Attacked> {
+        world.resource_mut::<Messages<Attacked>>().drain().collect()
     }
 
     #[test]
@@ -221,11 +221,11 @@ mod tests {
                 Blows(vec![
                     Blow {
                         chance: 1000,
-                        damage: BlowDamage::Roll(Dice { n: 1, m: 3 }),
+                        damage: Dice { dice: 1, side: 3 },
                     },
                     Blow {
                         chance: 1000,
-                        damage: BlowDamage::Roll(Dice { n: 1, m: 3 }),
+                        damage: Dice { dice: 1, side: 3 },
                     },
                 ]),
                 CellCoord::new(1, 0),
@@ -332,10 +332,7 @@ mod tests {
         world.run_system_once(act_attack).unwrap();
 
         assert!(damages(&mut world).is_empty());
-        assert!(
-            attacks_resolved(&mut world).is_empty(),
-            "nothing was swung at"
-        );
+        assert!(attacked(&mut world).is_empty(), "nothing was swung at");
         assert!(
             world.get::<AttackAction>(attacker).is_none(),
             "action consumed"
@@ -361,10 +358,7 @@ mod tests {
         world.run_system_once(act_attack).unwrap();
 
         assert!(damages(&mut world).is_empty());
-        assert!(
-            attacks_resolved(&mut world).is_empty(),
-            "nothing was swung at"
-        );
+        assert!(attacked(&mut world).is_empty(), "nothing was swung at");
         assert!(
             world.get::<AttackAction>(attacker).is_none(),
             "action consumed"
@@ -389,11 +383,11 @@ mod tests {
         world.run_system_once(act_attack).unwrap();
 
         assert_eq!(
-            attacks_resolved(&mut world),
-            vec![AttackResolved {
+            attacked(&mut world),
+            vec![Attacked {
                 attacker,
-                attacker_cell: CellCoord::new(1, 1),
-                target_cell: CellCoord::new(4, 1),
+                attacker_cell_coord: CellCoord::new(1, 1),
+                target_cell_coord: CellCoord::new(4, 1),
                 damage_amounts: vec![4],
             }]
         );
@@ -419,11 +413,11 @@ mod tests {
         world.run_system_once(act_attack).unwrap();
 
         assert_eq!(
-            attacks_resolved(&mut world),
-            vec![AttackResolved {
+            attacked(&mut world),
+            vec![Attacked {
                 attacker,
-                attacker_cell: CellCoord::new(1, 1),
-                target_cell: CellCoord::new(4, 1),
+                attacker_cell_coord: CellCoord::new(1, 1),
+                target_cell_coord: CellCoord::new(4, 1),
                 damage_amounts: vec![],
             }]
         );
@@ -446,11 +440,11 @@ mod tests {
         world.run_system_once(act_attack).unwrap();
 
         assert_eq!(
-            attacks_resolved(&mut world),
-            vec![AttackResolved {
+            attacked(&mut world),
+            vec![Attacked {
                 attacker,
-                attacker_cell: CellCoord::new(1, 1),
-                target_cell: CellCoord::new(4, 1),
+                attacker_cell_coord: CellCoord::new(1, 1),
+                target_cell_coord: CellCoord::new(4, 1),
                 damage_amounts: vec![],
             }]
         );

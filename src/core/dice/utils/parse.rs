@@ -13,8 +13,8 @@ const DICE_SHAPE: &str =
 pub fn parse_dice(text: &str) -> Result<Dice, String> {
     let (count, faces) = text.split_once('d').ok_or_else(|| die_error(text))?;
     Ok(Dice {
-        n: positive_part(count, text)?,
-        m: positive_part(faces, text)?,
+        dice: positive_part(count, text)?,
+        side: positive_part(faces, text)?,
     })
 }
 
@@ -43,9 +43,15 @@ mod tests {
 
     #[test]
     fn legal_forms_parse() {
-        assert_eq!(parse_dice("2d2"), Ok(Dice { n: 2, m: 2 }));
-        assert_eq!(parse_dice("1d3"), Ok(Dice { n: 1, m: 3 }));
-        assert_eq!(parse_dice("10d250"), Ok(Dice { n: 10, m: 250 }));
+        assert_eq!(parse_dice("2d2"), Ok(Dice { dice: 2, side: 2 }));
+        assert_eq!(parse_dice("1d3"), Ok(Dice { dice: 1, side: 3 }));
+        assert_eq!(
+            parse_dice("10d250"),
+            Ok(Dice {
+                dice: 10,
+                side: 250
+            })
+        );
     }
 
     #[test]

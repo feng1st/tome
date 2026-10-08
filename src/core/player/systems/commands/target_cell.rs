@@ -35,7 +35,7 @@ type MonsterFilter = (With<MonsterIndex>, Without<Dead>);
 
 pub fn execute(
     mut commands: Commands,
-    mut targets: MessageReader<TargetCell>,
+    mut target_cell_reader: MessageReader<TargetCell>,
     current_map: Res<CurrentMap>,
     terrain_registry: Res<TerrainRegistry>,
     monsters: Query<(Entity, &CellCoord), MonsterFilter>,
@@ -45,7 +45,7 @@ pub fn execute(
         return;
     };
     let local_map = current_map.map();
-    for target_cell in targets.read() {
+    for target_cell in target_cell_reader.read() {
         let target = target_cell.0;
         if target == *player.cell {
             continue;
@@ -80,6 +80,7 @@ mod tests {
     use super::*;
     use crate::core::action::systems::act_move::act_move;
     use crate::core::core_phase::CorePhase;
+    use crate::core::dice::types::dice::Dice;
     use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::map::resources::current_map::parse_local_map;
     use crate::core::map::resources::terrain_registry::parse_terrain_registry;
@@ -313,13 +314,13 @@ mod tests {
         use crate::core::combat::components::armor_class::ArmorClass;
         use crate::core::combat::components::blows::Blows;
         use crate::core::combat::components::combat_bonuses::CombatBonuses;
-        use crate::core::combat::messages::attack_resolved::AttackResolved;
-        use crate::core::combat::types::blow::{Blow, BlowDamage};
+        use crate::core::combat::messages::attacked::Attacked;
+        use crate::core::combat::types::blow::Blow;
         use crate::core::combat::utils::armor_class::armor_class;
         use crate::core::combat::utils::attack::{attack_chance, unarmed_damage};
         use crate::core::health::components::hit_points::HitPoints;
         use crate::core::health::messages::damage::Damage;
-        use crate::core::health::messages::damage_applied::DamageApplied;
+        use crate::core::health::messages::damaged::Damaged;
         use crate::core::health::systems::apply_damage::apply_damage;
         use crate::core::rng::resources::game_rng::GameRng;
         use crate::core::world_clock::systems::advance::advance;
@@ -349,8 +350,8 @@ mod tests {
             .insert_resource(CurrentMap::new(room()))
             .add_message::<TargetCell>()
             .add_message::<Damage>()
-            .add_message::<DamageApplied>()
-            .add_message::<AttackResolved>()
+            .add_message::<Damaged>()
+            .add_message::<Attacked>()
             .configure_sets(
                 Update,
                 (
@@ -382,7 +383,10 @@ mod tests {
         // bonuses: one unarmed blow and the armor class.
         let probe_blows = Blows(vec![Blow {
             chance,
-            damage: BlowDamage::Fixed(unarmed_damage(&probe_bonuses)),
+            damage: Dice {
+                dice: unarmed_damage(&probe_bonuses),
+                side: 1,
+            },
         }]);
         let probe_armor_class = ArmorClass(armor_class(&probe_bonuses));
         let player = app
@@ -564,7 +568,7 @@ mod tests {
         use crate::core::combat::components::combat_bonuses::CombatBonuses;
         use crate::core::health::components::hit_points::HitPoints;
         use crate::core::health::messages::damage::Damage;
-        use crate::core::health::messages::damage_applied::DamageApplied;
+        use crate::core::health::messages::damaged::Damaged;
         use crate::core::health::systems::apply_damage::apply_damage;
         use crate::core::player::components::order::Order;
         use crate::core::rng::resources::game_rng::GameRng;
@@ -577,7 +581,7 @@ mod tests {
             .insert_resource(CurrentMap::new(room()))
             .add_message::<TargetCell>()
             .add_message::<Damage>()
-            .add_message::<DamageApplied>()
+            .add_message::<Damaged>()
             .configure_sets(
                 Update,
                 (

@@ -14,11 +14,11 @@ use crate::frontend::display::tween::messages::tween_finished::TweenFinished;
 /// An `AlphaTween` carries the body's alpha to nothing over the fade
 /// time and ends itself — the completion callback as a message.
 pub fn start_dead_fade(
-    mut anims_finished: MessageReader<AnimFinished>,
+    mut anims_finished_reader: MessageReader<AnimFinished>,
     claimed: Query<(), With<IsDisappearing>>,
     mut commands: Commands,
 ) {
-    for anim_finished in anims_finished.read() {
+    for anim_finished in anims_finished_reader.read() {
         if anim_finished.anim != AnimKind::Die {
             continue;
         }
@@ -36,11 +36,11 @@ pub fn start_dead_fade(
 /// The fade ran to its end on a claimed body: the claim releases, and
 /// the departure sweep may take the body on its next pass.
 pub fn release_dead_fade(
-    mut tweens_finished: MessageReader<TweenFinished>,
+    mut tweens_finished_reader: MessageReader<TweenFinished>,
     claimed: Query<(), With<IsDisappearing>>,
     mut commands: Commands,
 ) {
-    for tween_finished in tweens_finished.read() {
+    for tween_finished in tweens_finished_reader.read() {
         if claimed.get(tween_finished.entity).is_ok() {
             commands
                 .entity(tween_finished.entity)

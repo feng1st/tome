@@ -4,4 +4,4 @@
 //! of readers may consume it.
 
 pub mod damage;
-pub mod damage_applied;
+pub mod damaged;

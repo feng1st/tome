@@ -6,13 +6,15 @@ use bevy::prelude::*;
 use crate::core::combat::components::armor_class::ArmorClass;
 use crate::core::combat::components::blows::Blows;
 use crate::core::combat::components::combat_bonuses::CombatBonuses;
-use crate::core::combat::types::blow::{Blow, BlowDamage};
+use crate::core::combat::types::blow::Blow;
 use crate::core::combat::utils::armor_class::armor_class;
 use crate::core::combat::utils::attack::{attack_chance, unarmed_damage};
+use crate::core::dice::types::dice::Dice;
 
 /// Recompute the blows and armor class of every entity whose combat
-/// bonuses changed: one unarmed blow (chance = the attack chance, damage = the
-/// fixed unarmed damage) and the armor class, both from scratch. The
+/// bonuses changed: one unarmed blow (chance = the attack chance,
+/// damage = the unarmed damage riding a one-faced die, so the fixed
+/// amount rolls itself) and the armor class, both from scratch. The
 /// write is unconditional — a skip-if-equal would stall the change
 /// chain the next derive stage hangs off. Runs chained after the bonus
 /// derive, so the fresh bonuses are visible in the same pass.
@@ -24,7 +26,10 @@ pub fn derive_attack(
         commands.entity(entity).insert((
             Blows(vec![Blow {
                 chance: attack_chance(bonuses),
-                damage: BlowDamage::Fixed(unarmed_damage(bonuses)),
+                damage: Dice {
+                    dice: unarmed_damage(bonuses),
+                    side: 1,
+                },
             }]),
             ArmorClass(armor_class(bonuses)),
         ));
@@ -84,7 +89,10 @@ mod tests {
         assert_eq!(blows.0[0].chance, attack_chance(bonuses));
         assert_eq!(
             blows.0[0].damage,
-            BlowDamage::Fixed(unarmed_damage(bonuses))
+            Dice {
+                dice: unarmed_damage(bonuses),
+                side: 1
+            }
         );
         assert_eq!(
             world.entity(entity).get::<ArmorClass>().unwrap().0,

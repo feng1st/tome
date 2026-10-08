@@ -11,7 +11,10 @@ use crate::frontend::display::bitmap_text::types::font::Font;
 /// Returns the root; the caller layers its own behavior components on
 /// it. Glyph sprites render the texture's own pixels (white fill,
 /// dark outline) multiplied by the tint, so the tint colors the fill
-/// and the outline stays dark.
+/// and the outline stays dark. The root carries `Visibility` for the
+/// children's sake: each glyph sprite's `InheritedVisibility` inherits
+/// down the tree, and a parent outside the propagation leaves its
+/// glyphs undrawn.
 pub fn spawn_text(
     commands: &mut Commands,
     font: &Font,
@@ -23,7 +26,10 @@ pub fn spawn_text(
 ) -> Entity {
     let laid = font.layout(text);
     let total = font.measure(text);
-    let mut root = commands.spawn(Transform::from_xyz(position.x, position.y, z));
+    let mut root = commands.spawn((
+        Transform::from_xyz(position.x, position.y, z),
+        Visibility::default(),
+    ));
     root.with_children(|children| {
         for (rect, left) in laid {
             let glyph_center_x = (left + rect.width() / 2.0 - total / 2.0) * scale;
