@@ -5,7 +5,8 @@ use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::core::combat::components::attack::Attack;
+use crate::core::action::components::attack_action::AttackAction;
+use crate::core::action::components::move_action::MoveAction;
 use crate::core::health::components::dead::Dead;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::current_map::CurrentMap;
@@ -13,7 +14,6 @@ use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::types::terrain::Terrain;
 use crate::core::map::utils::adjacency::adjacent;
 use crate::core::monster::components::monster_index::MonsterIndex;
-use crate::core::movement::components::r#move::Move;
 use crate::core::player::components::player::Player;
 use crate::core::rng::resources::game_rng::GameRng;
 use crate::core::speed::components::speed::Speed;
@@ -116,7 +116,7 @@ pub fn plan_action(
         // player is always attacked, and the turn is priced either way.
         if let Some((player_entity, player_cell)) = player {
             if adjacent(*monster.cell, player_cell) {
-                commands.entity(monster.entity).insert(Attack {
+                commands.entity(monster.entity).insert(AttackAction {
                     target: player_entity,
                 });
                 monster.next_turn.at =
@@ -146,7 +146,9 @@ pub fn plan_action(
         }
         if let Some(to) = target {
             occupied.push(to);
-            commands.entity(monster.entity).insert(Move { to });
+            commands
+                .entity(monster.entity)
+                .insert(MoveAction { target: to });
         }
         monster.next_turn.at =
             world_clock.now + action_duration(STANDARD_ACTION_DURATION, monster.speed.0);
@@ -267,12 +269,12 @@ mod tests {
         assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 100);
         // The wander, not the attack: the driver is beyond adjacency.
         assert!(
-            app.world().get::<Attack>(rat).is_none(),
+            app.world().get::<AttackAction>(rat).is_none(),
             "no attack planned"
         );
-        if let Some(m) = app.world().get::<Move>(rat) {
-            let dx = (m.to.x - 2).abs();
-            let dy = (m.to.y - 2).abs();
+        if let Some(m) = app.world().get::<MoveAction>(rat) {
+            let dx = (m.target.x - 2).abs();
+            let dy = (m.target.y - 2).abs();
             assert!(dx <= 1 && dy <= 1 && (dx + dy) > 0);
         }
     }
@@ -287,7 +289,7 @@ mod tests {
             .insert(NextTurn { at: 1000 });
         app.update();
         assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 1000);
-        assert!(app.world().get::<Move>(rat).is_none());
+        assert!(app.world().get::<MoveAction>(rat).is_none());
     }
 
     #[test]
@@ -306,7 +308,7 @@ mod tests {
         }
         assert_eq!(app.world().resource::<WorldClock>().now, 0, "clock held");
         assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 40);
-        assert!(app.world().get::<Move>(rat).is_none());
+        assert!(app.world().get::<MoveAction>(rat).is_none());
     }
 
     #[test]
@@ -322,11 +324,16 @@ mod tests {
             app.update();
 
             assert_eq!(
-                app.world().get::<Attack>(rat).map(|attack| attack.target),
+                app.world()
+                    .get::<AttackAction>(rat)
+                    .map(|attack| attack.target),
                 Some(driver),
                 "seed {seed}"
             );
-            assert!(app.world().get::<Move>(rat).is_none(), "no step is planned");
+            assert!(
+                app.world().get::<MoveAction>(rat).is_none(),
+                "no step is planned"
+            );
             assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 100);
         }
     }
@@ -340,7 +347,7 @@ mod tests {
 
         app.update();
 
-        assert!(app.world().get::<Attack>(rat).is_none());
+        assert!(app.world().get::<AttackAction>(rat).is_none());
     }
 
     #[test]
@@ -353,7 +360,7 @@ mod tests {
         app.update();
         assert_eq!(app.world().get::<NextTurn>(rat).unwrap().at, 100);
         assert!(
-            app.world().get::<Move>(rat).is_none(),
+            app.world().get::<MoveAction>(rat).is_none(),
             "no walkable neighbor: stand, not a wasted step"
         );
     }
@@ -381,7 +388,7 @@ mod tests {
             let rat = spawn_rat(&mut app, CellCoord::new(2, 2));
             app.update();
 
-            let observed = app.world().get::<Move>(rat).map(|m| m.to);
+            let observed = app.world().get::<MoveAction>(rat).map(|m| m.target);
             assert_eq!(observed, expected, "seed {seed}");
         }
     }
@@ -389,7 +396,7 @@ mod tests {
     /// Drive `turns` due turns for one rat through a live app, handing
     /// back every planned step (the move is consumed each turn so the
     /// next can be observed).
-    fn driven_steps(app: &mut App, rat: Entity, turns: u32) -> Vec<Move> {
+    fn driven_steps(app: &mut App, rat: Entity, turns: u32) -> Vec<MoveAction> {
         let mut steps = Vec::new();
         for turn in 1..=turns {
             app.world_mut().resource_mut::<WorldClock>().now = turn as i64 * 100;
@@ -397,9 +404,9 @@ mod tests {
                 at: turn as i64 * 100,
             });
             app.update();
-            if let Some(step) = app.world().get::<Move>(rat).copied() {
+            if let Some(step) = app.world().get::<MoveAction>(rat).copied() {
                 steps.push(step);
-                app.world_mut().entity_mut(rat).remove::<Move>();
+                app.world_mut().entity_mut(rat).remove::<MoveAction>();
             }
         }
         steps
@@ -422,7 +429,7 @@ mod tests {
         );
         for step in &steps {
             assert_ne!(
-                step.to,
+                step.target,
                 CellCoord::new(3, 2),
                 "an occupied cell is never picked"
             );
@@ -445,13 +452,16 @@ mod tests {
                 at: turn as i64 * 100,
             });
             app.update();
-            if let Some(step) = app.world().get::<Move>(rat).copied() {
+            if let Some(step) = app.world().get::<MoveAction>(rat).copied() {
                 actions += 1;
-                assert_ne!(step.to, driver_cell, "the driver's cell is never picked");
-                app.world_mut().entity_mut(rat).remove::<Move>();
-            } else if app.world().get::<Attack>(rat).is_some() {
+                assert_ne!(
+                    step.target, driver_cell,
+                    "the driver's cell is never picked"
+                );
+                app.world_mut().entity_mut(rat).remove::<MoveAction>();
+            } else if app.world().get::<AttackAction>(rat).is_some() {
                 actions += 1;
-                app.world_mut().entity_mut(rat).remove::<Attack>();
+                app.world_mut().entity_mut(rat).remove::<AttackAction>();
             }
         }
         assert!(actions > 20, "the sweep exercised real actions: {actions}");
@@ -497,8 +507,8 @@ mod tests {
             let a = spawn_rat(&mut app, CellCoord::new(2, 1));
             let b = spawn_rat(&mut app, CellCoord::new(4, 1));
             app.update();
-            let ta = app.world().get::<Move>(a).map(|m| m.to);
-            let tb = app.world().get::<Move>(b).map(|m| m.to);
+            let ta = app.world().get::<MoveAction>(a).map(|m| m.target);
+            let tb = app.world().get::<MoveAction>(b).map(|m| m.target);
             if ta.is_some() || tb.is_some() {
                 moved += 1;
             }

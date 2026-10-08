@@ -146,12 +146,12 @@ mod tests {
     /// movement ever freezes the clock, so turns resolve at frame rate.
     #[test]
     fn the_world_stops_with_a_ready_driver() {
+        use crate::core::action::systems::act_move::act_move;
         use crate::core::map::components::cell_coord::CellCoord;
         use crate::core::map::resources::current_map::{parse_local_map, CurrentMap};
         use crate::core::map::resources::terrain_registry::parse_terrain_registry;
         use crate::core::monster::components::monster_index::MonsterIndex;
         use crate::core::monster::systems::plan_action::plan_action as monster_plan_action;
-        use crate::core::movement::systems::act_move::act_move;
         use crate::core::player::components::order::Order;
         use crate::core::player::systems::plan_action::plan_action;
         use crate::core::rng::resources::game_rng::GameRng;

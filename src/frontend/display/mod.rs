@@ -9,7 +9,6 @@
 pub mod bitmap_text;
 pub mod camera;
 pub mod constants;
-pub mod creature;
 pub mod display_phase;
 pub mod effects;
 pub mod figure;
@@ -34,7 +33,6 @@ pub fn register(app: &mut App) {
     map::register(app);
     figure::register(app);
     motion::register(app);
-    creature::register(app);
     particles::register(app);
     sprite_animation::register(app);
     terrain_animation::register(app);

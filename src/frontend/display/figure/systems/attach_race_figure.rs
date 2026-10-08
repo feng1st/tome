@@ -6,7 +6,7 @@ use bevy::prelude::*;
 
 use crate::core::class::components::class_index::ClassIndex;
 use crate::core::race::components::race_index::RaceIndex;
-use crate::frontend::display::creature::resources::creature_figure_registry::CreatureFigureRegistry;
+use crate::frontend::display::figure::resources::creature_figure_registry::CreatureFigureRegistry;
 
 /// A humanoid creature's identity handles: what the binding resolution
 /// reads.
@@ -23,7 +23,7 @@ pub struct RaceIdentityQuery {
 /// matching no binding (a classless member of a race that defines only
 /// class-keyed figures) is a content error and panics here — all spawns
 /// happen at startup today, so it surfaces at launch. Shares the Attach
-/// phase with the monster-side attachment without an explicit order: a
+/// phase with the other attach systems without an explicit order: a
 /// creature missed in the same frame is picked up the next (`Added`
 /// persists until observed), so a spawn shows its sprite at worst one
 /// frame later — invisible at startup, where all spawns happen today.

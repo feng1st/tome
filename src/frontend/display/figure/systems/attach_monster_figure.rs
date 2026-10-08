@@ -4,13 +4,13 @@
 use bevy::prelude::*;
 
 use crate::core::monster::components::monster_index::MonsterIndex;
-use crate::frontend::display::creature::resources::creature_figure_registry::CreatureFigureRegistry;
+use crate::frontend::display::figure::resources::creature_figure_registry::CreatureFigureRegistry;
 
 /// Insert the bound figure handle onto every monster entering the world
 /// with a new kind. Resolution happens once, at attach: a monster's
 /// kind never changes. A kind matching no binding is a content error
 /// and panics here — all spawns happen at startup today, so it surfaces
-/// at launch. Shares the Attach phase with the humanoid-side attachment
+/// at launch. Shares the Attach phase with the other attach systems
 /// without an explicit order: a monster missed in the same frame is
 /// picked up the next (`Added` persists until observed), so a spawn
 /// shows its sprite at worst one frame later — invisible at startup,

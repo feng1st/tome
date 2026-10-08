@@ -1,7 +1,8 @@
-//! The combat domain: the attack pipeline both sides share — the blows
-//! and armor-class components, their player-side derivation,
-//! and the executor — plus the composite formulas built on the
-//! combat-bonus component and the stat bonus tables.
+//! The combat domain: the attack pipeline's numbers — the blows and
+//! armor-class components and their player-side derivation — plus the
+//! composite formulas built on the combat-bonus component and the stat
+//! bonus tables. The attack action itself and its executor are the
+//! action domain's; this domain supplies the numbers they spend.
 
 pub mod components;
 pub mod constants;
@@ -15,22 +16,18 @@ use bevy::prelude::*;
 use self::messages::attack_resolved::AttackResolved;
 use crate::core::core_phase::CorePhase;
 
-/// Register the combat domain: the attack-resolved fact message exists,
-/// the derive chain keeps the bonus and attack components fresh in the
-/// Derive phase, before any turn logic reads them, and the attack
-/// executor runs in both act phases — the player's and the world's.
+/// Register the combat domain: the attack-resolved fact message exists
+/// (emitted by the action domain's executor), and the derive chain
+/// keeps the bonus and attack components fresh in the Derive phase,
+/// before any turn logic reads them.
 pub fn register(app: &mut App) {
     app.add_message::<AttackResolved>().add_systems(
         Update,
-        (
-            (
-                systems::derive_combat_bonuses::derive_combat_bonuses,
-                systems::derive_attack::derive_attack,
-            )
-                .chain()
-                .in_set(CorePhase::Derive),
-            systems::act_attack::act_attack.in_set(CorePhase::PlayerAct),
-            systems::act_attack::act_attack.in_set(CorePhase::WorldAct),
-        ),
+        ((
+            systems::derive_combat_bonuses::derive_combat_bonuses,
+            systems::derive_attack::derive_attack,
+        )
+            .chain()
+            .in_set(CorePhase::Derive),),
     );
 }

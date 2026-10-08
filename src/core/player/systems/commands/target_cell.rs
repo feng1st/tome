@@ -78,13 +78,13 @@ mod tests {
     use rand::SeedableRng;
 
     use super::*;
+    use crate::core::action::systems::act_move::act_move;
     use crate::core::core_phase::CorePhase;
     use crate::core::map::components::cell_coord::CellCoord;
     use crate::core::map::resources::current_map::parse_local_map;
     use crate::core::map::resources::terrain_registry::parse_terrain_registry;
     use crate::core::map::types::local_map::LocalMap;
     use crate::core::map::utils::pathfinding::find_path;
-    use crate::core::movement::systems::act_move::act_move;
     use crate::core::player::systems::plan_action::plan_action;
     use crate::core::speed::components::speed::Speed;
     use crate::core::world_clock::components::next_turn::NextTurn;
@@ -309,11 +309,11 @@ mod tests {
             requests.0.extend(captured);
         }
 
+        use crate::core::action::systems::act_attack::act_attack;
         use crate::core::combat::components::armor_class::ArmorClass;
         use crate::core::combat::components::blows::Blows;
         use crate::core::combat::components::combat_bonuses::CombatBonuses;
         use crate::core::combat::messages::attack_resolved::AttackResolved;
-        use crate::core::combat::systems::act_attack::act_attack;
         use crate::core::combat::types::blow::{Blow, BlowDamage};
         use crate::core::combat::utils::armor_class::armor_class;
         use crate::core::combat::utils::attack::{attack_chance, unarmed_damage};

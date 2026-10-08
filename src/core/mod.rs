@@ -7,6 +7,7 @@
 //! register — phases carry the ordering, so registration is one line per
 //! system and order facts never leave the phase enums.
 
+pub mod action;
 pub mod app_state;
 pub mod class;
 pub mod combat;
@@ -17,7 +18,6 @@ pub mod game_loop;
 pub mod health;
 pub mod map;
 pub mod monster;
-pub mod movement;
 pub mod player;
 pub mod race;
 pub mod rng;
@@ -40,7 +40,7 @@ pub fn register(app: &mut App) {
     class::register(app);
     player::register(app);
     monster::register(app);
-    movement::register(app);
+    action::register(app);
     world_clock::register(app);
     health::register(app);
     combat::register(app);

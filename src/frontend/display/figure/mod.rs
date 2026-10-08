@@ -12,15 +12,26 @@ pub mod utils;
 
 use bevy::prelude::*;
 
+use self::resources::creature_figure_registry::CreatureFigureRegistry;
 use self::resources::figure_registry::FigureRegistry;
 use crate::frontend::display::display_phase::DisplayPhase;
 
-/// Register the figure domain: the registry builds at app build time
-/// (`FromWorld`); appearances attach in the Attach phase — handles need
-/// no pixel readiness, the renderer waits (brief pop-in accepted).
+/// Register the figure domain: both registries build at app build time
+/// (`FromWorld`); the Attach phase runs the figure attachment (a
+/// creature's identity resolves to its figure handle — monsters by
+/// kind, humanoids by race and class) and the appearance attachment
+/// (the handle resolves to render parts) — handles need no pixel
+/// readiness, the renderer waits (brief pop-in accepted).
 pub fn register(app: &mut App) {
-    app.init_resource::<FigureRegistry>().add_systems(
-        Update,
-        systems::attach_appearance::attach_appearance.in_set(DisplayPhase::Attach),
-    );
+    app.init_resource::<FigureRegistry>()
+        .init_resource::<CreatureFigureRegistry>()
+        .add_systems(
+            Update,
+            (
+                systems::attach_appearance::attach_appearance,
+                systems::attach_monster_figure::attach_monster_figure,
+                systems::attach_race_figure::attach_race_figure,
+            )
+                .in_set(DisplayPhase::Attach),
+        );
 }

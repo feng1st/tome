@@ -7,7 +7,8 @@ use std::collections::HashSet;
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 
-use crate::core::combat::components::attack::Attack;
+use crate::core::action::components::attack_action::AttackAction;
+use crate::core::action::components::move_action::MoveAction;
 use crate::core::health::components::dead::Dead;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::map::resources::current_map::CurrentMap;
@@ -15,7 +16,6 @@ use crate::core::map::resources::terrain_registry::TerrainRegistry;
 use crate::core::map::utils::adjacency::adjacent;
 use crate::core::map::utils::pathfinding::find_path;
 use crate::core::monster::components::monster_index::MonsterIndex;
-use crate::core::movement::components::r#move::Move;
 use crate::core::player::components::order::Order;
 use crate::core::player::components::player::Player;
 use crate::core::speed::components::speed::Speed;
@@ -87,7 +87,7 @@ pub fn plan_action(
                     world_clock.now + action_duration(STANDARD_ACTION_DURATION, player.speed.0);
                 commands
                     .entity(player.entity)
-                    .insert(Attack { target })
+                    .insert(AttackAction { target })
                     .remove::<Order>();
                 return;
             }
@@ -112,7 +112,9 @@ pub fn plan_action(
             };
             player.next_turn.at =
                 world_clock.now + action_duration(STANDARD_ACTION_DURATION, player.speed.0);
-            commands.entity(player.entity).insert(Move { to: step });
+            commands
+                .entity(player.entity)
+                .insert(MoveAction { target: step });
         }
         Some(Order::Move { target }) => {
             if *player.cell == target {
@@ -142,7 +144,9 @@ pub fn plan_action(
             }
             player.next_turn.at =
                 world_clock.now + action_duration(STANDARD_ACTION_DURATION, player.speed.0);
-            commands.entity(player.entity).insert(Move { to: step });
+            commands
+                .entity(player.entity)
+                .insert(MoveAction { target: step });
         }
         None => {}
     }
@@ -214,7 +218,7 @@ mod tests {
             .id();
         world.run_system_once(plan_action).unwrap();
         assert_eq!(
-            world.get::<Move>(player).map(|m| m.to),
+            world.get::<MoveAction>(player).map(|m| m.target),
             Some(CellCoord::new(2, 1)),
             "the step heads for the target"
         );
@@ -244,7 +248,7 @@ mod tests {
             ))
             .id();
         world.run_system_once(plan_action).unwrap();
-        assert!(world.get::<Move>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 50);
     }
 
@@ -272,7 +276,7 @@ mod tests {
         world.spawn((NextTurn { at: 140 }, IsMoving));
         world.run_system_once(plan_action).unwrap();
         assert_eq!(
-            world.get::<Move>(player).map(|m| m.to),
+            world.get::<MoveAction>(player).map(|m| m.target),
             Some(CellCoord::new(2, 1)),
             "due with a standing order: planning does not wait for pictures"
         );
@@ -291,7 +295,7 @@ mod tests {
             ))
             .id();
         world.run_system_once(plan_action).unwrap();
-        assert!(world.get::<Move>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0);
     }
 
@@ -314,7 +318,7 @@ mod tests {
             world.get::<Order>(player).is_none(),
             "arrived: order cleared"
         );
-        assert!(world.get::<Move>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
         assert_eq!(
             world.get::<NextTurn>(player).unwrap().at,
             0,
@@ -341,7 +345,7 @@ mod tests {
             world.get::<Order>(player).is_none(),
             "no route: order cleared"
         );
-        assert!(world.get::<Move>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0, "no spend");
     }
 
@@ -361,7 +365,7 @@ mod tests {
             .id();
         let blocker = rat(&mut world, CellCoord::new(2, 1)); // the straight line
         world.run_system_once(plan_action).unwrap();
-        let step = world.get::<Move>(player).unwrap().to;
+        let step = world.get::<MoveAction>(player).unwrap().target;
         assert_ne!(step, CellCoord::new(2, 1), "the monster's cell is avoided");
         assert!(adjacent(CellCoord::new(1, 1), step), "one step at a time");
         let _ = blocker;
@@ -387,7 +391,7 @@ mod tests {
             world.get::<Order>(player).is_none(),
             "an occupied target clears the order instead of stepping on"
         );
-        assert!(world.get::<Move>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0, "no spend");
     }
 
@@ -408,7 +412,7 @@ mod tests {
             .insert(Order::Attack { target: rat });
         world.run_system_once(plan_action).unwrap();
         assert_eq!(
-            world.get::<Attack>(player).map(|a| a.target),
+            world.get::<AttackAction>(player).map(|a| a.target),
             Some(rat),
             "adjacent: the attack is planned"
         );
@@ -439,7 +443,7 @@ mod tests {
             .entity_mut(player)
             .insert(Order::Attack { target: rat });
         world.run_system_once(plan_action).unwrap();
-        let first = world.get::<Move>(player).unwrap().to;
+        let first = world.get::<MoveAction>(player).unwrap().target;
         assert!(adjacent(CellCoord::new(1, 1), first));
 
         // The rat wanders away mid-pursuit: the next due turn heads for
@@ -449,7 +453,7 @@ mod tests {
         world.resource_mut::<WorldClock>().now = 100;
         world.entity_mut(player).insert(NextTurn { at: 100 });
         world.run_system_once(plan_action).unwrap();
-        let second = world.get::<Move>(player).unwrap().to;
+        let second = world.get::<MoveAction>(player).unwrap().target;
         let distance = |a: CellCoord, b: CellCoord| (a.x - b.x).abs().max((a.y - b.y).abs());
         assert!(
             distance(second, CellCoord::new(4, 3))
@@ -477,7 +481,7 @@ mod tests {
         let blocker = rat(&mut world, CellCoord::new(2, 1));
         world.entity_mut(player).insert(Order::Attack { target });
         world.run_system_once(plan_action).unwrap();
-        let step = world.get::<Move>(player).unwrap().to;
+        let step = world.get::<MoveAction>(player).unwrap().target;
         assert_ne!(
             step,
             CellCoord::new(2, 1),
@@ -510,7 +514,7 @@ mod tests {
             world.get::<Order>(player).is_none(),
             "no route: order cleared"
         );
-        assert!(world.get::<Move>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0, "no spend");
     }
 
@@ -537,8 +541,8 @@ mod tests {
             world.get::<Order>(player).is_none(),
             "target gone: order cleared"
         );
-        assert!(world.get::<Move>(player).is_none());
-        assert!(world.get::<Attack>(player).is_none());
+        assert!(world.get::<MoveAction>(player).is_none());
+        assert!(world.get::<AttackAction>(player).is_none());
         assert_eq!(world.get::<NextTurn>(player).unwrap().at, 0, "no spend");
     }
 
@@ -580,7 +584,7 @@ mod tests {
             10,
             "clock pinned at the driver's unspent turn"
         );
-        assert!(app.world().get::<Move>(player).is_none());
+        assert!(app.world().get::<MoveAction>(player).is_none());
         assert_eq!(
             app.world().get::<NextTurn>(player).unwrap().at,
             10,

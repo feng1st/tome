@@ -17,11 +17,6 @@ OPEN ISSUES — 延期工作与已知问题登记表
 
 二、display 体系化
 
-16. display/creature/ 并入 display/figure/
-- 现状：creature/ 只做形象绑定注册与挂载（图鉴查询 + attach），与
-  figure/ 同属"形象选择与呈现"主题；creature/mod.rs 已注明待合并。
-- 规划：内容并入 figure/，消去两域之间的往返。
-
 17. tween 化改造：持续一段时间的显示变化统一走 tween
 - 现状：tween 域已承载淡出（AlphaTween）与移动（PosTween）；camera
   shake 与 flash 目前各自管计时，未走 tween。

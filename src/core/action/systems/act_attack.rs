@@ -3,8 +3,8 @@
 
 use bevy::prelude::*;
 
+use crate::core::action::components::attack_action::AttackAction;
 use crate::core::combat::components::armor_class::ArmorClass;
-use crate::core::combat::components::attack::Attack;
 use crate::core::combat::components::blows::Blows;
 use crate::core::combat::messages::attack_resolved::AttackResolved;
 use crate::core::combat::utils::attack::attack_hits;
@@ -12,6 +12,8 @@ use crate::core::health::components::dead::Dead;
 use crate::core::health::messages::damage::Damage;
 use crate::core::map::components::cell_coord::CellCoord;
 use crate::core::rng::resources::game_rng::GameRng;
+
+type ActorFilter = (Added<AttackAction>, Without<Dead>);
 
 /// Resolve every attack planned this frame: for each blow the attacker
 /// carries, judge the hit against the target's armor class and write
@@ -28,46 +30,42 @@ use crate::core::rng::resources::game_rng::GameRng;
 /// nothing was swung at), and an absent armor class reads as zero.
 pub fn act_attack(
     mut commands: Commands,
-    mut attacks: Query<(Entity, &Attack, Option<&Blows>, &CellCoord), Added<Attack>>,
+    mut actors: Query<(Entity, &AttackAction, &CellCoord, Option<&Blows>), ActorFilter>,
     // The target is read fallibly: a target that left the world, or a
     // dead one (the marked driver stays in the world), reads as no
     // target at all — the filter sees to the dead, the fallible get to
     // the gone. Absent armor reads as zero.
-    targets: Query<Option<&ArmorClass>, Without<Dead>>,
-    cells: Query<&CellCoord>,
+    targets: Query<(&CellCoord, Option<&ArmorClass>), Without<Dead>>,
     mut game_rng: ResMut<GameRng>,
     mut damages: MessageWriter<Damage>,
     mut attacks_resolved: MessageWriter<AttackResolved>,
 ) {
-    for (attacker, attack, blows, attacker_cell) in &mut attacks {
-        commands.entity(attacker).remove::<Attack>();
-        let Ok(armor_class) = targets.get(attack.target) else {
+    for (actor, action, &actor_cell_coord, blows) in &mut actors {
+        commands.entity(actor).remove::<AttackAction>();
+        let Ok((&target_cell_coord, target_armor_class)) = targets.get(action.target) else {
             // The target left the world or died since planning:
             // nothing to attack.
             continue;
         };
-        let armor_class = armor_class.map_or(0, |armor_class| armor_class.0);
+        let armor_class = target_armor_class.map_or(0, |armor_class| armor_class.0);
         let mut damage_amounts = Vec::new();
         if let Some(blows) = blows {
             for blow in &blows.0 {
                 if attack_hits(blow.chance, armor_class, &mut game_rng.rng) {
                     let amount = blow.damage.roll(&mut game_rng.rng);
                     damages.write(Damage {
-                        target: attack.target,
-                        source: Some(attacker),
+                        target: action.target,
+                        source: Some(actor),
                         amount,
                     });
                     damage_amounts.push(amount);
                 }
             }
         }
-        let target_cell = *cells
-            .get(attack.target)
-            .expect("a live target always carries its cell");
         attacks_resolved.write(AttackResolved {
-            attacker,
-            attacker_cell: *attacker_cell,
-            target_cell,
+            attacker: actor,
+            attacker_cell: actor_cell_coord,
+            target_cell: target_cell_coord,
             damage_amounts,
         });
     }
@@ -134,7 +132,11 @@ mod tests {
         let mut world = world(seed);
         let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
         let attacker = world
-            .spawn((Attack { target }, blows(&[(1000, 4)]), CellCoord::new(1, 0)))
+            .spawn((
+                AttackAction { target },
+                blows(&[(1000, 4)]),
+                CellCoord::new(1, 0),
+            ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
@@ -147,7 +149,10 @@ mod tests {
                 amount: 4
             }]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -158,13 +163,20 @@ mod tests {
         let mut world = world(seed);
         let target = world.spawn((ArmorClass(1000), CellCoord::new(3, 0))).id();
         let attacker = world
-            .spawn((Attack { target }, blows(&[(20, 4)]), CellCoord::new(1, 0)))
+            .spawn((
+                AttackAction { target },
+                blows(&[(20, 4)]),
+                CellCoord::new(1, 0),
+            ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
 
         assert!(damages(&mut world).is_empty(), "a miss writes nothing");
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -176,7 +188,7 @@ mod tests {
         let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
         let attacker = world
             .spawn((
-                Attack { target },
+                AttackAction { target },
                 blows(&[(1000, 4), (0, 5)]),
                 CellCoord::new(1, 0),
             ))
@@ -192,7 +204,10 @@ mod tests {
                 amount: 4
             }]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -202,7 +217,7 @@ mod tests {
         let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
         let attacker = world
             .spawn((
-                Attack { target },
+                AttackAction { target },
                 Blows(vec![
                     Blow {
                         chance: 1000,
@@ -243,7 +258,10 @@ mod tests {
                 },
             ]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -254,7 +272,11 @@ mod tests {
         let mut world = world(seed);
         let target = world.spawn(CellCoord::new(3, 0)).id();
         let attacker = world
-            .spawn((Attack { target }, blows(&[(1, 3)]), CellCoord::new(1, 0)))
+            .spawn((
+                AttackAction { target },
+                blows(&[(1, 3)]),
+                CellCoord::new(1, 0),
+            ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
@@ -267,7 +289,10 @@ mod tests {
                 amount: 3
             }]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -275,16 +300,21 @@ mod tests {
         let seed = seed_with_percentile_at_least(10);
         let mut world = world(seed);
         let target = world.spawn((ArmorClass(0), CellCoord::new(3, 0))).id();
-        let bare = world.spawn((Attack { target }, CellCoord::new(1, 0))).id();
+        let bare = world
+            .spawn((AttackAction { target }, CellCoord::new(1, 0)))
+            .id();
         let empty = world
-            .spawn((Attack { target }, Blows(vec![]), CellCoord::new(2, 0)))
+            .spawn((AttackAction { target }, Blows(vec![]), CellCoord::new(2, 0)))
             .id();
 
         world.run_system_once(act_attack).unwrap();
 
         assert!(damages(&mut world).is_empty());
-        assert!(world.get::<Attack>(bare).is_none(), "action consumed");
-        assert!(world.get::<Attack>(empty).is_none(), "action consumed");
+        assert!(world.get::<AttackAction>(bare).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(empty).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -292,7 +322,7 @@ mod tests {
         let mut world = world(42);
         let attacker = world
             .spawn((
-                Attack {
+                AttackAction {
                     target: Entity::PLACEHOLDER,
                 },
                 CellCoord::new(1, 0),
@@ -306,7 +336,10 @@ mod tests {
             attacks_resolved(&mut world).is_empty(),
             "nothing was swung at"
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -318,7 +351,11 @@ mod tests {
             .spawn((ArmorClass(0), CellCoord::new(4, 1), Dead))
             .id();
         let attacker = world
-            .spawn((Attack { target }, blows(&[(1000, 4)]), CellCoord::new(1, 1)))
+            .spawn((
+                AttackAction { target },
+                blows(&[(1000, 4)]),
+                CellCoord::new(1, 1),
+            ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
@@ -328,7 +365,10 @@ mod tests {
             attacks_resolved(&mut world).is_empty(),
             "nothing was swung at"
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -340,7 +380,7 @@ mod tests {
         let target = world.spawn((ArmorClass(0), CellCoord::new(4, 1))).id();
         let attacker = world
             .spawn((
-                Attack { target },
+                AttackAction { target },
                 blows(&[(1000, 4), (0, 5)]),
                 CellCoord::new(1, 1),
             ))
@@ -357,7 +397,10 @@ mod tests {
                 damage_amounts: vec![4],
             }]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -366,7 +409,11 @@ mod tests {
         let mut world = world(seed);
         let target = world.spawn((ArmorClass(1000), CellCoord::new(4, 1))).id();
         let attacker = world
-            .spawn((Attack { target }, blows(&[(20, 4)]), CellCoord::new(1, 1)))
+            .spawn((
+                AttackAction { target },
+                blows(&[(20, 4)]),
+                CellCoord::new(1, 1),
+            ))
             .id();
 
         world.run_system_once(act_attack).unwrap();
@@ -380,7 +427,10 @@ mod tests {
                 damage_amounts: vec![],
             }]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 
     #[test]
@@ -389,7 +439,9 @@ mod tests {
         // out with an empty list.
         let mut world = world(42);
         let target = world.spawn((ArmorClass(0), CellCoord::new(4, 1))).id();
-        let attacker = world.spawn((Attack { target }, CellCoord::new(1, 1))).id();
+        let attacker = world
+            .spawn((AttackAction { target }, CellCoord::new(1, 1)))
+            .id();
 
         world.run_system_once(act_attack).unwrap();
 
@@ -402,6 +454,9 @@ mod tests {
                 damage_amounts: vec![],
             }]
         );
-        assert!(world.get::<Attack>(attacker).is_none(), "action consumed");
+        assert!(
+            world.get::<AttackAction>(attacker).is_none(),
+            "action consumed"
+        );
     }
 }

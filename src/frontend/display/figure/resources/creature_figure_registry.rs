@@ -14,9 +14,9 @@ use crate::core::monster::components::monster_index::MonsterIndex;
 use crate::core::monster::resources::monster_registry::MonsterRegistry;
 use crate::core::race::components::race_index::RaceIndex;
 use crate::core::race::resources::race_registry::RaceRegistry;
-use crate::frontend::display::creature::types::creature_figure_entry::CreatureFigureEntry;
 use crate::frontend::display::figure::components::figure_index::FigureIndex;
 use crate::frontend::display::figure::resources::figure_registry::FigureRegistry;
+use crate::frontend::display::figure::types::creature_figure_entry::CreatureFigureEntry;
 
 /// The creature figure binding file loaded at startup.
 pub const CREATURE_FIGURES_PATH: &str = "data/graphic/creature_figures.ron";
