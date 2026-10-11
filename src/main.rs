@@ -1,6 +1,3 @@
-//! tome: a tile-based roguelike in Bevy. This binary only
-//! assembles plugins and the cross-side ordering of their set labels.
-
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 
@@ -10,9 +7,6 @@ mod core;
 mod frontend;
 
 fn main() {
-    // Assembly only: engine plugins, the two sides, and the game-loop
-    // chain. Concrete systems are owned and ordered inside each side's
-    // register; mode gating travels with each system as `run_if`.
     App::new()
         .add_plugins(engine_plugins())
         .add_plugins((core::register, frontend::register))
@@ -23,8 +17,6 @@ fn main() {
         .run();
 }
 
-/// Engine plugins with pixel-art settings: nearest-neighbor sampling and a
-/// 1280x720 window (resizable).
 fn engine_plugins() -> PluginGroupBuilder {
     DefaultPlugins
         .set(ImagePlugin::default_nearest())

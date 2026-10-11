@@ -6,7 +6,7 @@ use bevy::prelude::*;
 /// completion callback as a message. Emitted by `update_tweens`; any
 /// number of readers may react (release the body it was fading, chain
 /// the next step, and so on).
-#[derive(Message, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Message, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct TweenFinished {
     pub entity: Entity,
 }

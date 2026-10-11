@@ -1,12 +1,9 @@
-//! World clock: the game's logical time, in ticks. Sweeps to the nearest
-//! creature's next turn and holds still while a picture is moving;
-//! real time never crosses this boundary.
-
 use bevy::prelude::*;
 
-/// The game's logical time, in ticks. Starts at zero and steps from
-/// turn to turn — no fixed tick size.
-#[derive(Resource, Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Resource, Clone, Copy, Debug, Default)]
 pub struct WorldClock {
+    // Pixel Dungeon, Actor.now
     pub now: i64,
+    // Pixel Dungeon, Actor.current
+    pub solo_performer: Option<Entity>,
 }

@@ -7,7 +7,7 @@ use bevy::prelude::*;
 /// remaining time and a zero offset. The offset is drawn fresh every
 /// frame — a jitter, not a drift — and the follow snap rounds it onto
 /// the screen grid.
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Debug, Default)]
 pub struct CameraShake {
     pub magnitude: f32,
     pub duration: f32,

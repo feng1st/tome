@@ -4,8 +4,8 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-use crate::core::health::components::hit_points::HitPoints;
-use crate::core::health::messages::damaged::Damaged;
+use crate::core::hit_points::components::hit_points::HitPoints;
+use crate::core::hit_points::messages::damaged::Damaged;
 use crate::frontend::display::bitmap_text::entities::spawn_text::spawn_text;
 use crate::frontend::display::bitmap_text::resources::font_registry::FontRegistry;
 use crate::frontend::display::bitmap_text::utils::choose_font::choose_font;
@@ -16,8 +16,8 @@ use crate::frontend::display::effects::constants::feedback::{
     LIFESPAN, NEGATIVE, TEXT_TARGET_GLYPH_HEIGHT, WARNING,
 };
 use crate::frontend::display::effects::resources::text_stacks::TextStacks;
-use crate::frontend::display::map::utils::coords::cell_to_world;
-use crate::frontend::display::motion::components::curr_position::CurrPosition;
+use crate::frontend::display::map::utils::coords::cell_to_world_position;
+use crate::frontend::display::motion::components::curr_position::CellPosition;
 
 /// Present every landed wound as its floating amount: the text spawns
 /// at the wounded cell's top edge, world-space, in the font the zoom
@@ -40,15 +40,15 @@ pub fn show_status(
         // Doubled comparison: the threshold is half the maximum,
         // kept in integers.
         let color = match hit_points.get(damage.target) {
-            Ok(hit_points) if hit_points.current * 2 > damage.max => WARNING,
+            Ok(hit_points) if hit_points.current * 2 > damage.max_hp => WARNING,
             _ => NEGATIVE,
         };
         let line = font.line_height * scale;
-        let world = cell_to_world(CurrPosition::from(damage.cell));
-        let position = Vec2::new(world.x, world.y + TILE_SIZE / 2.0 + line / 2.0);
+        let world = cell_to_world_position(CellPosition::from(damage.target_cell_coord));
+        let position = Vec2::new(world.x, world.y + TILE_SIZE as f32 / 2.0 + line / 2.0);
         // The stack push: the cell's living texts rise one line, the
         // newcomer takes the base.
-        for stacked in text_stacks.texts_on(damage.cell).to_vec() {
+        for stacked in text_stacks.texts_on(damage.target_cell_coord).to_vec() {
             if let Ok(mut transform) = stacked_texts.get_mut(stacked) {
                 transform.translation.y += line;
             }
@@ -63,11 +63,11 @@ pub fn show_status(
             LAYER_FLOATING_TEXT,
         );
         commands.entity(root).insert(FloatingText {
-            cell: damage.cell,
+            cell_coord: damage.target_cell_coord,
             lifespan: LIFESPAN,
             left: LIFESPAN,
         });
-        text_stacks.push(damage.cell, root);
+        text_stacks.push(damage.target_cell_coord, root);
     }
 }
 
@@ -85,12 +85,12 @@ pub fn update_floating_text(
     for (entity, mut text, mut transform, children) in &mut texts {
         text.left -= delta;
         if text.left <= 0.0 {
-            text_stacks.remove(text.cell, entity);
+            text_stacks.remove(text.cell_coord, entity);
             // Despawning the root takes its glyph children along.
             commands.entity(entity).despawn();
             continue;
         }
-        transform.translation.y += TILE_SIZE * delta;
+        transform.translation.y += TILE_SIZE as f32 * delta;
         // Opaque while more than half the life remains, then fading
         // with the remaining fraction — the fade lives in the latter
         // half only.
@@ -161,11 +161,12 @@ mod tests {
 
     fn damaged(target: Entity, amount: i32) -> Damaged {
         Damaged {
+            source: None,
+            source_cell_coord: None,
             target,
-            cell: CellCoord::new(2, 3),
-            source_cell: None,
+            target_cell_coord: CellCoord::new(2, 3),
             amount,
-            max: 20,
+            max_hp: 20,
         }
     }
 
@@ -185,7 +186,7 @@ mod tests {
             .world_mut()
             .query_filtered::<(&FloatingText, &Transform), With<Children>>();
         let (text, transform) = query.single(app.world()).unwrap();
-        assert_eq!(text.cell, CellCoord::new(2, 3));
+        assert_eq!(text.cell_coord, CellCoord::new(2, 3));
         assert_eq!(text.lifespan, 1.0);
         // Cell (2,3) center y = -(3.5)*16 = -56; the top edge is 8
         // above it, the half line (8 * 0.5 scale / 2) 2 more.

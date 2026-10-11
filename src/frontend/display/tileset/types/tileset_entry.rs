@@ -8,6 +8,6 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct TilesetEntry {
     pub tileset: String,
-    pub columns: u32,
-    pub rows: u32,
+    pub columns: usize,
+    pub rows: usize,
 }

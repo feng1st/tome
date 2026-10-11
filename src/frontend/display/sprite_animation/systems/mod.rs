@@ -1,4 +1,2 @@
-//! Sprite animation systems.
-
 pub mod animate;
-pub mod sync_animation;
+pub mod sync_animation_and_direction;

@@ -3,10 +3,10 @@
 
 use bevy::prelude::*;
 
-use crate::core::health::messages::damaged::Damaged;
+use crate::core::hit_points::messages::damaged::Damaged;
 use crate::frontend::display::constants::layout::LAYER_ACTOR;
-use crate::frontend::display::map::utils::coords::cell_to_world;
-use crate::frontend::display::motion::components::curr_position::CurrPosition;
+use crate::frontend::display::map::utils::coords::cell_to_world_position;
+use crate::frontend::display::motion::components::curr_position::CellPosition;
 use crate::frontend::display::particles::entities::burst::burst;
 use crate::frontend::display::particles::types::factory::Factory;
 
@@ -46,18 +46,18 @@ const BLOOD_COUNT_CAP: f32 = 9.0;
 /// of the same seed must roll the same game.
 pub fn splash(mut damaged_reader: MessageReader<Damaged>, mut commands: Commands) {
     for damage in damaged_reader.read() {
-        let count = (BLOOD_COUNT_CAP * (damage.amount as f32 / damage.max as f32).sqrt())
+        let count = (BLOOD_COUNT_CAP * (damage.amount as f32 / damage.max_hp as f32).sqrt())
             .min(BLOOD_COUNT_CAP) as usize;
         if count == 0 {
             continue;
         }
-        let target_center = cell_to_world(CurrPosition::from(damage.cell));
+        let target_center = cell_to_world_position(CellPosition::from(damage.target_cell_coord));
         // The blow's direction in world space; a sourceless or
         // source-equal wound falls back to the generic upward spray
         // (a half turn wide).
-        let (direction, cone) = match damage.source_cell {
-            Some(source_cell) if source_cell != damage.cell => {
-                let from_source = cell_to_world(CurrPosition::from(source_cell));
+        let (direction, cone) = match damage.source_cell_coord {
+            Some(source_cell) if source_cell != damage.target_cell_coord => {
+                let from_source = cell_to_world_position(CellPosition::from(source_cell));
                 let blow = target_center - from_source;
                 (blow.to_angle(), BLOOD_CONE)
             }
@@ -98,11 +98,12 @@ mod tests {
 
     fn damaged(amount: i32, maximum: i32, source: Option<CellCoord>) -> Damaged {
         Damaged {
+            source: None,
+            source_cell_coord: source,
             target: Entity::PLACEHOLDER,
-            cell: CellCoord::new(5, 5),
-            source_cell: source,
+            target_cell_coord: CellCoord::new(5, 5),
             amount,
-            max: maximum,
+            max_hp: maximum,
         }
     }
 

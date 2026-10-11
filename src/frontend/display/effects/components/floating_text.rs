@@ -11,7 +11,7 @@ use crate::core::map::components::cell_coord::CellCoord;
 #[derive(Component, Clone, Copy, Debug)]
 pub struct FloatingText {
     /// The cell the text floats over — the stacking key.
-    pub cell: CellCoord,
+    pub cell_coord: CellCoord,
     /// Total lifetime in seconds.
     pub lifespan: f32,
     /// Seconds of life remaining.

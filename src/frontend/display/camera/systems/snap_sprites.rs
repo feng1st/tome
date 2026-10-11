@@ -10,8 +10,8 @@ use crate::frontend::display::camera::utils::screen_grid::{
     min_corner_offset, snap_translation, world_scale_factor,
 };
 use crate::frontend::display::constants::layout::ZOOM;
-use crate::frontend::display::map::utils::coords::cell_to_world;
-use crate::frontend::display::motion::components::curr_position::CurrPosition;
+use crate::frontend::display::map::utils::coords::cell_to_world_position;
+use crate::frontend::display::motion::components::curr_position::CellPosition;
 
 /// Snap every entity with a presentation (`CurrPosition` + sprite parts) to
 /// the screen grid, in camera-relative space. Runs in the Snap phase,
@@ -23,15 +23,15 @@ use crate::frontend::display::motion::components::curr_position::CurrPosition;
 pub fn snap_sprites(
     camera: Query<&Transform, With<MainCamera>>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut query: Query<(&CurrPosition, &Anchor, &SpriteSize, &mut Transform), Without<MainCamera>>,
+    mut query: Query<(&CellPosition, &Anchor, &SpriteSize, &mut Transform), Without<MainCamera>>,
 ) {
     let Ok(camera_transform) = camera.single() else {
         return;
     };
     let world_scale_factor = windows.single().map(world_scale_factor).unwrap_or(ZOOM);
     let camera_position = camera_transform.translation.truncate();
-    for (curr_position, anchor, sprite_size, mut transform) in &mut query {
-        let world = cell_to_world(*curr_position);
+    for (&curr_position, anchor, sprite_size, mut transform) in &mut query {
+        let world = cell_to_world_position(curr_position);
         let snapped = snap_translation(
             world,
             camera_position,
@@ -75,7 +75,7 @@ mod tests {
         let actor = app
             .world_mut()
             .spawn((
-                CurrPosition::from(CellCoord::new(3, 4)),
+                CellPosition::from(CellCoord::new(3, 4)),
                 Anchor(Vec2::ZERO),
                 SpriteSize::new(Vec2::new(12.0, 15.0)),
                 Transform::default(),
@@ -86,7 +86,7 @@ mod tests {
         let min = min_in_screen_pixels(transform, Vec2::ZERO, offset, world_scale_factor);
         assert_eq!(min, min.round());
         // The world position the transform encodes is still the cell's.
-        let world = cell_to_world(CurrPosition::from(CellCoord::new(3, 4)));
+        let world = cell_to_world_position(CellPosition::from(CellCoord::new(3, 4)));
         assert!((transform.translation.truncate() - world).length() < 0.5);
     }
 
@@ -98,7 +98,7 @@ mod tests {
         let actor = app
             .world_mut()
             .spawn((
-                CurrPosition {
+                CellPosition {
                     x: 3.4567,
                     y: 4.8910,
                 },
@@ -112,7 +112,7 @@ mod tests {
         let min = min_in_screen_pixels(transform, Vec2::ZERO, offset, world_scale_factor);
         assert_eq!(min, min.round());
         // The snap error never exceeds half a screen pixel.
-        let world = cell_to_world(CurrPosition {
+        let world = cell_to_world_position(CellPosition {
             x: 3.4567,
             y: 4.8910,
         });
@@ -130,7 +130,7 @@ mod tests {
         let actor = app
             .world_mut()
             .spawn((
-                CurrPosition::from(CellCoord::new(3, 4)),
+                CellPosition::from(CellCoord::new(3, 4)),
                 anchor,
                 SpriteSize::new(Vec2::new(16.0, 15.0)),
                 Transform::default(),
@@ -152,7 +152,7 @@ mod tests {
         let actor = app
             .world_mut()
             .spawn((
-                CurrPosition::from(CellCoord::new(0, 0)),
+                CellPosition::from(CellCoord::new(0, 0)),
                 Anchor(Vec2::ZERO),
                 SpriteSize::new(Vec2::new(12.0, 15.0)),
                 Transform::from_xyz(0.0, 0.0, 2.0),

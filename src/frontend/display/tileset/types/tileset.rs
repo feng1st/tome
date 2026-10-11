@@ -9,6 +9,6 @@ use bevy::prelude::*;
 /// here.
 pub struct Tileset {
     pub texture: Handle<Image>,
-    pub columns: u32,
-    pub rows: u32,
+    pub columns: usize,
+    pub rows: usize,
 }

@@ -1,6 +1,3 @@
-// The test room: a walled 48x32 room with a central water pool.
-// The legend maps characters to terrain names; rows draw the map
-// top-down, one character per cell.
 (
     legend: {
         '#': "wall",
@@ -41,7 +38,6 @@
         "#..............................................#",
         "################################################",
     ],
-    // Monster spawns: two rats on the open floor near the player start.
     monsters: [
         ( monster: "giant_white_rat", cell: ( x: 28, y: 10 ) ),
         ( monster: "giant_white_rat", cell: ( x: 24, y: 13 ) ),

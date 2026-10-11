@@ -39,10 +39,10 @@ pub fn spawn_anim_layers(
     mut materials: ResMut<Assets<ColorMaterial>>,
     current_map: Res<CurrentMap>,
 ) {
-    let local_map = current_map.map();
+    let local_map = current_map.local_map();
     let size = Vec2::new(
-        local_map.width as f32 * TILE_SIZE,
-        local_map.height as f32 * TILE_SIZE,
+        local_map.columns as f32 * TILE_SIZE as f32,
+        local_map.rows as f32 * TILE_SIZE as f32,
     );
     let terrain_anim = WATER_ANIM;
     // REPEAT addressing lets the scroll wrap.

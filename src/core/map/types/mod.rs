@@ -1,5 +1,3 @@
-//! Map vocabulary types (plain data, no ECS roles).
-
 pub mod local_map;
 pub mod map_file;
 pub mod monster_spawn;

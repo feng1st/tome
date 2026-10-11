@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 use crate::core::map::components::cell_coord::CellCoord;
-use crate::frontend::display::motion::components::curr_position::CurrPosition;
+use crate::frontend::display::motion::components::curr_position::CellPosition;
 use crate::frontend::display::motion::constants::move_interval::MOVE_INTERVAL;
 use crate::frontend::display::tween::components::pos_tween::PosTween;
 
@@ -14,9 +14,9 @@ use crate::frontend::display::tween::components::pos_tween::PosTween;
 /// spawn cell needs no glide (the picture stands on it already).
 pub fn move_cells(
     mut commands: Commands,
-    creatures: Query<(Entity, &CellCoord, &CurrPosition), Changed<CellCoord>>,
+    creatures: Query<(Entity, &CellCoord, &CellPosition), Changed<CellCoord>>,
 ) {
-    for (entity, cell, curr_position) in &creatures {
+    for (entity, &cell, &curr_position) in &creatures {
         let to = Vec2::new(cell.x as f32, cell.y as f32);
         let from = Vec2::new(curr_position.x, curr_position.y);
         if from.distance_squared(to) < 1e-12 {

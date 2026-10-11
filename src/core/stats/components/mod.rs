@@ -1,3 +1,2 @@
-//! The statistics a playable creature carries.
-
-pub mod stats;
+pub mod curr_stats;
+pub mod max_stats;

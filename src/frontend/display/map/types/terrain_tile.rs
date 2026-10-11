@@ -8,7 +8,7 @@ use crate::frontend::display::map::constants::chunk_layer::ChunkLayer;
 /// height plane it draws on.
 pub struct TerrainTile {
     pub tileset: String,
-    pub tile_index: u16,
+    pub tile_index: usize,
     pub autotile: bool,
     pub alpha: AlphaMode,
     pub layer: ChunkLayer,

@@ -1,9 +1,1 @@
-// Race vocabulary: every species a creature can be played as, declared
-// as an ordered entry list. Each entry carries the birth data a played
-// creature merges into its rolled statistics: one statistic modifier
-// per statistic (six, in vocabulary order) and the race's share of the
-// hit die — the class adds its own. Load assigns each id a runtime
-// handle in entry order; handles are unstable across loads (entry
-// order decides them), so saved data must translate through the id
-// mapping, never store raw handles.
-[ ( race: "human", stat_modifiers: [0, 0, 0, 0, 0, 0], hit_die: 10 ) ]
+[ ( race: "human", stat_modifiers: [0, 0, 0, 0, 0, 0], hit_dice_modifier: 10 ) ]

@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::core::health::messages::damaged::Damaged;
+use crate::core::hit_points::messages::damaged::Damaged;
 use crate::frontend::display::effects::components::flash::Flash;
 use crate::frontend::display::effects::constants::feedback::{FLASH_INTERVAL, FLASH_TINT};
 
@@ -68,11 +68,12 @@ mod tests {
         let mut app = app();
         let target = spawn_target(&mut app);
         app.world_mut().write_message(Damaged {
+            source: None,
+            source_cell_coord: None,
             target,
-            cell: CellCoord::new(0, 0),
-            source_cell: None,
+            target_cell_coord: CellCoord::new(0, 0),
             amount: 3,
-            max: 10,
+            max_hp: 10,
         });
         app.update();
         assert_eq!(
@@ -99,11 +100,12 @@ mod tests {
         let mut app = app();
         let ghost = app.world_mut().spawn_empty().id();
         app.world_mut().write_message(Damaged {
+            source: None,
+            source_cell_coord: None,
             target: ghost,
-            cell: CellCoord::new(0, 0),
-            source_cell: None,
+            target_cell_coord: CellCoord::new(0, 0),
             amount: 3,
-            max: 10,
+            max_hp: 10,
         });
         app.update();
         assert!(app.world().get::<Flash>(ghost).is_none());

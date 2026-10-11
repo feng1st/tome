@@ -56,8 +56,8 @@ impl FromWorld for TilesetRegistry {
                 .load_builder()
                 .with_settings(|s: &mut ImageLoaderSettings| {
                     s.array_layout = Some(ImageArrayLayout::GridSize {
-                        tile_width_pixels: TILE_SIZE as u32,
-                        tile_height_pixels: TILE_SIZE as u32,
+                        tile_width_pixels: TILE_SIZE,
+                        tile_height_pixels: TILE_SIZE,
                     });
                 })
                 .load(entry.tileset.clone());

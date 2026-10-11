@@ -1,7 +1,5 @@
-//! Blow effects: what a landed blow does to its target.
-
-// ToME2's RBE_*
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// ToME2, defines.h, RBE_*
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
 pub enum BlowEffect {
     Hurt,

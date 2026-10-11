@@ -10,28 +10,28 @@ use crate::core::map::components::cell_coord::CellCoord;
 /// The floating texts alive per cell. A newcomer pushes the cell's
 /// living texts up by one line; an expiring text leaves its stack.
 /// Keys with empty stacks are pruned on removal.
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Debug, Default)]
 pub struct TextStacks {
     by_cell: HashMap<CellCoord, Vec<bevy::ecs::entity::Entity>>,
 }
 
 impl TextStacks {
     /// The texts alive on a cell, oldest first.
-    pub fn texts_on(&self, cell: CellCoord) -> &[bevy::ecs::entity::Entity] {
-        self.by_cell.get(&cell).map_or(&[], Vec::as_slice)
+    pub fn texts_on(&self, cell_coord: CellCoord) -> &[bevy::ecs::entity::Entity] {
+        self.by_cell.get(&cell_coord).map_or(&[], Vec::as_slice)
     }
 
     /// Push a new text onto its cell's stack.
-    pub fn push(&mut self, cell: CellCoord, entity: bevy::ecs::entity::Entity) {
-        self.by_cell.entry(cell).or_default().push(entity);
+    pub fn push(&mut self, cell_coord: CellCoord, entity: bevy::ecs::entity::Entity) {
+        self.by_cell.entry(cell_coord).or_default().push(entity);
     }
 
     /// Remove an expiring text from its stack.
-    pub fn remove(&mut self, cell: CellCoord, entity: bevy::ecs::entity::Entity) {
-        if let Some(stack) = self.by_cell.get_mut(&cell) {
+    pub fn remove(&mut self, cell_coord: CellCoord, entity: bevy::ecs::entity::Entity) {
+        if let Some(stack) = self.by_cell.get_mut(&cell_coord) {
             stack.retain(|stacked| *stacked != entity);
             if stack.is_empty() {
-                self.by_cell.remove(&cell);
+                self.by_cell.remove(&cell_coord);
             }
         }
     }

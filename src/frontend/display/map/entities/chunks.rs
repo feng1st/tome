@@ -20,17 +20,17 @@ pub fn spawn_chunks(
     tileset_registry: Res<TilesetRegistry>,
     terrain_tile_registry: Res<TerrainTileRegistry>,
 ) {
-    let local_map = current_map.map();
+    let local_map = current_map.local_map();
     // Chunks spawn per `Game` entry; nothing despawns on exit today (the
     // app never leaves `Game`). A rebuild strategy arrives with map
     // switching.
-    let w = local_map.width;
-    let h = local_map.height;
+    let w = local_map.columns as u32;
+    let h = local_map.rows as u32;
     // The chunk transform shifts chunk-local coordinates onto world map
     // coordinates (the Y row flip itself happens in `build_chunk_data`).
     let chunk_transform = Transform::from_xyz(
-        w as f32 * TILE_SIZE / 2.0,
-        -(h as f32 * TILE_SIZE / 2.0),
+        w as f32 * TILE_SIZE as f32 / 2.0,
+        -(h as f32 * TILE_SIZE as f32 / 2.0),
         0.0,
     );
 
@@ -40,8 +40,8 @@ pub fn spawn_chunks(
             .expect("tileset referenced by a binding is registered");
         commands.spawn((
             TilemapChunk {
-                chunk_size: UVec2::new(w as u32, h as u32),
-                tile_display_size: UVec2::splat(TILE_SIZE as u32),
+                chunk_size: UVec2::new(w, h),
+                tile_display_size: UVec2::splat(TILE_SIZE),
                 tileset: tileset.texture.clone(),
                 alpha_mode: group.alpha.into(),
             },

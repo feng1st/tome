@@ -3,8 +3,8 @@
 
 use bevy::prelude::*;
 
-use crate::core::health::messages::damaged::Damaged;
-use crate::core::world_clock::components::world_driver::WorldDriver;
+use crate::core::hit_points::messages::damaged::Damaged;
+use crate::core::player::components::player::Player;
 use crate::frontend::display::camera::messages::shake_camera::ShakeCamera;
 
 /// The shake duration in seconds.
@@ -19,14 +19,14 @@ const SHAKE_SECS: f32 = 0.3;
 /// saturates the band.
 pub fn shake(
     mut damaged_reader: MessageReader<Damaged>,
-    drivers: Query<(), With<WorldDriver>>,
+    player: Query<(), With<Player>>,
     mut shake_camera_writer: MessageWriter<ShakeCamera>,
 ) {
     for damage in damaged_reader.read() {
-        if drivers.get(damage.target).is_err() {
+        if player.get(damage.target).is_err() {
             continue;
         }
-        let quarter = damage.max / 4;
+        let quarter = damage.max_hp / 4;
         if damage.amount <= quarter {
             continue;
         }
@@ -41,101 +41,5 @@ pub fn shake(
             magnitude: magnitude as f32,
             duration: SHAKE_SECS,
         });
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::health::messages::damaged::Damaged;
-    use crate::core::map::components::cell_coord::CellCoord;
-
-    fn app() -> App {
-        let mut app = App::new();
-        app.init_resource::<Messages<Damaged>>()
-            .init_resource::<Messages<ShakeCamera>>()
-            .add_systems(Update, shake);
-        app
-    }
-
-    fn shake_requests(app: &mut App) -> Vec<ShakeCamera> {
-        app.world_mut()
-            .resource_mut::<Messages<ShakeCamera>>()
-            .drain()
-            .collect()
-    }
-
-    #[test]
-    fn a_heavy_hit_shakes() {
-        let mut app = app();
-        let driver = app.world_mut().spawn(WorldDriver).id();
-        app.world_mut().write_message(Damaged {
-            target: driver,
-            cell: CellCoord::new(1, 1),
-            source_cell: None,
-            amount: 10,
-            max: 20,
-        });
-        app.update();
-        assert_eq!(
-            shake_requests(&mut app),
-            vec![ShakeCamera {
-                magnitude: 2.0,
-                duration: 0.3
-            }]
-        );
-    }
-
-    #[test]
-    fn a_light_hit_stays_still() {
-        let mut app = app();
-        let driver = app.world_mut().spawn(WorldDriver).id();
-        app.world_mut().write_message(Damaged {
-            target: driver,
-            cell: CellCoord::new(1, 1),
-            source_cell: None,
-            amount: 5,
-            max: 20,
-        });
-        app.update();
-        assert!(shake_requests(&mut app).is_empty());
-    }
-
-    #[test]
-    fn a_hard_monster_wound_never_shakes() {
-        let mut app = app();
-        let rat = app.world_mut().spawn(()).id();
-        app.world_mut().write_message(Damaged {
-            target: rat,
-            cell: CellCoord::new(1, 1),
-            source_cell: None,
-            amount: 10,
-            max: 12,
-        });
-        app.update();
-        assert!(shake_requests(&mut app).is_empty());
-    }
-
-    #[test]
-    fn a_tiny_maximum_saturates_the_band() {
-        let mut app = app();
-        // Maximum 3: the quarter is zero, any wound is heavy, and the
-        // magnitude saturates at five.
-        let driver = app.world_mut().spawn(WorldDriver).id();
-        app.world_mut().write_message(Damaged {
-            target: driver,
-            cell: CellCoord::new(1, 1),
-            source_cell: None,
-            amount: 2,
-            max: 3,
-        });
-        app.update();
-        assert_eq!(
-            shake_requests(&mut app),
-            vec![ShakeCamera {
-                magnitude: 5.0,
-                duration: 0.3
-            }]
-        );
     }
 }

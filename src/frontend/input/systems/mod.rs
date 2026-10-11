@@ -1,3 +1,1 @@
-//! Input systems: device translation.
-
-pub mod mouse;
+pub mod translate_mouse;

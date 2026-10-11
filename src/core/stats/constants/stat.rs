@@ -1,10 +1,5 @@
-//! The six statistics: the fixed vocabulary every stat-carrying array
-//! is indexed by.
-
-/// The six statistics a playable creature is rolled at birth, in their
-/// fixed vocabulary order — the array order of every stat-carrying
-/// table and component.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// ToME2, defines.h, A_*
+#[derive(Clone, Copy, Debug)]
 pub enum Stat {
     Strength,
     Intelligence,
@@ -15,8 +10,9 @@ pub enum Stat {
 }
 
 impl Stat {
-    /// Every statistic, in vocabulary order.
-    pub const ALL: [Stat; 6] = [
+    pub const COUNT: usize = 6;
+
+    pub const ALL: [Stat; Self::COUNT] = [
         Stat::Strength,
         Stat::Intelligence,
         Stat::Wisdom,
@@ -25,8 +21,7 @@ impl Stat {
         Stat::Charisma,
     ];
 
-    /// The array slot this statistic occupies in stat-carrying arrays.
-    pub fn index(self) -> usize {
+    pub(crate) fn index(self) -> usize {
         self as usize
     }
 }

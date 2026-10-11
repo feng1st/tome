@@ -20,7 +20,7 @@
 /// interpolation, and the tileset frame-size constraint. `f32`: the
 /// display side's pixel math is floating point (the rare integer use,
 /// e.g. texture sizes, casts at the call site).
-pub const TILE_SIZE: f32 = 16.0;
+pub const TILE_SIZE: u32 = 16;
 
 /// Nominal zoom: at integer display scales one world pixel presents as
 /// `ZOOM` window pixels; at fractional scales the effective

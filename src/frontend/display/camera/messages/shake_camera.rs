@@ -7,7 +7,7 @@ use bevy::prelude::*;
 /// the behavior; anyone may write a request — the trigger decides when
 /// a shake is warranted, the camera decides what a shake is. A new
 /// request replaces whatever shake is running.
-#[derive(Message, Clone, Copy, Debug, PartialEq)]
+#[derive(Message, Clone, Copy, PartialEq, Debug)]
 pub struct ShakeCamera {
     pub magnitude: f32,
     pub duration: f32,

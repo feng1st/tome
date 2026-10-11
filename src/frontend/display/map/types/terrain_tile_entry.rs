@@ -12,7 +12,7 @@ use crate::frontend::display::map::constants::chunk_layer::ChunkLayer;
 pub struct TerrainTileEntry {
     pub terrain: String,
     pub tileset: String,
-    pub tile_index: u16,
+    pub tile_index: usize,
     #[serde(default)]
     pub autotile: bool,
     #[serde(default)]

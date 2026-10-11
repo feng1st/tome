@@ -1,4 +1,2 @@
-//! Player game-logic systems.
-
 pub mod commands;
-pub mod plan_action;
+pub mod interrupt_order;

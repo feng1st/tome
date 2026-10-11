@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 
-use crate::frontend::display::motion::components::curr_position::CurrPosition;
+use crate::frontend::display::motion::components::curr_position::CellPosition;
 use crate::frontend::display::tween::components::alpha_tween::AlphaTween;
 use crate::frontend::display::tween::components::pos_tween::PosTween;
 use crate::frontend::display::tween::messages::tween_finished::TweenFinished;
@@ -17,7 +17,7 @@ pub fn update_tweens(
     mut commands: Commands,
     mut tween_finished_writer: MessageWriter<TweenFinished>,
     mut alpha_tweens: Query<(Entity, &mut AlphaTween, &mut Sprite)>,
-    mut pos_tweens: Query<(Entity, &mut PosTween, &mut CurrPosition)>,
+    mut pos_tweens: Query<(Entity, &mut PosTween, &mut CellPosition)>,
 ) {
     let delta = time.delta_secs();
     for (entity, mut alpha_tween, mut sprite) in &mut alpha_tweens {
