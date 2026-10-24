@@ -11,13 +11,18 @@ context: |
   - openspec/ 下的文档一律英中对照书写：英文原文在前、中文译文在后，
     细则见 rules.specs。
   - 代码、标识符、代码注释一律用英文。
-  - 注释是必需的，不是可选项：每个文件、每个公开类型、每个系统都必须有
-    doc comment 说明职责；不显然的决策点必须有行内注释。
-  - 注释粒度：解释“为什么”和不显然的不变量（模型、约束、设计点），
-    不复述代码在做什么。分支级一句说决策点；自明的调用不注释。
-  - 注释自洽：注释的含义必须就地完整，不依赖过程文档（proposal/
-    design/tasks/登记表）与 spec——不出现"见某文档某节"式指引；同文件
-    内的指引不在此限。
+  - 注释只允许两类，其余一律不写：
+    1. 溯源：标注对齐的参考出处（ToME2 或 Pixel Dungeon），格式
+       `// <项目>[, <文件>], <符号>`；例：`// ToME2, types.h, player_class`；
+       `// Pixel Dungeon, Actor.time`（Java类和文件同名，文件名可以省略）
+    2. 关键信息 notation：不复述代码，只补缺失则无从理解的关键信息；
+       不写完整句子，字数减到不能再减，语法保持正确。例：
+       `// has a world-stopping effect, e.g. turn-taking attack anim`
+       （代码只看得见"挡/清"，看不出挡的是整个世界，"轮流播放的攻击
+       动画"这一典型场景也无从推导）；
+       `// the world advances only when someone's next turn does (in the performers' loops)`
+       （因果方向在代码里不可见：缺了它会把 advance_world 误读成时间
+       驱动源，而时间实际是 performers 的行动花费出来的）。
   - SDD 产物、注释、代码、测试一律写成最终状态，不带补丁感：
     只描述现在是什么，不得出现“改为 A 而非 B”“不再是 B”这类补丁描述，不得无故强调“A”好像历史实现并不是A一样。
   - config 只放稳定原则，不放具体逻辑——机制名、文件名、域名等
